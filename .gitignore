@@ -1,0 +1,9 @@
+// Dependencies
+packages/
+
+.build
+.vs/
+
+*.APS
+*.rc
+*.pfx
