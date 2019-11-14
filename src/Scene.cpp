@@ -18,9 +18,7 @@ namespace bdr
         }
     }
 
-    void loadGLTFModel(Scene& scene, const std::string& gltfFileName)
-    { 
+    void loadGLTFModel(Scene& scene, const std::string& gltfFolder, const std::string& gltfFileName)
+    {
     }
-
-
 }

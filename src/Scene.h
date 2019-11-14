@@ -25,5 +25,5 @@ namespace bdr
         // Need a list of Models
     };
 
-    void loadGLTFModel(Scene& scene, const std::string& gltfFileName);
+    void loadGLTFModel(Scene& scene, const std::string& gltfFolder, const std::string& gltfFileName);
 }

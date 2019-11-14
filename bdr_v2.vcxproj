@@ -76,6 +76,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
+    <OutDir>$(SolutionDir).build\$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -162,6 +163,7 @@
     <ClInclude Include="src\Game.h" />
     <ClInclude Include="src\Model.h" />
     <ClInclude Include="src\pch.h" />
+    <ClInclude Include="src\Scene.h" />
     <ClInclude Include="src\StepTimer.h" />
   </ItemGroup>
   <ItemGroup>
@@ -175,6 +177,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="src\Scene.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="directx.ico" />
