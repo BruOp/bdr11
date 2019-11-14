@@ -1,4 +1,9 @@
 #pragma once
-class Model
-{ };
+
+namespace bdr
+{
+    class Model
+    { };
+
+}
 

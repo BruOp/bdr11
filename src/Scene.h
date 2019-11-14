@@ -15,6 +15,13 @@ namespace bdr
             ASSERT(localTransforms.size() == globalTransforms.size() == parents.size());
             return localTransforms.size();
         };
+
+        void resize(size_t newSize)
+        {
+            localTransforms.resize(newSize);
+            globalTransforms.resize(newSize);
+            parents.resize(newSize);
+        };
     };
 
     void updateNodes(NodeList& nodeList);
