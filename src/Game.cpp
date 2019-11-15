@@ -31,7 +31,8 @@ void Game::Initialize(HWND window, int width, int height)
     CreateWindowSizeDependentResources();
 
     bdr::Scene scene{};
-    bdr::loadGLTFModel(scene, "FlightHelmet/", "project_FlightHelmet.gltf");
+    bdr::SceneLoader sceneLoader{ m_deviceResources.get() };
+    sceneLoader.loadGLTFModel(scene, "FlightHelmet/", "project_FlightHelmet.gltf");
 }
 
 #pragma region Frame Update

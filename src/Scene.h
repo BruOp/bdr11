@@ -2,8 +2,17 @@
 #include "pch.h"
 #include <vector>
 
+namespace tinygltf
+{
+    class Accessor;
+    class Primitive;
+    class Model;
+}
+
 namespace bdr
 {
+    class DX::DeviceResources;
+
     struct NodeList
     {
         std::vector<DirectX::SimpleMath::Matrix> localTransforms;
@@ -27,11 +36,37 @@ namespace bdr
 
     void updateNodes(NodeList& nodeList);
 
+    struct Mesh
+    {
+        std::vector<ID3D11Buffer*> vertexBuffers;
+        ID3D11Buffer* indexBuffer;
+
+        void destroy()
+        {
+            for (auto buffer : vertexBuffers) {
+                buffer->Release();
+            }
+            indexBuffer->Release();
+        }
+    };
+
     struct Scene
     {
         NodeList nodeList;
         // Need a list of Models
     };
 
-    void loadGLTFModel(Scene& scene, const std::string& gltfFolder, const std::string& gltfFileName);
+    struct SceneLoader
+    {
+        DX::DeviceResources* m_deviceResources;
+        tinygltf::Model inputModel;
+        
+        void loadGLTFModel(Scene& scene, const std::string& gltfFolder, const std::string& gltfFileName);
+
+    private:
+        int32_t processNode(Scene& scene, int32_t inputNodeIdx, int32_t nodeIdx, int32_t parentIdx) const;
+        Mesh processPrimitive(const tinygltf::Primitive& inputPrimitive) const;
+        void createBuffer(ID3D11Buffer** buffer, const tinygltf::Accessor& accessor) const;
+    };
+
 }
