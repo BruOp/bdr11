@@ -1,12 +1,14 @@
+#include "pch.h"
+
 #include "Scene.h"
 #include <iostream>
 
-#include "pch.h"
 
 #define TINYGLTF_IMPLEMENTATION
 #define TINYGLTF_NO_STB_IMAGE
 #define TINYGLTF_NO_STB_IMAGE_WRITE
 #include "tinygltf/tiny_gltf.h"
+#include "Scene.h"
 
 using namespace DirectX::SimpleMath;
 
@@ -25,7 +27,6 @@ namespace bdr
     {
         return true;
     };
-
 
     Matrix processLocalTransform(const tinygltf::Node& node)
     {
@@ -62,6 +63,32 @@ namespace bdr
         return localTransform;
     };
 
+    /*
+    Process the local transform and the parent relationship of our node, returning the next nodeIdx to index into our scene
+    */
+    int32_t processNode(Scene& scene, const tinygltf::Model& inputModel, int32_t inputNodeIdx, int32_t nodeIdx, int32_t parentIdx)
+    {
+        ASSERT(nodeIdx < int32_t(scene.nodeList.size()));
+        ASSERT(parentIdx < int32_t(scene.nodeList.size()));
+        const tinygltf::Node& node = inputModel.nodes[inputNodeIdx];
+
+        scene.nodeList.localTransforms[nodeIdx] = processLocalTransform(node);
+        scene.nodeList.parents[nodeIdx] = parentIdx;
+
+        // If there are children, add the reference to the current node
+        if (node.children.size() > 0) {
+            int32_t childIdx = nodeIdx + 1;
+            for (const int inputChildIdx : node.children) {
+                childIdx = processNode(scene, inputModel, inputChildIdx, childIdx, nodeIdx);
+            }
+            return childIdx;
+        }
+        else {
+            return ++nodeIdx;
+        }
+    }
+
+
     void updateNodes(NodeList& nodeList)
     {
         for (size_t i = 0; i < nodeList.size(); i++) {
@@ -97,30 +124,17 @@ namespace bdr
             throw std::runtime_error("Failed to load GLTF Model");
         }
 
-        if (gltfModel.scenes.size()) {
+        if (gltfModel.scenes.size() != 1) {
             throw std::runtime_error("Cannot handle a GLTF with more than one scene at the moment!");
         }
 
         const tinygltf::Scene& inputScene = gltfModel.scenes[gltfModel.defaultScene];
-        scene.nodeList.resize(inputScene.nodes.size());
-        for (const int nodeIdx : inputScene.nodes) {
-            const tinygltf::Node& node = gltfModel.nodes[nodeIdx];
-            Matrix& localTransform = scene.nodeList.localTransforms[nodeIdx];
-
-            // Process our current node's local transform
-            localTransform = processLocalTransform(node);
-
-            // If there are children, add the reference to the current node
-            if (node.children.size() > 0) {
-                for (const int childIdx : node.children) {
-                    ASSERT(childIdx > nodeIdx);
-                    ASSERT(childIdx < scene.nodeList.size());
-                    scene.nodeList.parents[childIdx] = nodeIdx;
-                }
-            }
+        scene.nodeList.resize(gltfModel.nodes.size());
+        int32_t nodeIdx = 0;
+        for (const int inputNodeIdx : inputScene.nodes) {
+            nodeIdx = processNode(scene, gltfModel, inputNodeIdx, nodeIdx, -1);
         }
 
         updateNodes(scene.nodeList);
     }
-
 }

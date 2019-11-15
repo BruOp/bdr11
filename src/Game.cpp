@@ -31,7 +31,7 @@ void Game::Initialize(HWND window, int width, int height)
     CreateWindowSizeDependentResources();
 
     bdr::Scene scene{};
-    //bdr::loadGLTFModel()
+    bdr::loadGLTFModel(scene, "FlightHelmet/", "project_FlightHelmet.gltf");
 }
 
 #pragma region Frame Update

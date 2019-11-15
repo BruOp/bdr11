@@ -12,7 +12,8 @@ namespace bdr
         
         size_t size() const
         {
-            ASSERT(localTransforms.size() == globalTransforms.size() == parents.size());
+            ASSERT(localTransforms.size() == globalTransforms.size());
+            ASSERT(localTransforms.size() == parents.size());
             return localTransforms.size();
         };
 
