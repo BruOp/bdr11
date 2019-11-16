@@ -54,37 +54,40 @@ namespace bdr
     struct AttributeInfo
     {
         std::string name;
+        std::string semanticName;
         bool required;
     };
 
     const AttributeInfo ATTR_INFO[]{
-        { "POSITION", true },
-        { "NORMAL", true },
-        { "TEXCOORD_0", true },
-        { "TANGENT", true },
+        { "POSITION", "SV_Position", true },
+        { "NORMAL", "NORMAL", true },
+        { "TEXCOORD_0", "TEXCOORD", true },
+        { "TANGENT", "TANGENT", true },
     };
 
-    uint32_t getByteSize(const tinygltf::Accessor& accessor)
+    uint32_t getByteStride(const tinygltf::Accessor& accessor)
     {
-        uint32_t byteSize = 1u;
         switch (accessor.componentType) {
         case TINYGLTF_COMPONENT_TYPE_BYTE:
         case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE:
-            byteSize = 1u;
-            break;
+            return 1u;
         case TINYGLTF_COMPONENT_TYPE_SHORT:
         case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT:
-            byteSize = 2u;
-            break;
+            return 2u;
         case TINYGLTF_COMPONENT_TYPE_INT:
         case TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT:
         case TINYGLTF_COMPONENT_TYPE_FLOAT:
-            byteSize = 4u;
-            break;
+            return 4u;
         case TINYGLTF_COMPONENT_TYPE_DOUBLE:
-            byteSize = 8u;
-            break;
+            return 8u;
+        default:
+            throw std::runtime_error("Don't know what the stride of this component type is!");
         }
+    }
+
+    uint32_t getByteSize(const tinygltf::Accessor& accessor)
+    {
+        uint32_t byteSize = getByteStride(accessor);
 
         switch (accessor.type) {
         case TINYGLTF_TYPE_SCALAR:
@@ -160,7 +163,9 @@ namespace bdr
         tinygltf::TinyGLTF loader;
         loader.SetImageLoader(loadImageDataCallback, nullptr);
         std::string err, warn;
-        bool res = loader.LoadASCIIFromFile(&inputModel, &err, &warn, gltfFolder + gltfFileName);
+        tinygltf::Model gltfModel;
+        bool res = loader.LoadASCIIFromFile(&gltfModel, &err, &warn, gltfFolder + gltfFileName);
+        inputModel = &gltfModel;
 
         if (!warn.empty()) {
             std::cout << warn << std::endl;
@@ -174,12 +179,12 @@ namespace bdr
             throw std::runtime_error("Failed to load GLTF Model");
         }
 
-        if (inputModel.scenes.size() != 1) {
+        if (inputModel->scenes.size() != 1) {
             throw std::runtime_error("Cannot handle a GLTF with more than one scene at the moment!");
         }
 
-        const tinygltf::Scene& inputScene = inputModel.scenes[inputModel.defaultScene];
-        scene.nodeList.resize(inputModel.nodes.size());
+        const tinygltf::Scene& inputScene = inputModel->scenes[inputModel->defaultScene];
+        scene.nodeList.resize(inputModel->nodes.size());
         int32_t nodeIdx = 0;
         for (const int inputNodeIdx : inputScene.nodes) {
             nodeIdx = processNode(scene, inputNodeIdx, nodeIdx, -1);
@@ -195,17 +200,18 @@ namespace bdr
     {
         ASSERT(nodeIdx < int32_t(scene.nodeList.size()));
         ASSERT(parentIdx < int32_t(scene.nodeList.size()));
-        const tinygltf::Node& node = inputModel.nodes[inputNodeIdx];
+        const tinygltf::Node& node = inputModel->nodes[inputNodeIdx];
 
         scene.nodeList.localTransforms[nodeIdx] = processLocalTransform(node);
         scene.nodeList.parents[nodeIdx] = parentIdx;
 
         if (node.mesh != -1) {
-            const tinygltf::Mesh& inputMesh = inputModel.meshes[node.mesh];
+            const tinygltf::Mesh& inputMesh = inputModel->meshes[node.mesh];
             for (const tinygltf::Primitive& primitive : inputMesh.primitives) {
-                Mesh mesh = processPrimitive(primitive);
+                Mesh mesh = processPrimitive(scene, primitive);
+                mesh.nodeIdx = nodeIdx;
+                scene.meshes.push_back(mesh);
             }
-
         }
 
         // If there are children, add the reference to the current node
@@ -222,11 +228,24 @@ namespace bdr
     }
 
 
-    Mesh SceneLoader::processPrimitive(const tinygltf::Primitive& inputPrimitive) const
+    Mesh SceneLoader::processPrimitive(Scene& scene, const tinygltf::Primitive& inputPrimitive) const
     {
         Mesh mesh{};
         // Index buffer
-        createBuffer(&mesh.indexBuffer, inputModel.accessors[inputPrimitive.indices]);
+        const tinygltf::Accessor& indexAccessor = inputModel->accessors[inputPrimitive.indices];
+        mesh.indexCount = uint32_t(indexAccessor.count);
+        switch (indexAccessor.componentType) {
+        case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT:
+            mesh.indexFormat = DXGI_FORMAT_R16_UINT;
+            break;
+        case TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT:
+            mesh.indexFormat = DXGI_FORMAT_R32_UINT;
+            break;
+        default:
+            throw std::runtime_error("Cannot support indices of this type!");
+        }
+
+        createBuffer(&mesh.indexBuffer, indexAccessor, D3D11_BIND_INDEX_BUFFER);
         
         D3D11_INPUT_ELEMENT_DESC inputLayouts[_countof(ATTR_INFO)];
         uint32_t vertBufferIdx = 0;
@@ -239,19 +258,30 @@ namespace bdr
             }
             
             int accessorIndex = inputPrimitive.attributes.at(attrName);
-            const tinygltf::Accessor& accessor = inputModel.accessors[accessorIndex];
-            createBuffer(&mesh.vertexBuffers[vertBufferIdx], accessor);
-
-            D3D11_INPUT_ELEMENT_DESC layout = { attrName.c_str(), 0, getFormat(i, accessor.componentType), vertBufferIdx, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
+            const tinygltf::Accessor& accessor = inputModel->accessors[accessorIndex];
+            createBuffer(&mesh.vertexBuffers[vertBufferIdx], accessor, D3D11_BIND_VERTEX_BUFFER);
+            mesh.strides[vertBufferIdx] = getByteSize(accessor);
+            inputLayouts[vertBufferIdx] = { attrInfo.semanticName.c_str(), 0, getFormat(i, accessor.componentType), vertBufferIdx, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
             ++vertBufferIdx;
         }
+
+        if (scene.pInputLayout == nullptr) {
+            DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateInputLayout(
+                inputLayouts,
+                vertBufferIdx,
+                materialInfo.shaderBytecode,
+                materialInfo.byteCodeLength,
+                scene.pInputLayout.ReleaseAndGetAddressOf()
+            ));
+        }
+        return mesh;
     }
 
-    void SceneLoader::createBuffer(ID3D11Buffer** dxBuffer, const tinygltf::Accessor& accessor) const
+    void SceneLoader::createBuffer(ID3D11Buffer** dxBuffer, const tinygltf::Accessor& accessor, const uint32_t usageFlag) const
     {
-        const tinygltf::BufferView& bufferView = inputModel.bufferViews[accessor.bufferView];
-        const tinygltf::Buffer& buffer = inputModel.buffers[bufferView.buffer];
-        D3D11_BUFFER_DESC bufferDesc = CD3D11_BUFFER_DESC(getByteSize(accessor), D3D11_BIND_INDEX_BUFFER);
+        const tinygltf::BufferView& bufferView = inputModel->bufferViews[accessor.bufferView];
+        const tinygltf::Buffer& buffer = inputModel->buffers[bufferView.buffer];
+        D3D11_BUFFER_DESC bufferDesc = CD3D11_BUFFER_DESC(getByteSize(accessor) * accessor.count, usageFlag);
 
         D3D11_SUBRESOURCE_DATA initData;
         initData.pSysMem = &buffer.data.at(accessor.byteOffset + bufferView.byteOffset);

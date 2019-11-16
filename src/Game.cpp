@@ -4,7 +4,6 @@
 
 #include "pch.h"
 #include "Game.h"
-#include "Scene.h"
 
 extern void ExitGame();
 
@@ -29,10 +28,6 @@ void Game::Initialize(HWND window, int width, int height)
 
     m_deviceResources->CreateWindowSizeDependentResources();
     CreateWindowSizeDependentResources();
-
-    bdr::Scene scene{};
-    bdr::SceneLoader sceneLoader{ m_deviceResources.get() };
-    sceneLoader.loadGLTFModel(scene, "FlightHelmet/", "project_FlightHelmet.gltf");
 }
 
 #pragma region Frame Update
@@ -49,10 +44,10 @@ void Game::Tick()
 // Updates the world.
 void Game::Update(DX::StepTimer const& timer)
 {
-    float frameTime = float(timer.GetElapsedSeconds());
-    float totalTime = float(timer.GetTotalSeconds());
+    //float frameTime = float(timer.GetElapsedSeconds());
+    //float totalTime = float(timer.GetTotalSeconds());
 
-    m_world = Matrix::CreateRotationY(cosf(static_cast<float>(totalTime)));
+    //m_world = Matrix::CreateRotationY(cosf(static_cast<float>(totalTime)));
 }
 #pragma endregion
 
@@ -72,42 +67,20 @@ void Game::Render()
 
     // TODO: Add your rendering code here.
     context->OMSetBlendState(m_states->Opaque(), nullptr, 0xFFFFFFFF);
-    context->OMSetDepthStencilState(m_states->DepthNone(), 0);
+    context->OMSetDepthStencilState(m_states->DepthDefault(), 0);
     context->RSSetState(m_rasterState.Get());
 
-    m_effect->SetWorld(m_world);
+    context->IASetInputLayout(m_scene.pInputLayout.Get());
 
-    m_effect->Apply(context);
-
-    context->IASetInputLayout(m_inputLayout.Get());
-
-    Vector3 xaxis(2.f, 0.f, 0.f);
-    Vector3 yaxis(0.f, 0.f, 2.f);
-    Vector3 origin = Vector3::Zero;
-
-    m_batch->Begin();
-    size_t divisions = 20;
-    for (size_t i = 0; i <= divisions; ++i) {
-        float fPercent = float(i) / float(divisions);
-        fPercent = (fPercent * 2.0f) - 1.0f;
-        Vector3 scale = xaxis * fPercent + origin;
-
-        VertexPositionColor v1{ scale - yaxis, Colors::White };
-        VertexPositionColor v2{ scale + yaxis, Colors::White };
-        m_batch->DrawLine(v1, v2);
+    uint32_t offsets[4]{ 0u, 0u, 0u, 0u };
+    for (const bdr::Mesh& mesh : m_scene.meshes) {
+        m_effect->SetMatrices(m_scene.nodeList.globalTransforms[mesh.nodeIdx], m_view, m_proj);
+        m_effect->Apply(context);
+        context->IASetIndexBuffer(mesh.indexBuffer, mesh.indexFormat, 0);
+        context->IASetVertexBuffers(0, 4, mesh.vertexBuffers.data(), mesh.strides, offsets);
+        context->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        context->DrawIndexed(mesh.indexCount, 0, 0);
     }
-
-    for (size_t i = 0; i <= divisions; ++i) {
-        float fPercent = float(i) / float(divisions);
-        fPercent = (fPercent * 2.0f) - 1.0f;
-
-        Vector3 scale = yaxis * fPercent + origin;
-
-        VertexPositionColor v1{ scale - xaxis, Colors::White };
-        VertexPositionColor v2{ scale + xaxis, Colors::White };
-        m_batch->DrawLine(v1, v2);
-    }
-    m_batch->End();
 
     m_deviceResources->PIXEndEvent();
 
@@ -125,7 +98,7 @@ void Game::Clear()
     auto renderTarget = m_deviceResources->GetRenderTargetView();
     auto depthStencil = m_deviceResources->GetDepthStencilView();
 
-    context->ClearRenderTargetView(renderTarget, Colors::CornflowerBlue);
+    context->ClearRenderTargetView(renderTarget, Colors::Black);
     context->ClearDepthStencilView(depthStencil, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
     context->OMSetRenderTargets(1, &renderTarget, depthStencil);
 
@@ -193,7 +166,7 @@ void Game::CreateDeviceDependentResources()
     ID3D11Device1* device = m_deviceResources->GetD3DDevice();
 
     CD3D11_RASTERIZER_DESC rastDesc{
-        D3D11_FILL_SOLID, D3D11_CULL_NONE, FALSE,
+        D3D11_FILL_SOLID, D3D11_CULL_BACK, TRUE,
         D3D11_DEFAULT_DEPTH_BIAS,
         D3D11_DEFAULT_DEPTH_BIAS_CLAMP,
         D3D11_DEFAULT_SLOPE_SCALED_DEPTH_BIAS,
@@ -202,26 +175,19 @@ void Game::CreateDeviceDependentResources()
     DX::ThrowIfFailed(device->CreateRasterizerState(&rastDesc, m_rasterState.ReleaseAndGetAddressOf()));
     m_states = std::make_unique<CommonStates>(device);
 
-    m_effect = std::make_unique<BasicEffect>(device);
-    m_effect->SetVertexColorEnabled(true);
+    m_effect = std::make_unique<DebugEffect>(device);
+    m_effect->SetVertexColorEnabled(false);
+    m_effect->SetMode(DebugEffect::Mode_Normals);
 
     void const* shaderByteCode;
     size_t byteCodeLength;
 
     m_effect->GetVertexShaderBytecode(&shaderByteCode, &byteCodeLength);
+    
+    bdr::SceneLoader sceneLoader{ m_deviceResources.get(), bdr::MaterialInfo{ shaderByteCode, byteCodeLength } };
+    sceneLoader.loadGLTFModel(m_scene, "FlightHelmet\\", "FlightHelmet.gltf");
 
-    DX::ThrowIfFailed(
-        device->CreateInputLayout(
-            VertexPositionColor::InputElements,
-            VertexPositionColor::InputElementCount,
-            shaderByteCode,
-            byteCodeLength,
-            m_inputLayout.ReleaseAndGetAddressOf()
-        )
-    );
-
-    m_batch = std::make_unique<PrimitiveBatch<VertexPositionColor>>(m_deviceResources->GetD3DDeviceContext());
-
+    
     m_world = Matrix::Identity;
 }
 
@@ -243,8 +209,7 @@ void Game::OnDeviceLost()
     m_rasterState.Reset();
     m_states.reset();
     m_effect.reset();
-    m_batch.reset();
-    m_inputLayout.Reset();
+    m_scene = bdr::Scene{};
 }
 
 void Game::OnDeviceRestored()

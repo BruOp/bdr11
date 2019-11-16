@@ -6,6 +6,7 @@
 
 #include "DeviceResources.h"
 #include "StepTimer.h"
+#include "Scene.h"
 
 
 // A basic game implementation that creates a D3D11 device and
@@ -55,9 +56,8 @@ private:
 
     Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_rasterState;
     std::unique_ptr<DirectX::CommonStates> m_states = nullptr;
-    std::unique_ptr<DirectX::BasicEffect> m_effect = nullptr;
-    std::unique_ptr<DirectX::PrimitiveBatch<DirectX::VertexPositionColor>> m_batch = nullptr;
-    Microsoft::WRL::ComPtr<ID3D11InputLayout> m_inputLayout;
+    std::unique_ptr<DirectX::DebugEffect> m_effect = nullptr;
+    bdr::Scene m_scene{};
 
     DirectX::SimpleMath::Matrix m_world = DirectX::SimpleMath::Matrix::Identity;
     DirectX::SimpleMath::Matrix m_view = DirectX::SimpleMath::Matrix::Identity;
