@@ -43,14 +43,28 @@ namespace bdr
         size_t byteCodeLength;
     };
 
+    enum class RenderFeature
+    {
+
+    };
+
+    enum MeshAttributes : uint8_t
+    {
+        POSITION = 1,
+        NORMAL = 2,
+        TEXCOORD_0 = 4,
+        TANGENT = 8,
+    };
+
     struct Mesh
     {
-        std::array<ID3D11Buffer*, 4> vertexBuffers;
+        static constexpr size_t numSupportedAttributes = 4;
+        std::array<ID3D11Buffer*, numSupportedAttributes> vertexBuffers;
         ID3D11Buffer* indexBuffer;
         DXGI_FORMAT indexFormat;
-        uint32_t strides[4];
+        uint32_t strides[numSupportedAttributes];
         uint32_t indexCount = 0;
-        uint32_t nodeIdx;
+        uint8_t supportedAttributes;
 
         void destroy()
         {
@@ -61,17 +75,25 @@ namespace bdr
         }
     };
 
+    struct RenderObject
+    {
+        int32_t SceneNodeIdx;
+        DirectX::SimpleMath::Matrix modelTransform;
+        Mesh mesh;
+    };
+
     class Scene
     {
     public:
         ~Scene()
         {
-            for (auto& mesh : meshes) {
-                mesh.destroy();
+            for (auto& renderObject : renderObjects) {
+                renderObject.mesh.destroy();
             }
         }
+
         NodeList nodeList;
-        std::vector<Mesh> meshes;
+        std::vector<RenderObject> renderObjects;
         Microsoft::WRL::ComPtr<ID3D11InputLayout> pInputLayout = nullptr;
         // Need a list of Models
     };

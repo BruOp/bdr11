@@ -59,7 +59,6 @@ private:
     std::unique_ptr<DirectX::DebugEffect> m_effect = nullptr;
     bdr::Scene m_scene{};
 
-    DirectX::SimpleMath::Matrix m_world = DirectX::SimpleMath::Matrix::Identity;
     DirectX::SimpleMath::Matrix m_view = DirectX::SimpleMath::Matrix::Identity;
     DirectX::SimpleMath::Matrix m_proj = DirectX::SimpleMath::Matrix::Identity;
 };

@@ -143,18 +143,23 @@ namespace bdr
         return localTransform;
     };
 
+    Matrix processGlobalTransform(const NodeList& nodeList, int32_t nodeIdx)
+    {
+        const int32_t parent = nodeList.parents[nodeIdx];
+        if (parent == -1) {
+            return nodeList.localTransforms[nodeIdx];
+        }
+        else {
+            ASSERT(parent < nodeList.globalTransforms.size());
+            ASSERT(parent < nodeIdx);
+            return nodeList.localTransforms[nodeIdx] * nodeList.globalTransforms[parent];
+        }
+    }
+
     void updateNodes(NodeList& nodeList)
     {
-        for (size_t i = 0; i < nodeList.size(); i++) {
-            const int32_t parent = nodeList.parents[i];
-            if (parent == -1) {
-                nodeList.globalTransforms[i] = nodeList.localTransforms[i];
-            }
-            else {
-                ASSERT(parent < nodeList.globalTransforms.size());
-                ASSERT(parent < i);
-                nodeList.globalTransforms[i] = nodeList.localTransforms[i] * nodeList.globalTransforms[parent];
-            }
+        for (int32_t i = 0; i < nodeList.size(); i++) {
+            nodeList.globalTransforms[i] = processGlobalTransform(nodeList, i);
         }
     };
 
@@ -190,7 +195,7 @@ namespace bdr
             nodeIdx = processNode(scene, inputNodeIdx, nodeIdx, -1);
         }
 
-        updateNodes(scene.nodeList);
+        //updateNodes(scene.nodeList);
     }
 
     /*
@@ -204,13 +209,17 @@ namespace bdr
 
         scene.nodeList.localTransforms[nodeIdx] = processLocalTransform(node);
         scene.nodeList.parents[nodeIdx] = parentIdx;
+        scene.nodeList.globalTransforms[nodeIdx] = processGlobalTransform(scene.nodeList, nodeIdx);
 
         if (node.mesh != -1) {
             const tinygltf::Mesh& inputMesh = inputModel->meshes[node.mesh];
             for (const tinygltf::Primitive& primitive : inputMesh.primitives) {
-                Mesh mesh = processPrimitive(scene, primitive);
-                mesh.nodeIdx = nodeIdx;
-                scene.meshes.push_back(mesh);
+                RenderObject renderObject{
+                    -1,
+                    scene.nodeList.globalTransforms[nodeIdx],
+                    processPrimitive(scene, primitive),
+                };
+                scene.renderObjects.push_back(renderObject);
             }
         }
 

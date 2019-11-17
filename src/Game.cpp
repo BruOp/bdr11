@@ -45,9 +45,10 @@ void Game::Tick()
 void Game::Update(DX::StepTimer const& timer)
 {
     //float frameTime = float(timer.GetElapsedSeconds());
-    //float totalTime = float(timer.GetTotalSeconds());
+    float totalTime = float(timer.GetTotalSeconds());
 
-    //m_world = Matrix::CreateRotationY(cosf(static_cast<float>(totalTime)));
+    float radius = 1.0f;
+    m_view = Matrix::CreateLookAt(Vector3{ radius * sinf(0.5 * totalTime), 0.5, radius * cosf(0.5 * totalTime) }, Vector3::Zero, Vector3::UnitY);
 }
 #pragma endregion
 
@@ -73,9 +74,15 @@ void Game::Render()
     context->IASetInputLayout(m_scene.pInputLayout.Get());
 
     uint32_t offsets[4]{ 0u, 0u, 0u, 0u };
-    for (const bdr::Mesh& mesh : m_scene.meshes) {
-        m_effect->SetMatrices(m_scene.nodeList.globalTransforms[mesh.nodeIdx], m_view, m_proj);
+    for (const bdr::RenderObject& renderObject : m_scene.renderObjects) {
+        if (renderObject.SceneNodeIdx != -1) {
+            m_effect->SetMatrices(m_scene.nodeList.globalTransforms[renderObject.SceneNodeIdx], m_view, m_proj);
+        }
+        else {
+            m_effect->SetMatrices(renderObject.modelTransform, m_view, m_proj);
+        }
         m_effect->Apply(context);
+        const bdr::Mesh& mesh = renderObject.mesh;
         context->IASetIndexBuffer(mesh.indexBuffer, mesh.indexFormat, 0);
         context->IASetVertexBuffers(0, 4, mesh.vertexBuffers.data(), mesh.strides, offsets);
         context->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -186,9 +193,6 @@ void Game::CreateDeviceDependentResources()
     
     bdr::SceneLoader sceneLoader{ m_deviceResources.get(), bdr::MaterialInfo{ shaderByteCode, byteCodeLength } };
     sceneLoader.loadGLTFModel(m_scene, "FlightHelmet\\", "FlightHelmet.gltf");
-
-    
-    m_world = Matrix::Identity;
 }
 
 // Allocate all memory resources that change on a window SizeChanged event.
