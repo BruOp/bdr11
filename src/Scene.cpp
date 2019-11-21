@@ -47,6 +47,23 @@ namespace bdr
             }
         case 3: // Tangent
             return DXGI_FORMAT_R32G32B32A32_FLOAT;
+        case 4: // JOINTS_0
+            if (componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE) {
+                return DXGI_FORMAT_R8G8B8A8_UINT;
+            }
+            else if (componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT) {
+                return DXGI_FORMAT_R16G16B16A16_UINT;
+            }
+        case 5: // WEIGHTS_0
+            if (componentType == TINYGLTF_COMPONENT_TYPE_FLOAT) {
+                return DXGI_FORMAT_R32G32B32A32_FLOAT;
+            }
+            else if (componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE) {
+                return DXGI_FORMAT_R8G8B8A8_UNORM;
+            }
+            else if (componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT) {
+                return DXGI_FORMAT_R16G16B16A16_UNORM;
+            }
         }
         throw std::runtime_error("Could not determine format");
     }
@@ -62,7 +79,9 @@ namespace bdr
         { "POSITION", "SV_Position", true },
         { "NORMAL", "NORMAL", true },
         { "TEXCOORD_0", "TEXCOORD", true },
-        { "TANGENT", "TANGENT", true },
+        { "TANGENT", "TANGENT", false },
+        { "JOINTS_0", "BLENDINDICES", false },
+        { "WEIGHTS_0", "BLENDWEIGHT", false },
     };
 
     uint32_t getByteStride(const tinygltf::Accessor& accessor)
@@ -121,7 +140,7 @@ namespace bdr
         }
 
         if (node.rotation.size() == 4) {
-            Matrix rotation = Matrix::Transform(localTransform,
+            localTransform = Matrix::Transform(localTransform,
                 Quaternion{
                     static_cast<float>(node.rotation[0]),
                     static_cast<float>(node.rotation[1]),
@@ -190,23 +209,51 @@ namespace bdr
 
         const tinygltf::Scene& inputScene = inputModel->scenes[inputModel->defaultScene];
         scene.nodeList.resize(inputModel->nodes.size());
+        // This idx map just maps the input node indices to our nodeIdx
+        // It will be used to create our skins
+        std::vector<int32_t> idxMap(inputModel->nodes.size());
         int32_t nodeIdx = 0;
         for (const int inputNodeIdx : inputScene.nodes) {
-            nodeIdx = processNode(scene, inputNodeIdx, nodeIdx, -1);
+            nodeIdx = processNode(scene, idxMap, inputNodeIdx, nodeIdx, -1);
+        }
+
+        for (const tinygltf::Skin& inputSkin : inputModel->skins) {
+            scene.skins.push_back(processSkin(idxMap, inputSkin));
         }
 
         //updateNodes(scene.nodeList);
     }
 
+    Skin SceneLoader::processSkin(std::vector<int32_t>& idxMap, const tinygltf::Skin& inputSkin)
+    {
+        Skin skin{
+            std::vector<int32_t>(inputSkin.joints.size()),
+            std::vector<Matrix>(inputSkin.joints.size()),
+        };
+
+        for (size_t i = 0; i < skin.jointIndices.size(); ++i) {
+            skin.jointIndices[i] = idxMap[inputSkin.joints[i]];
+        }
+        
+        const tinygltf::Accessor& accessor = inputModel->accessors[inputSkin.inverseBindMatrices];
+        const tinygltf::BufferView& bufferView = inputModel->bufferViews[accessor.bufferView];
+        const tinygltf::Buffer& buffer = inputModel->buffers[bufferView.buffer];
+        memcpy(skin.inverseBindMatrices.data(), &buffer.data.at(accessor.byteOffset + bufferView.byteOffset), getByteSize(accessor) * accessor.count);
+        return skin;
+    }
+
     /*
     Process the local transform and the parent relationship of our node, returning the next nodeIdx to index into our scene
     */
-    int32_t SceneLoader::processNode(Scene& scene, int32_t inputNodeIdx, int32_t nodeIdx, int32_t parentIdx) const
+    int32_t SceneLoader::processNode(Scene& scene, std::vector<int32_t>& idxMap, int32_t inputNodeIdx, int32_t nodeIdx, int32_t parentIdx) const
     {
         ASSERT(nodeIdx < int32_t(scene.nodeList.size()));
         ASSERT(parentIdx < int32_t(scene.nodeList.size()));
         const tinygltf::Node& node = inputModel->nodes[inputNodeIdx];
 
+        // Update our mapping
+        idxMap[inputNodeIdx] = nodeIdx;
+        // Update our node
         scene.nodeList.localTransforms[nodeIdx] = processLocalTransform(node);
         scene.nodeList.parents[nodeIdx] = parentIdx;
         scene.nodeList.globalTransforms[nodeIdx] = processGlobalTransform(scene.nodeList, nodeIdx);
@@ -216,18 +263,21 @@ namespace bdr
             for (const tinygltf::Primitive& primitive : inputMesh.primitives) {
                 RenderObject renderObject{
                     -1,
+                    node.skin,
                     scene.nodeList.globalTransforms[nodeIdx],
                     processPrimitive(scene, primitive),
                 };
+
                 scene.renderObjects.push_back(renderObject);
             }
         }
+
 
         // If there are children, add the reference to the current node
         if (node.children.size() > 0) {
             int32_t childIdx = nodeIdx + 1;
             for (const int inputChildIdx : node.children) {
-                childIdx = processNode(scene, inputChildIdx, childIdx, nodeIdx);
+                childIdx = processNode(scene, idxMap, inputChildIdx, childIdx, nodeIdx);
             }
             return childIdx;
         }
@@ -244,17 +294,40 @@ namespace bdr
         const tinygltf::Accessor& indexAccessor = inputModel->accessors[inputPrimitive.indices];
         mesh.indexCount = uint32_t(indexAccessor.count);
         switch (indexAccessor.componentType) {
+        case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE:
+            {
+                mesh.indexFormat = DXGI_FORMAT_R16_UINT;
+                // Need to recast our indices
+                std::vector<uint16_t> indices(indexAccessor.count);
+                // Copy the data from the buffer, casting each element
+                const tinygltf::BufferView& bufferView = inputModel->bufferViews[indexAccessor.bufferView];
+                const tinygltf::Buffer& buffer = inputModel->buffers[bufferView.buffer];
+                for (size_t i = 0; i < indexAccessor.count; ++i) {
+                    indices[i] = uint16_t(uint8_t(buffer.data.at(indexAccessor.byteOffset + bufferView.byteOffset + i)));
+                }
+                // Create our buffer
+                D3D11_BUFFER_DESC bufferDesc = CD3D11_BUFFER_DESC(sizeof(uint16_t) * indices.size(), D3D11_BIND_INDEX_BUFFER);
+                D3D11_SUBRESOURCE_DATA initData;
+                initData.pSysMem = indices.data();
+                initData.SysMemPitch = 0;
+                initData.SysMemSlicePitch = 0;
+
+                // Create the buffer with the device.
+                DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateBuffer(&bufferDesc, &initData, &mesh.indexBuffer));
+            }
+            break;
         case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT:
             mesh.indexFormat = DXGI_FORMAT_R16_UINT;
+            createBuffer(&mesh.indexBuffer, indexAccessor, D3D11_BIND_INDEX_BUFFER);
             break;
         case TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT:
             mesh.indexFormat = DXGI_FORMAT_R32_UINT;
+            createBuffer(&mesh.indexBuffer, indexAccessor, D3D11_BIND_INDEX_BUFFER);
             break;
         default:
             throw std::runtime_error("Cannot support indices of this type!");
         }
 
-        createBuffer(&mesh.indexBuffer, indexAccessor, D3D11_BIND_INDEX_BUFFER);
         
         D3D11_INPUT_ELEMENT_DESC inputLayouts[_countof(ATTR_INFO)];
         uint32_t vertBufferIdx = 0;
@@ -262,8 +335,13 @@ namespace bdr
             const AttributeInfo& attrInfo = ATTR_INFO[i];
             const std::string& attrName = attrInfo.name;
             
-            if (inputPrimitive.attributes.count(attrName) == 0 && attrInfo.required) {
-                throw std::runtime_error("Cannot handle meshes without " + attrName);
+            if (inputPrimitive.attributes.count(attrName) == 0) {
+                if (attrInfo.required) {
+                    throw std::runtime_error("Cannot handle meshes without " + attrName);
+                }
+                else {
+                    continue;
+                }
             }
             
             int accessorIndex = inputPrimitive.attributes.at(attrName);
@@ -273,6 +351,7 @@ namespace bdr
             inputLayouts[vertBufferIdx] = { attrInfo.semanticName.c_str(), 0, getFormat(i, accessor.componentType), vertBufferIdx, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
             ++vertBufferIdx;
         }
+        mesh.numPresentAttributes = vertBufferIdx;
 
         if (scene.pInputLayout == nullptr) {
             DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateInputLayout(
@@ -290,8 +369,8 @@ namespace bdr
     {
         const tinygltf::BufferView& bufferView = inputModel->bufferViews[accessor.bufferView];
         const tinygltf::Buffer& buffer = inputModel->buffers[bufferView.buffer];
-        D3D11_BUFFER_DESC bufferDesc = CD3D11_BUFFER_DESC(getByteSize(accessor) * accessor.count, usageFlag);
 
+        D3D11_BUFFER_DESC bufferDesc = CD3D11_BUFFER_DESC(getByteSize(accessor) * accessor.count, usageFlag);
         D3D11_SUBRESOURCE_DATA initData;
         initData.pSysMem = &buffer.data.at(accessor.byteOffset + bufferView.byteOffset);
         initData.SysMemPitch = 0;
@@ -300,5 +379,4 @@ namespace bdr
         // Create the buffer with the device.
         DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateBuffer(&bufferDesc, &initData, dxBuffer));
     }
-    
 }

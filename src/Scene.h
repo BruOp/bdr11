@@ -8,6 +8,7 @@ namespace tinygltf
 {
     struct Accessor;
     struct Primitive;
+    struct Skin;
     class Model;
 }
 
@@ -58,18 +59,20 @@ namespace bdr
 
     struct Mesh
     {
-        static constexpr size_t numSupportedAttributes = 4;
+        static constexpr size_t numSupportedAttributes = 6u;
         std::array<ID3D11Buffer*, numSupportedAttributes> vertexBuffers;
         ID3D11Buffer* indexBuffer;
         DXGI_FORMAT indexFormat;
         uint32_t strides[numSupportedAttributes];
         uint32_t indexCount = 0;
-        uint8_t supportedAttributes;
+        uint8_t presentAttributesMask;
+        uint8_t numPresentAttributes;
+
 
         void destroy()
         {
             for (auto buffer : vertexBuffers) {
-                buffer->Release();
+                buffer != nullptr && buffer->Release();
             }
             indexBuffer->Release();
         }
@@ -78,8 +81,15 @@ namespace bdr
     struct RenderObject
     {
         int32_t SceneNodeIdx;
+        int32_t skinIdx = -1;
         DirectX::SimpleMath::Matrix modelTransform;
         Mesh mesh;
+    };
+
+    struct Skin
+    {
+        std::vector<int32_t> jointIndices;
+        std::vector<DirectX::SimpleMath::Matrix> inverseBindMatrices;
     };
 
     class Scene
@@ -94,6 +104,7 @@ namespace bdr
 
         NodeList nodeList;
         std::vector<RenderObject> renderObjects;
+        std::vector<Skin> skins;
         Microsoft::WRL::ComPtr<ID3D11InputLayout> pInputLayout = nullptr;
         // Need a list of Models
     };
@@ -107,7 +118,8 @@ namespace bdr
         void loadGLTFModel(Scene& scene, const std::string& gltfFolder, const std::string& gltfFileName);
 
     private:
-        int32_t processNode(Scene& scene, int32_t inputNodeIdx, int32_t nodeIdx, int32_t parentIdx) const;
+        int32_t processNode(Scene& scene, std::vector<int32_t>& idxMap, int32_t inputNodeIdx, int32_t nodeIdx, int32_t parentIdx) const;
+        Skin processSkin(std::vector<int32_t>& idxMap, const tinygltf::Skin& inputSkin);
         Mesh processPrimitive(Scene& scene, const tinygltf::Primitive& inputPrimitive) const;
         void createBuffer(ID3D11Buffer** dxBuffer, const tinygltf::Accessor& accessor, const uint32_t usageFlag) const;
     };

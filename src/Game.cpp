@@ -48,7 +48,7 @@ void Game::Update(DX::StepTimer const& timer)
     float totalTime = float(timer.GetTotalSeconds());
 
     float radius = 1.0f;
-    m_view = Matrix::CreateLookAt(Vector3{ radius * sinf(0.5 * totalTime), 0.5, radius * cosf(0.5 * totalTime) }, Vector3::Zero, Vector3::UnitY);
+    m_view = Matrix::CreateLookAt(Vector3{ radius * sinf(0.5f * totalTime), 0.5f, radius * cosf(0.5f * totalTime) }, Vector3::Zero, Vector3::UnitY);
 }
 #pragma endregion
 
@@ -84,7 +84,7 @@ void Game::Render()
         m_effect->Apply(context);
         const bdr::Mesh& mesh = renderObject.mesh;
         context->IASetIndexBuffer(mesh.indexBuffer, mesh.indexFormat, 0);
-        context->IASetVertexBuffers(0, 4, mesh.vertexBuffers.data(), mesh.strides, offsets);
+        context->IASetVertexBuffers(0, mesh.numPresentAttributes, mesh.vertexBuffers.data(), mesh.strides, offsets);
         context->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         context->DrawIndexed(mesh.indexCount, 0, 0);
     }
@@ -192,7 +192,7 @@ void Game::CreateDeviceDependentResources()
     m_effect->GetVertexShaderBytecode(&shaderByteCode, &byteCodeLength);
     
     bdr::SceneLoader sceneLoader{ m_deviceResources.get(), bdr::MaterialInfo{ shaderByteCode, byteCodeLength } };
-    sceneLoader.loadGLTFModel(m_scene, "FlightHelmet\\", "FlightHelmet.gltf");
+    sceneLoader.loadGLTFModel(m_scene, "polly/", "project_polly.gltf");
 }
 
 // Allocate all memory resources that change on a window SizeChanged event.
