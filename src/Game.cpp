@@ -47,8 +47,11 @@ void Game::Update(DX::StepTimer const& timer)
     //float frameTime = float(timer.GetElapsedSeconds());
     float totalTime = float(timer.GetTotalSeconds());
 
-    float radius = 1.0f;
+    float radius = 3.0f;
     m_view = Matrix::CreateLookAt(Vector3{ radius * sinf(0.5f * totalTime), 0.5f, radius * cosf(0.5f * totalTime) }, Vector3::Zero, Vector3::UnitY);
+    for (const auto& animation : m_scene.animations) {
+        bdr::updateAnimation(m_scene.nodeList, animation, totalTime);
+    }
 }
 #pragma endregion
 
@@ -84,7 +87,7 @@ void Game::Render()
         m_effect->Apply(context);
         const bdr::Mesh& mesh = renderObject.mesh;
         context->IASetIndexBuffer(mesh.indexBuffer, mesh.indexFormat, 0);
-        context->IASetVertexBuffers(0, mesh.numPresentAttributes, mesh.vertexBuffers.data(), mesh.strides, offsets);
+        context->IASetVertexBuffers(0, mesh.vertexBuffers.numPresentAttributes, mesh.vertexBuffers.vertexBuffers.data(), mesh.vertexBuffers.strides, offsets);
         context->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         context->DrawIndexed(mesh.indexCount, 0, 0);
     }

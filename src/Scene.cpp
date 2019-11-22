@@ -68,22 +68,6 @@ namespace bdr
         throw std::runtime_error("Could not determine format");
     }
 
-    struct AttributeInfo
-    {
-        std::string name;
-        std::string semanticName;
-        bool required;
-    };
-
-    const AttributeInfo ATTR_INFO[]{
-        { "POSITION", "SV_Position", true },
-        { "NORMAL", "NORMAL", true },
-        { "TEXCOORD_0", "TEXCOORD", true },
-        { "TANGENT", "TANGENT", false },
-        { "JOINTS_0", "BLENDINDICES", false },
-        { "WEIGHTS_0", "BLENDWEIGHT", false },
-    };
-
     uint32_t getByteStride(const tinygltf::Accessor& accessor)
     {
         switch (accessor.componentType) {
@@ -127,44 +111,74 @@ namespace bdr
         return 0;
     }
 
-    Matrix processLocalTransform(const tinygltf::Node& node)
+    void copyAccessorData(const tinygltf::Model& inputModel, const tinygltf::Accessor& accessor, void* dst)
+    {
+        const tinygltf::BufferView& bufferView = inputModel.bufferViews[accessor.bufferView];
+        const tinygltf::Buffer& buffer = inputModel.buffers[bufferView.buffer];
+
+        memcpy(dst, &buffer.data.at(accessor.byteOffset + bufferView.byteOffset), accessor.count * getByteStride(accessor));
+    }
+
+    template<class T>
+    void copyAccessorDataToVector(const tinygltf::Model& inputModel, const tinygltf::Accessor& accessor, std::vector<T>& dst, uint32_t numElements = 1)
+    {
+        // Num elements is useful for flattening Vec3 and Vec4 arrays
+        const tinygltf::BufferView& bufferView = inputModel.bufferViews[accessor.bufferView];
+        const tinygltf::Buffer& buffer = inputModel.buffers[bufferView.buffer];
+
+        dst.resize(accessor.count * numElements);
+        memcpy(dst.data(), &buffer.data.at(accessor.byteOffset + bufferView.byteOffset), accessor.count * getByteStride(accessor));
+    }
+
+    void processLocalTransformAttributes(const tinygltf::Node& inputNode, Node& outputNode)
+    {
+        if (inputNode.scale.size() == 3) {
+            outputNode.scale = Vector3{
+                static_cast<float>(inputNode.scale[0]),
+                static_cast<float>(inputNode.scale[1]),
+                static_cast<float>(inputNode.scale[2]),
+            };
+            outputNode.transformMask |= TransformType::Scale;
+        }
+
+        if (inputNode.rotation.size() == 4) {
+            outputNode.rotation = Quaternion{
+                static_cast<float>(inputNode.rotation[0]),
+                static_cast<float>(inputNode.rotation[1]),
+                static_cast<float>(inputNode.rotation[2]),
+                static_cast<float>(inputNode.rotation[3]),
+            };
+            outputNode.transformMask |= TransformType::Rotation;
+        }
+
+        if (inputNode.translation.size() == 3) {
+            outputNode.translation = Vector3{
+                static_cast<float>(inputNode.translation[0]),
+                static_cast<float>(inputNode.translation[1]),
+                static_cast<float>(inputNode.translation[2]),
+            };
+            outputNode.transformMask |= TransformType::Translation;
+        }
+    }
+
+    Matrix calcLocalTransform(const Node& node)
     {
         Matrix localTransform = Matrix::Identity;
-        if (node.scale.size() == 3) {
-            Matrix scale = Matrix::CreateScale(
-                static_cast<float>(node.scale[0]),
-                static_cast<float>(node.scale[1]),
-                static_cast<float>(node.scale[2])
-            );
-            localTransform *= scale;
+        if (node.transformMask & TransformType::Scale) {
+            localTransform *= Matrix::CreateScale(node.scale);
         }
-
-        if (node.rotation.size() == 4) {
-            localTransform = Matrix::Transform(localTransform,
-                Quaternion{
-                    static_cast<float>(node.rotation[0]),
-                    static_cast<float>(node.rotation[1]),
-                    static_cast<float>(node.rotation[2]),
-                    static_cast<float>(node.rotation[3]),
-                }
-            );
+        if (node.transformMask & TransformType::Rotation) {
+            localTransform = Matrix::Transform(localTransform, node.rotation);
         }
-
-        if (node.translation.size() == 3) {
-            localTransform.Translation(
-                Vector3{
-                    static_cast<float>(node.translation[0]),
-                    static_cast<float>(node.translation[1]),
-                    static_cast<float>(node.translation[2]),
-                }
-            );
+        if (node.transformMask & TransformType::Translation) {
+            localTransform *= Matrix::CreateTranslation(node.translation);
         }
         return localTransform;
     };
 
     Matrix processGlobalTransform(const NodeList& nodeList, int32_t nodeIdx)
     {
-        const int32_t parent = nodeList.parents[nodeIdx];
+        const int32_t parent = nodeList.nodes[nodeIdx].parent;
         if (parent == -1) {
             return nodeList.localTransforms[nodeIdx];
         }
@@ -178,9 +192,59 @@ namespace bdr
     void updateNodes(NodeList& nodeList)
     {
         for (int32_t i = 0; i < nodeList.size(); i++) {
+            // We can do this since we never re-order nodes and parents are guaranteed to be before their children!
+            nodeList.localTransforms[i] = calcLocalTransform(nodeList.nodes[i]);
             nodeList.globalTransforms[i] = processGlobalTransform(nodeList, i);
         }
-    };
+    }
+
+
+    void updateAnimation(NodeList& nodeList, const Animation& animation, const float currentTime)
+    {
+        for (const auto& channel : animation.channels) {
+            const float animationTime = fmod(currentTime, channel.maxInput);
+            size_t nextIdx = 0;
+            while (nextIdx < channel.input.size() && channel.input[nextIdx] < animationTime) {
+                ++nextIdx;
+            }
+            size_t previousIdx = nextIdx == 0 ? channel.input.size() - 1 : nextIdx - 1;
+
+            float previousTime = channel.input[previousIdx];
+            float nextTime = channel.input[nextIdx];
+            // Interpolation Value
+            float t = (currentTime - previousTime) / (nextTime - previousTime);
+
+            switch (channel.targetType) {
+            case TransformType::Scale:
+            {
+                const Vector3 previous = Vector3{ channel.output[previousIdx] };
+                const Vector3 next = Vector3{ channel.output[nextIdx] };
+                nodeList.nodes[channel.targetNodeIdx].scale = Vector3::Lerp(previous, next, t);
+                break;
+            }
+            case TransformType::Rotation:
+            {
+                const Quaternion& previousRot = channel.output[previousIdx];
+                const Quaternion& nextRot = channel.output[nextIdx];
+                nodeList.nodes[channel.targetNodeIdx].rotation = Quaternion::Slerp(previousRot, nextRot, t);
+                break;
+            }
+            case TransformType::Translation:
+            {
+                const Vector3 previous = Vector3{ channel.output[previousIdx] };
+                const Vector3 next = Vector3{ channel.output[nextIdx] };
+                nodeList.nodes[channel.targetNodeIdx].translation = Vector3::Lerp(previous, next, t);
+                break;
+            }
+            default:
+                Utility::Printf("Skipping weights animation node");
+                continue;
+            }
+        }
+
+        updateNodes(nodeList);
+    }
+
 
     void SceneLoader::loadGLTFModel(Scene& scene, const std::string& gltfFolder, const std::string& gltfFileName)
     {
@@ -221,7 +285,9 @@ namespace bdr
             scene.skins.push_back(processSkin(idxMap, inputSkin));
         }
 
-        //updateNodes(scene.nodeList);
+        for (const tinygltf::Animation& inputAnimation : inputModel->animations) {
+            scene.animations.push_back(processAnimation(idxMap, inputAnimation));
+        }
     }
 
     Skin SceneLoader::processSkin(std::vector<int32_t>& idxMap, const tinygltf::Skin& inputSkin)
@@ -234,12 +300,102 @@ namespace bdr
         for (size_t i = 0; i < skin.jointIndices.size(); ++i) {
             skin.jointIndices[i] = idxMap[inputSkin.joints[i]];
         }
-        
+
         const tinygltf::Accessor& accessor = inputModel->accessors[inputSkin.inverseBindMatrices];
         const tinygltf::BufferView& bufferView = inputModel->bufferViews[accessor.bufferView];
         const tinygltf::Buffer& buffer = inputModel->buffers[bufferView.buffer];
         memcpy(skin.inverseBindMatrices.data(), &buffer.data.at(accessor.byteOffset + bufferView.byteOffset), getByteSize(accessor) * accessor.count);
         return skin;
+    }
+
+    Animation SceneLoader::processAnimation(const std::vector<int32_t>& idxMap, const tinygltf::Animation& animation)
+    {
+        Animation output{};
+
+        output.channels.reserve(animation.channels.size());
+        for (size_t i = 0; i < animation.channels.size(); ++i) {
+            const tinygltf::AnimationChannel& inputChannel = animation.channels[i];
+            const tinygltf::AnimationSampler& inputSampler = animation.samplers[inputChannel.sampler];
+
+            uint32_t numElements = 3;
+            TransformType channelType;
+            if (inputChannel.target_path.compare("scale") == 0) {
+                channelType = TransformType::Scale;
+            }
+            else if (inputChannel.target_path.compare("rotation") == 0) {
+                channelType = TransformType::Rotation;
+                numElements = 4;
+            }
+            else if (inputChannel.target_path.compare("translation") == 0) {
+                channelType = TransformType::Translation;
+            }
+            else {
+                Utility::Print("Don't support weights yet!");
+                continue;
+            }
+
+            AnimationInterpolationType interpolationType = AnimationInterpolationType::CubicSpline;
+            if (inputSampler.interpolation.compare("LINEAR")) {
+                interpolationType = AnimationInterpolationType::Linear;
+            }
+            else if (inputSampler.interpolation.compare("STEP")) {
+                interpolationType = AnimationInterpolationType::Step;
+            }
+
+            const tinygltf::Accessor& inputAccessor = inputModel->accessors[inputSampler.input];
+
+            if (inputAccessor.componentType != TINYGLTF_COMPONENT_TYPE_FLOAT) {
+                throw std::runtime_error("Don't support non float samplers just yet");
+            }
+
+            const tinygltf::Accessor& outputAccessor = inputModel->accessors[inputSampler.input];
+
+            if (outputAccessor.componentType != TINYGLTF_COMPONENT_TYPE_FLOAT) {
+                throw std::runtime_error("Don't support non float samplers just yet");
+            }
+
+            AnimationChannel animationChannel{
+                idxMap[inputChannel.target_node],
+                inputAccessor.maxValues[0],
+                channelType,
+                interpolationType,
+            };
+
+            copyAccessorDataToVector<float>(*inputModel, inputAccessor, animationChannel.input);
+            std::vector<float> data{};
+
+            animationChannel.output.reserve(outputAccessor.count);
+            if (animationChannel.targetType == TransformType::Rotation) {
+
+                copyAccessorDataToVector<float>(*inputModel, inputAccessor, data, 4);
+
+                for (size_t j = 0; j < outputAccessor.count; j++) {
+                    animationChannel.output.emplace_back(
+                        data[j * 4 + 0],
+                        data[j * 4 + 1],
+                        data[j * 4 + 2],
+                        data[j * 4 + 3]
+                    );
+                }
+            }
+            else {
+                copyAccessorDataToVector<float>(*inputModel, inputAccessor, data, 3);
+                const tinygltf::BufferView& bufferView = inputModel->bufferViews[inputAccessor.bufferView];
+                const tinygltf::Buffer& buffer = inputModel->buffers[bufferView.buffer];
+                for (size_t j = 0; j < outputAccessor.count; j++) {
+                    animationChannel.output.emplace_back(
+                        data[j * 3 + 0],
+                        data[j * 3 + 1],
+                        data[j * 3 + 2],
+                        0.0f
+                    );
+                }
+            }
+
+
+            output.channels.push_back(animationChannel);
+        }
+        return output;
     }
 
     /*
@@ -254,15 +410,17 @@ namespace bdr
         // Update our mapping
         idxMap[inputNodeIdx] = nodeIdx;
         // Update our node
-        scene.nodeList.localTransforms[nodeIdx] = processLocalTransform(node);
-        scene.nodeList.parents[nodeIdx] = parentIdx;
+        Node& outputNode = scene.nodeList.nodes[nodeIdx];
+        outputNode.parent = parentIdx;
+        processLocalTransformAttributes(node, outputNode);
+        scene.nodeList.localTransforms[nodeIdx] = calcLocalTransform(outputNode);
         scene.nodeList.globalTransforms[nodeIdx] = processGlobalTransform(scene.nodeList, nodeIdx);
 
         if (node.mesh != -1) {
             const tinygltf::Mesh& inputMesh = inputModel->meshes[node.mesh];
             for (const tinygltf::Primitive& primitive : inputMesh.primitives) {
                 RenderObject renderObject{
-                    -1,
+                    nodeIdx,
                     node.skin,
                     scene.nodeList.globalTransforms[nodeIdx],
                     processPrimitive(scene, primitive),
@@ -295,27 +453,27 @@ namespace bdr
         mesh.indexCount = uint32_t(indexAccessor.count);
         switch (indexAccessor.componentType) {
         case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE:
-            {
-                mesh.indexFormat = DXGI_FORMAT_R16_UINT;
-                // Need to recast our indices
-                std::vector<uint16_t> indices(indexAccessor.count);
-                // Copy the data from the buffer, casting each element
-                const tinygltf::BufferView& bufferView = inputModel->bufferViews[indexAccessor.bufferView];
-                const tinygltf::Buffer& buffer = inputModel->buffers[bufferView.buffer];
-                for (size_t i = 0; i < indexAccessor.count; ++i) {
-                    indices[i] = uint16_t(uint8_t(buffer.data.at(indexAccessor.byteOffset + bufferView.byteOffset + i)));
-                }
-                // Create our buffer
-                D3D11_BUFFER_DESC bufferDesc = CD3D11_BUFFER_DESC(sizeof(uint16_t) * indices.size(), D3D11_BIND_INDEX_BUFFER);
-                D3D11_SUBRESOURCE_DATA initData;
-                initData.pSysMem = indices.data();
-                initData.SysMemPitch = 0;
-                initData.SysMemSlicePitch = 0;
-
-                // Create the buffer with the device.
-                DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateBuffer(&bufferDesc, &initData, &mesh.indexBuffer));
+        {
+            mesh.indexFormat = DXGI_FORMAT_R16_UINT;
+            // Need to recast our indices
+            std::vector<uint16_t> indices(indexAccessor.count);
+            // Copy the data from the buffer, casting each element
+            const tinygltf::BufferView& bufferView = inputModel->bufferViews[indexAccessor.bufferView];
+            const tinygltf::Buffer& buffer = inputModel->buffers[bufferView.buffer];
+            for (size_t i = 0; i < indexAccessor.count; ++i) {
+                indices[i] = uint16_t(uint8_t(buffer.data.at(indexAccessor.byteOffset + bufferView.byteOffset + i)));
             }
-            break;
+            // Create our buffer
+            D3D11_BUFFER_DESC bufferDesc = CD3D11_BUFFER_DESC(sizeof(uint16_t) * indices.size(), D3D11_BIND_INDEX_BUFFER);
+            D3D11_SUBRESOURCE_DATA initData;
+            initData.pSysMem = indices.data();
+            initData.SysMemPitch = 0;
+            initData.SysMemSlicePitch = 0;
+
+            // Create the buffer with the device.
+            DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateBuffer(&bufferDesc, &initData, &mesh.indexBuffer));
+        }
+        break;
         case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT:
             mesh.indexFormat = DXGI_FORMAT_R16_UINT;
             createBuffer(&mesh.indexBuffer, indexAccessor, D3D11_BIND_INDEX_BUFFER);
@@ -328,13 +486,13 @@ namespace bdr
             throw std::runtime_error("Cannot support indices of this type!");
         }
 
-        
+
         D3D11_INPUT_ELEMENT_DESC inputLayouts[_countof(ATTR_INFO)];
         uint32_t vertBufferIdx = 0;
         for (size_t i = 0; i < _countof(ATTR_INFO); i++) {
             const AttributeInfo& attrInfo = ATTR_INFO[i];
             const std::string& attrName = attrInfo.name;
-            
+
             if (inputPrimitive.attributes.count(attrName) == 0) {
                 if (attrInfo.required) {
                     throw std::runtime_error("Cannot handle meshes without " + attrName);
@@ -343,15 +501,15 @@ namespace bdr
                     continue;
                 }
             }
-            
+
             int accessorIndex = inputPrimitive.attributes.at(attrName);
             const tinygltf::Accessor& accessor = inputModel->accessors[accessorIndex];
-            createBuffer(&mesh.vertexBuffers[vertBufferIdx], accessor, D3D11_BIND_VERTEX_BUFFER);
-            mesh.strides[vertBufferIdx] = getByteSize(accessor);
+            createBuffer(&mesh.vertexBuffers.vertexBuffers[vertBufferIdx], accessor, D3D11_BIND_VERTEX_BUFFER);
+            mesh.vertexBuffers.strides[vertBufferIdx] = getByteSize(accessor);
             inputLayouts[vertBufferIdx] = { attrInfo.semanticName.c_str(), 0, getFormat(i, accessor.componentType), vertBufferIdx, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
             ++vertBufferIdx;
         }
-        mesh.numPresentAttributes = vertBufferIdx;
+        mesh.vertexBuffers.numPresentAttributes = vertBufferIdx;
 
         if (scene.pInputLayout == nullptr) {
             DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateInputLayout(
@@ -375,7 +533,7 @@ namespace bdr
         initData.pSysMem = &buffer.data.at(accessor.byteOffset + bufferView.byteOffset);
         initData.SysMemPitch = 0;
         initData.SysMemSlicePitch = 0;
-        
+
         // Create the buffer with the device.
         DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateBuffer(&bufferDesc, &initData, dxBuffer));
     }
