@@ -161,91 +161,6 @@ namespace bdr
         }
     }
 
-    Matrix calcLocalTransform(const Node& node)
-    {
-        Matrix localTransform = Matrix::Identity;
-        if (node.transformMask & TransformType::Scale) {
-            localTransform *= Matrix::CreateScale(node.scale);
-        }
-        if (node.transformMask & TransformType::Rotation) {
-            localTransform = Matrix::Transform(localTransform, node.rotation);
-        }
-        if (node.transformMask & TransformType::Translation) {
-            localTransform *= Matrix::CreateTranslation(node.translation);
-        }
-        return localTransform;
-    };
-
-    Matrix processGlobalTransform(const NodeList& nodeList, int32_t nodeIdx)
-    {
-        const int32_t parent = nodeList.nodes[nodeIdx].parent;
-        if (parent == -1) {
-            return nodeList.localTransforms[nodeIdx];
-        }
-        else {
-            ASSERT(parent < nodeList.globalTransforms.size());
-            ASSERT(parent < nodeIdx);
-            return nodeList.localTransforms[nodeIdx] * nodeList.globalTransforms[parent];
-        }
-    }
-
-    void updateNodes(NodeList& nodeList)
-    {
-        for (int32_t i = 0; i < nodeList.size(); i++) {
-            // We can do this since we never re-order nodes and parents are guaranteed to be before their children!
-            nodeList.localTransforms[i] = calcLocalTransform(nodeList.nodes[i]);
-            nodeList.globalTransforms[i] = processGlobalTransform(nodeList, i);
-        }
-    }
-
-
-    void updateAnimation(NodeList& nodeList, const Animation& animation, const float currentTime)
-    {
-        for (const auto& channel : animation.channels) {
-            const float animationTime = fmod(currentTime, channel.maxInput);
-            size_t nextIdx = 0;
-            while (nextIdx < channel.input.size() && channel.input[nextIdx] < animationTime) {
-                ++nextIdx;
-            }
-            size_t previousIdx = nextIdx == 0 ? channel.input.size() - 1 : nextIdx - 1;
-
-            float previousTime = channel.input[previousIdx];
-            float nextTime = channel.input[nextIdx];
-            // Interpolation Value
-            float t = (currentTime - previousTime) / (nextTime - previousTime);
-
-            switch (channel.targetType) {
-            case TransformType::Scale:
-            {
-                const Vector3 previous = Vector3{ channel.output[previousIdx] };
-                const Vector3 next = Vector3{ channel.output[nextIdx] };
-                nodeList.nodes[channel.targetNodeIdx].scale = Vector3::Lerp(previous, next, t);
-                break;
-            }
-            case TransformType::Rotation:
-            {
-                const Quaternion& previousRot = channel.output[previousIdx];
-                const Quaternion& nextRot = channel.output[nextIdx];
-                nodeList.nodes[channel.targetNodeIdx].rotation = Quaternion::Slerp(previousRot, nextRot, t);
-                break;
-            }
-            case TransformType::Translation:
-            {
-                const Vector3 previous = Vector3{ channel.output[previousIdx] };
-                const Vector3 next = Vector3{ channel.output[nextIdx] };
-                nodeList.nodes[channel.targetNodeIdx].translation = Vector3::Lerp(previous, next, t);
-                break;
-            }
-            default:
-                Utility::Printf("Skipping weights animation node");
-                continue;
-            }
-        }
-
-        updateNodes(nodeList);
-    }
-
-
     void SceneLoader::loadGLTFModel(Scene& scene, const std::string& gltfFolder, const std::string& gltfFileName)
     {
         tinygltf::TinyGLTF loader;
@@ -334,12 +249,12 @@ namespace bdr
                 continue;
             }
 
-            AnimationInterpolationType interpolationType = AnimationInterpolationType::CubicSpline;
+            Animation::InterpolationType interpolationType = Animation::InterpolationType::CubicSpline;
             if (inputSampler.interpolation.compare("LINEAR")) {
-                interpolationType = AnimationInterpolationType::Linear;
+                interpolationType = Animation::InterpolationType::Linear;
             }
             else if (inputSampler.interpolation.compare("STEP")) {
-                interpolationType = AnimationInterpolationType::Step;
+                interpolationType = Animation::InterpolationType::Step;
             }
 
             const tinygltf::Accessor& inputAccessor = inputModel->accessors[inputSampler.input];
@@ -354,7 +269,7 @@ namespace bdr
                 throw std::runtime_error("Don't support non float samplers just yet");
             }
 
-            AnimationChannel animationChannel{
+            Animation::Channel animationChannel{
                 idxMap[inputChannel.target_node],
                 inputAccessor.maxValues[0],
                 channelType,
@@ -391,7 +306,6 @@ namespace bdr
                     );
                 }
             }
-
 
             output.channels.push_back(animationChannel);
         }
@@ -490,7 +404,7 @@ namespace bdr
         D3D11_INPUT_ELEMENT_DESC inputLayouts[_countof(ATTR_INFO)];
         uint32_t vertBufferIdx = 0;
         for (size_t i = 0; i < _countof(ATTR_INFO); i++) {
-            const AttributeInfo& attrInfo = ATTR_INFO[i];
+            const GltfAttributeInfo& attrInfo = ATTR_INFO[i];
             const std::string& attrName = attrInfo.name;
 
             if (inputPrimitive.attributes.count(attrName) == 0) {

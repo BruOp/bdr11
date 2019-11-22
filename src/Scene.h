@@ -3,6 +3,9 @@
 #include <vector>
 #include <array>
 #include "DeviceResources.h"
+#include "NodeList.h"
+#include "Animation.h"
+
 
 namespace tinygltf
 {
@@ -15,77 +18,37 @@ namespace tinygltf
 
 namespace bdr
 {
-
-    enum TransformType : uint8_t
-    {
-        Rotation = 1,
-        Translation = 2,
-        Scale = 4,
-        // Weights not supported
-    };
-
-    struct Node
-    {
-        DirectX::SimpleMath::Vector4 rotation;
-        DirectX::SimpleMath::Vector3 scale;
-        DirectX::SimpleMath::Vector3 translation;
-        int32_t parent = -1;
-        uint8_t transformMask = 0;
-    };
-
-    struct NodeList
-    {
-        std::vector<DirectX::SimpleMath::Matrix> localTransforms;
-        std::vector<DirectX::SimpleMath::Matrix> globalTransforms;
-        std::vector<Node> nodes;
-
-        size_t size() const
-        {
-            ASSERT(localTransforms.size() == globalTransforms.size());
-            ASSERT(localTransforms.size() == nodes.size());
-            return localTransforms.size();
-        };
-
-        void resize(size_t newSize)
-        {
-            localTransforms.resize(newSize);
-            globalTransforms.resize(newSize);
-            nodes.resize(newSize);
-        };
-    };
-
-    void updateNodes(NodeList& nodeList);
-
     struct MaterialInfo
     {
         void const* shaderBytecode;
         size_t byteCodeLength;
     };
 
-    struct AttributeInfo
-    {
-        std::string name;
-        std::string semanticName;
-        bool required;
-    };
-
-    const AttributeInfo ATTR_INFO[]{
-        { "POSITION", "SV_Position", true },
-        { "NORMAL", "NORMAL", true },
-        { "TEXCOORD_0", "TEXCOORD", true },
-        { "TANGENT", "TANGENT", false },
-        { "JOINTS_0", "BLENDINDICES", false },
-        { "WEIGHTS_0", "BLENDWEIGHT", false },
-    };
-
     enum MeshAttributes : uint8_t
     {
         POSITION = 1,
         NORMAL = 2,
-        TEXCOORD_0 = 4,
+        TEXCOORD = 4,
         TANGENT = 8,
         BLENDINDICES = 16,
         BLENDWEIGHT = 32,
+    };
+
+    struct GltfAttributeInfo
+    {
+        std::string name;
+        std::string semanticName;
+        bool required;
+        MeshAttributes attrBit;
+    };
+
+    const GltfAttributeInfo ATTR_INFO[]{
+        { "POSITION", "SV_Position", true, MeshAttributes::POSITION },
+        { "NORMAL", "NORMAL", true, MeshAttributes::NORMAL },
+        { "TEXCOORD_0", "TEXCOORD", true, MeshAttributes::TEXCOORD },
+        { "TANGENT", "TANGENT", false, MeshAttributes::TANGENT },
+        { "JOINTS_0", "BLENDINDICES", false, MeshAttributes::BLENDINDICES },
+        { "WEIGHTS_0", "BLENDWEIGHT", false, MeshAttributes::BLENDWEIGHT },
     };
 
     template<size_t attrCount>
@@ -103,7 +66,7 @@ namespace bdr
         VertexBufferSet<6u> vertexBuffers;
         ID3D11Buffer* indexBuffer;
         DXGI_FORMAT indexFormat;
-        
+
         uint32_t indexCount = 0;
 
 
@@ -116,41 +79,12 @@ namespace bdr
         }
     };
 
-    enum AnimationInterpolationType : uint8_t
-    {
-        Linear = 1,
-        Step = 2,
-        CubicSpline = 4,
-    };
-
-    struct AnimationChannel {
-        int32_t targetNodeIdx;
-        float maxInput;
-        TransformType targetType;
-        AnimationInterpolationType interpolationType;
-        std::vector<float> input;
-        std::vector<DirectX::SimpleMath::Vector4> output;
-    };
-
-    struct Animation
-    {
-        std::vector<AnimationChannel> channels;
-    };
-
-    void updateAnimation(NodeList& nodeList, const Animation& animation, const float currentTime);
-
     struct RenderObject
     {
         int32_t SceneNodeIdx;
         int32_t skinIdx = -1;
         DirectX::SimpleMath::Matrix modelTransform;
         Mesh mesh;
-    };
-
-    struct Skin
-    {
-        std::vector<int32_t> jointIndices;
-        std::vector<DirectX::SimpleMath::Matrix> inverseBindMatrices;
     };
 
     class Scene

@@ -27,6 +27,12 @@
     <ClInclude Include="src\Scene.h">
       <Filter>Graphics</Filter>
     </ClInclude>
+    <ClInclude Include="src\Animation.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="src\NodeList.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\DeviceResources.cpp">
@@ -39,6 +45,12 @@
     </ClCompile>
     <ClCompile Include="src\Main.cpp" />
     <ClCompile Include="src\Scene.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Animation.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="src\NodeList.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
   </ItemGroup>
