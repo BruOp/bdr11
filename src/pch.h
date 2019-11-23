@@ -68,6 +68,8 @@
 
 #include <stdio.h>
 
+#include "ReadData.h"
+
 #ifdef _DEBUG
 #include <dxgidebug.h>
 #endif

@@ -11,6 +11,9 @@
     <Filter Include="Graphics">
       <UniqueIdentifier>{d064a6fe-3b52-4f98-ac44-5c5bfd620de4}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{88197a49-7ebc-40e3-a2f8-532b9705d4dc}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\DeviceResources.h">
@@ -33,6 +36,14 @@
     <ClInclude Include="src\NodeList.h">
       <Filter>Graphics</Filter>
     </ClInclude>
+    <ClInclude Include="src\ReadData.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderFeature.h" />
+    <ClInclude Include="src\RenderObject.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="GltfSceneLoader.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\DeviceResources.cpp">
@@ -53,6 +64,8 @@
     <ClCompile Include="src\NodeList.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
+    <ClCompile Include="RenderFeature.cpp" />
+    <ClCompile Include="GltfSceneLoader.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc" />
@@ -69,5 +82,13 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="src\forward_pbr.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="src\forward_pbr_vs.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>
