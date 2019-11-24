@@ -295,8 +295,6 @@ namespace bdr
             }
             else {
                 copyAccessorDataToVector<float>(*inputModel, inputAccessor, data, 3);
-                const tinygltf::BufferView& bufferView = inputModel->bufferViews[inputAccessor.bufferView];
-                const tinygltf::Buffer& buffer = inputModel->buffers[bufferView.buffer];
                 for (size_t j = 0; j < outputAccessor.count; j++) {
                     animationChannel.output.emplace_back(
                         data[j * 3 + 0],
@@ -333,14 +331,19 @@ namespace bdr
         if (node.mesh != -1) {
             const tinygltf::Mesh& inputMesh = inputModel->meshes[node.mesh];
             for (const tinygltf::Primitive& primitive : inputMesh.primitives) {
+                Mesh mesh = processPrimitive(primitive);
                 RenderObject renderObject{
                     nodeIdx,
                     node.skin,
                     scene.nodeList.globalTransforms[nodeIdx],
-                    processPrimitive(scene, primitive),
+                    mesh,
                 };
 
-                scene.renderObjects.push_back(renderObject);
+                if (renderPass->getInputLayout() == nullptr) {
+                    auto inputDescs = getInputElementDescs(mesh, primitive);
+                    renderPass->createInputLayout(m_deviceResources->GetD3DDevice(), inputDescs.data(), mesh.vertexBuffers.numPresentAttributes);
+                }
+                renderPass->registerRenderObject(renderObject);
             }
         }
 
@@ -358,8 +361,31 @@ namespace bdr
         }
     }
 
+    std::array<D3D11_INPUT_ELEMENT_DESC, _countof(ATTR_INFO)> GltfSceneLoader::getInputElementDescs(const Mesh& mesh, const tinygltf::Primitive& inputPrimitive) const
+    {
+        std::array<D3D11_INPUT_ELEMENT_DESC, _countof(ATTR_INFO)> inputLayoutDescriptions{};
 
-    Mesh GltfSceneLoader::processPrimitive(Scene& scene, const tinygltf::Primitive& inputPrimitive) const
+        uint32_t layoutIdx = 0;
+        for (size_t i = 0; i < _countof(ATTR_INFO); i++) {
+            const GltfAttributeInfo& attrInfo{ ATTR_INFO[i] };
+            if (mesh.vertexBuffers.presentAttributesMask & attrInfo.attrBit) {
+                const tinygltf::Accessor& accessor = inputModel->accessors[inputPrimitive.attributes.at(attrInfo.name)];
+                inputLayoutDescriptions[layoutIdx] = {
+                    attrInfo.semanticName.c_str(),
+                    0,
+                    getFormat(i, accessor.componentType),
+                    layoutIdx,
+                    D3D11_APPEND_ALIGNED_ELEMENT,
+                    D3D11_INPUT_PER_VERTEX_DATA,
+                    0,
+                };
+                ++layoutIdx;
+            }
+        }
+        return inputLayoutDescriptions;
+    };
+
+    Mesh GltfSceneLoader::processPrimitive(const tinygltf::Primitive& inputPrimitive) const
     {
         Mesh mesh{};
         // Index buffer
@@ -400,8 +426,6 @@ namespace bdr
             throw std::runtime_error("Cannot support indices of this type!");
         }
 
-
-        D3D11_INPUT_ELEMENT_DESC inputLayouts[_countof(ATTR_INFO)];
         uint32_t vertBufferIdx = 0;
         for (size_t i = 0; i < _countof(ATTR_INFO); i++) {
             const GltfAttributeInfo& attrInfo = ATTR_INFO[i];
@@ -419,21 +443,11 @@ namespace bdr
             int accessorIndex = inputPrimitive.attributes.at(attrName);
             const tinygltf::Accessor& accessor = inputModel->accessors[accessorIndex];
             createBuffer(&mesh.vertexBuffers.vertexBuffers[vertBufferIdx], accessor, D3D11_BIND_VERTEX_BUFFER);
+            mesh.vertexBuffers.presentAttributesMask |= attrInfo.attrBit;
             mesh.vertexBuffers.strides[vertBufferIdx] = getByteSize(accessor);
-            inputLayouts[vertBufferIdx] = { attrInfo.semanticName.c_str(), 0, getFormat(i, accessor.componentType), vertBufferIdx, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
             ++vertBufferIdx;
         }
-        mesh.vertexBuffers.numPresentAttributes = vertBufferIdx;
-
-        if (scene.pInputLayout == nullptr) {
-            DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateInputLayout(
-                inputLayouts,
-                vertBufferIdx,
-                materialInfo.shaderBytecode,
-                materialInfo.byteCodeLength,
-                scene.pInputLayout.ReleaseAndGetAddressOf()
-            ));
-        }
+        mesh.vertexBuffers.numPresentAttributes = uint8_t(vertBufferIdx);
         return mesh;
     }
 

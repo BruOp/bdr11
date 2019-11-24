@@ -7,7 +7,7 @@
 #include "DeviceResources.h"
 #include "StepTimer.h"
 #include "Scene.h"
-
+#include "RenderPass.h"
 
 // A basic game implementation that creates a D3D11 device and
 // provides a game loop.
@@ -56,7 +56,7 @@ private:
 
     Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_rasterState;
     std::unique_ptr<DirectX::CommonStates> m_states = nullptr;
-    std::unique_ptr<DirectX::DebugEffect> m_effect = nullptr;
+    bdr::BasicRenderPass basicRenderPass;
     bdr::Scene m_scene{};
 
     DirectX::SimpleMath::Matrix m_view = DirectX::SimpleMath::Matrix::Identity;

@@ -4,6 +4,8 @@
 
 #include "pch.h"
 #include "Game.h"
+#include "Scene.h"
+#include "GltfSceneLoader.h"
 
 extern void ExitGame();
 
@@ -74,23 +76,7 @@ void Game::Render()
     context->OMSetDepthStencilState(m_states->DepthDefault(), 0);
     context->RSSetState(m_rasterState.Get());
 
-    context->IASetInputLayout(m_scene.pInputLayout.Get());
-
-    uint32_t offsets[4]{ 0u, 0u, 0u, 0u };
-    for (const bdr::RenderObject& renderObject : m_scene.renderObjects) {
-        if (renderObject.SceneNodeIdx != -1) {
-            m_effect->SetMatrices(m_scene.nodeList.globalTransforms[renderObject.SceneNodeIdx], m_view, m_proj);
-        }
-        else {
-            m_effect->SetMatrices(renderObject.modelTransform, m_view, m_proj);
-        }
-        m_effect->Apply(context);
-        const bdr::Mesh& mesh = renderObject.mesh;
-        context->IASetIndexBuffer(mesh.indexBuffer, mesh.indexFormat, 0);
-        context->IASetVertexBuffers(0, mesh.vertexBuffers.numPresentAttributes, mesh.vertexBuffers.vertexBuffers.data(), mesh.vertexBuffers.strides, offsets);
-        context->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        context->DrawIndexed(mesh.indexCount, 0, 0);
-    }
+    basicRenderPass.render(context, m_scene.nodeList, m_view, m_proj);
 
     m_deviceResources->PIXEndEvent();
 
@@ -185,16 +171,9 @@ void Game::CreateDeviceDependentResources()
     DX::ThrowIfFailed(device->CreateRasterizerState(&rastDesc, m_rasterState.ReleaseAndGetAddressOf()));
     m_states = std::make_unique<CommonStates>(device);
 
-    m_effect = std::make_unique<DebugEffect>(device);
-    m_effect->SetVertexColorEnabled(false);
-    m_effect->SetMode(DebugEffect::Mode_Normals);
+    basicRenderPass.init(device);
 
-    void const* shaderByteCode;
-    size_t byteCodeLength;
-
-    m_effect->GetVertexShaderBytecode(&shaderByteCode, &byteCodeLength);
-    
-    bdr::SceneLoader sceneLoader{ m_deviceResources.get(), bdr::MaterialInfo{ shaderByteCode, byteCodeLength } };
+    bdr::GltfSceneLoader sceneLoader{ m_deviceResources.get(), &basicRenderPass };
     sceneLoader.loadGLTFModel(m_scene, "polly/", "project_polly.gltf");
 }
 
@@ -206,16 +185,13 @@ void Game::CreateWindowSizeDependentResources()
     float width = float(viewPort.right - viewPort.left);
     float height = float(viewPort.bottom - viewPort.top);
     m_proj = Matrix::CreatePerspectiveFieldOfView(XM_PI / 4.0f, width / height, 0.1f, 10.f);
-
-    m_effect->SetView(m_view);
-    m_effect->SetProjection(m_proj);
 }
 
 void Game::OnDeviceLost()
 {
     m_rasterState.Reset();
     m_states.reset();
-    m_effect.reset();
+    basicRenderPass.reset();
     m_scene = bdr::Scene{};
 }
 

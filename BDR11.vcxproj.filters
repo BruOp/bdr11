@@ -39,11 +39,18 @@
     <ClInclude Include="src\ReadData.h">
       <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="RenderFeature.h" />
     <ClInclude Include="src\RenderObject.h">
       <Filter>Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="GltfSceneLoader.h" />
+    <ClInclude Include="src\RenderPass.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="src\GltfSceneLoader.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="src\RenderFeature.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\DeviceResources.cpp">
@@ -64,8 +71,15 @@
     <ClCompile Include="src\NodeList.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
-    <ClCompile Include="RenderFeature.cpp" />
-    <ClCompile Include="GltfSceneLoader.cpp" />
+    <ClCompile Include="src\GltfSceneLoader.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="src\RenderFeature.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="src\RenderPass.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc" />
@@ -84,10 +98,10 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="src\forward_pbr.hlsl">
+    <FxCompile Include="src\Shaders\basic_ps.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
-    <FxCompile Include="src\forward_pbr_vs.hlsl">
+    <FxCompile Include="src\Shaders\basic_vs.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
   </ItemGroup>

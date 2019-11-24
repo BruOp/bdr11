@@ -166,23 +166,23 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="GltfSceneLoader.h" />
-    <ClInclude Include="RenderFeature.h" />
     <ClInclude Include="src\Animation.h" />
     <ClInclude Include="src\DeviceResources.h" />
     <ClInclude Include="src\Game.h" />
+    <ClInclude Include="src\GltfSceneLoader.h" />
     <ClInclude Include="src\NodeList.h" />
     <ClInclude Include="src\Model.h" />
     <ClInclude Include="src\pch.h" />
     <ClInclude Include="src\ReadData.h" />
+    <ClInclude Include="src\RenderFeature.h" />
     <ClInclude Include="src\RenderObject.h" />
+    <ClInclude Include="src\RenderPass.h" />
     <ClInclude Include="src\Scene.h" />
     <ClInclude Include="src\StepTimer.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="GltfSceneLoader.cpp" />
-    <ClCompile Include="RenderFeature.cpp" />
     <ClCompile Include="src\Animation.cpp" />
+    <ClCompile Include="src\GltfSceneLoader.cpp" />
     <ClCompile Include="src\Main.cpp" />
     <ClCompile Include="src\DeviceResources.cpp" />
     <ClCompile Include="src\Game.cpp" />
@@ -192,6 +192,8 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="src\RenderFeature.cpp" />
+    <ClCompile Include="src\RenderPass.cpp" />
     <ClCompile Include="src\Scene.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -207,17 +209,11 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="src\forward_pbr.hlsl">
+    <FxCompile Include="src\Shaders\basic_ps.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
     </FxCompile>
-    <FxCompile Include="src\forward_pbr_vs.hlsl">
+    <FxCompile Include="src\Shaders\basic_vs.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Vertex</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
     </FxCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

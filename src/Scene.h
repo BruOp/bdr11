@@ -18,11 +18,6 @@ namespace tinygltf
 
 namespace bdr
 {
-    struct MaterialInfo
-    {
-        void const* shaderBytecode;
-        size_t byteCodeLength;
-    };
 
     enum MeshAttributes : uint8_t
     {
@@ -69,7 +64,6 @@ namespace bdr
 
         uint32_t indexCount = 0;
 
-
         void destroy()
         {
             for (auto buffer : vertexBuffers.vertexBuffers) {
@@ -90,15 +84,7 @@ namespace bdr
     class Scene
     {
     public:
-        ~Scene()
-        {
-            for (auto& renderObject : renderObjects) {
-                renderObject.mesh.destroy();
-            }
-        }
-
         NodeList nodeList;
-        std::vector<RenderObject> renderObjects;
         std::vector<Skin> skins;
         std::vector<Animation> animations;
         Microsoft::WRL::ComPtr<ID3D11InputLayout> pInputLayout = nullptr;
