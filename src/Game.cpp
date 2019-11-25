@@ -76,7 +76,7 @@ void Game::Render()
     context->OMSetDepthStencilState(m_states->DepthDefault(), 0);
     context->RSSetState(m_rasterState.Get());
 
-    basicRenderPass.render(context, m_scene.nodeList, m_view, m_proj);
+    renderPasses.render(context, m_scene, m_view, m_proj);
 
     m_deviceResources->PIXEndEvent();
 
@@ -171,9 +171,9 @@ void Game::CreateDeviceDependentResources()
     DX::ThrowIfFailed(device->CreateRasterizerState(&rastDesc, m_rasterState.ReleaseAndGetAddressOf()));
     m_states = std::make_unique<CommonStates>(device);
 
-    basicRenderPass.init(device);
+    renderPasses.init(device);
 
-    bdr::GltfSceneLoader sceneLoader{ m_deviceResources.get(), &basicRenderPass };
+    bdr::GltfSceneLoader sceneLoader{ m_deviceResources.get(), &renderPasses };
     sceneLoader.loadGLTFModel(m_scene, "polly/", "project_polly.gltf");
 }
 
@@ -191,7 +191,7 @@ void Game::OnDeviceLost()
 {
     m_rasterState.Reset();
     m_states.reset();
-    basicRenderPass.reset();
+    renderPasses.reset();
     m_scene = bdr::Scene{};
 }
 

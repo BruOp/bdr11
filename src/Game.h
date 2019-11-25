@@ -56,7 +56,7 @@ private:
 
     Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_rasterState;
     std::unique_ptr<DirectX::CommonStates> m_states = nullptr;
-    bdr::BasicRenderPass basicRenderPass;
+    bdr::RenderPassManager renderPasses;
     bdr::Scene m_scene{};
 
     DirectX::SimpleMath::Matrix m_view = DirectX::SimpleMath::Matrix::Identity;

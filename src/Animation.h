@@ -4,8 +4,6 @@
 
 namespace bdr
 {
-
-    
     struct Animation
     {
         enum InterpolationType : uint8_t

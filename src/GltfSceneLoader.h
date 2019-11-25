@@ -7,18 +7,19 @@ namespace bdr
 {
     struct GltfSceneLoader
     {
-        GltfSceneLoader(DX::DeviceResources* deviceResources, BasicRenderPass* renderPass) :
+        GltfSceneLoader(DX::DeviceResources* deviceResources, RenderPassManager* renderPassManager) :
             m_deviceResources{deviceResources },
-            renderPass{ renderPass }
+            m_pRenderPassManager{ renderPassManager }
         {};
 
         DX::DeviceResources* m_deviceResources = nullptr;
-        BasicRenderPass* renderPass = nullptr;
-        tinygltf::Model const* inputModel = nullptr;
+        RenderPassManager* m_pRenderPassManager = nullptr;
 
         void loadGLTFModel(Scene& scene, const std::string& gltfFolder, const std::string& gltfFileName);
 
     private:
+        tinygltf::Model const* inputModel = nullptr;
+
         int32_t processNode(Scene& scene, std::vector<int32_t>& idxMap, int32_t inputNodeIdx, int32_t nodeIdx, int32_t parentIdx) const;
         Skin processSkin(std::vector<int32_t>& idxMap, const tinygltf::Skin& inputSkin);
         Animation processAnimation(const std::vector<int32_t>& idxMap, const tinygltf::Animation& animation);

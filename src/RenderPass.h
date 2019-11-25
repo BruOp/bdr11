@@ -5,7 +5,7 @@
 
 namespace bdr
 {
-    constexpr uint32_t MAX_NUM_JOINTS = 128u;
+    constexpr uint32_t MAX_NUM_JOINTS = 64u;
     struct RenderObject;
 
     template<typename T>
@@ -95,7 +95,7 @@ namespace bdr
     {
         DirectX::SimpleMath::Matrix modelViewProjection;
         uint32_t jointCount = 0;
-        float padding[3];
+        float padding[3] = { 0.0f, 0.0f, 0.0f };
         DirectX::SimpleMath::Matrix jointMatrices[MAX_NUM_JOINTS];
     };
 
@@ -110,7 +110,7 @@ namespace bdr
             drawConstants.push_back(drawConstant);
             return drawConstants.size() - 1;
         };
-        
+
         inline size_t addData(const DrawConstants&& drawConstant)
         {
             drawConstants.push_back(drawConstant);
@@ -137,7 +137,7 @@ namespace bdr
         std::vector<uint8_t> blob;
         Microsoft::WRL::ComPtr<ID3D11PixelShader> pPixelShader = nullptr;
         Microsoft::WRL::ComPtr<ID3D11VertexShader> pVertexShader = nullptr;
-        
+
         void init(ID3D11Device* device, const wchar_t vsFilePath[], const wchar_t psFilePath[])
         {
             blob = DX::ReadData(vsFilePath);
@@ -171,7 +171,10 @@ namespace bdr
             renderObjects.clear();
         };
 
-        ID3D11InputLayout* getInputLayout();
+        inline ID3D11InputLayout* getInputLayout() const
+        {
+            return pInputLayout.Get();
+        }
         void createInputLayout(ID3D11Device* device, const D3D11_INPUT_ELEMENT_DESC descs[], const size_t count);
 
         void render(ID3D11DeviceContext* context, const NodeList& nodeList, const DirectX::SimpleMath::Matrix& view, const DirectX::SimpleMath::Matrix& proj) const;
@@ -187,6 +190,77 @@ namespace bdr
         ConstantBuffer<BasicDrawConstants> drawCB;
         ShaderInfo shaderInfo;
         std::vector<RenderObject> renderObjects;
+    };
+
+    class SkinnedRenderPass
+    {
+    public:
+        ~SkinnedRenderPass() { reset(); };
+
+        void init(ID3D11Device* device);
+        void reset()
+        {
+            shaderInfo.reset();
+            drawCB.reset();
+            for (auto& renderObject : renderObjects) {
+                renderObject.mesh.destroy();
+            }
+            renderObjects.clear();
+        };
+
+        inline ID3D11InputLayout* getInputLayout() const
+        {
+            return pInputLayout.Get();
+        }
+        void createInputLayout(ID3D11Device* device, const D3D11_INPUT_ELEMENT_DESC descs[], const size_t count);
+        
+        void render(ID3D11DeviceContext* context, const Scene& scene, const DirectX::SimpleMath::Matrix& view, const DirectX::SimpleMath::Matrix& proj) const;
+        size_t registerRenderObject(const RenderObject& renderObject);
+
+        uint32_t requiredFeatures = 0;
+
+        static constexpr wchar_t vsShaderFileName[] = L"skinned_basic_vs.cso";
+        static constexpr wchar_t psShaderFileName[] = L"skinned_basic_ps.cso";
+
+    private:
+        Microsoft::WRL::ComPtr<ID3D11InputLayout> pInputLayout;
+        ConstantBuffer<SkinnedDrawConstants> drawCB;
+        ShaderInfo shaderInfo;
+        std::vector<RenderObject> renderObjects;
+        //RenderFeatureDataManager<SkinnedDrawConstants> renderFeatureData;
+    };
+
+
+
+    class RenderPassManager
+    {
+    public:
+        void init(ID3D11Device* device)
+        {
+            basic.init(device);
+            skinnedBasic.init(device);
+        }
+        void reset()
+        {
+            basic.reset();
+            skinnedBasic.reset();
+        }
+
+        void render(ID3D11DeviceContext* context, const Scene& scene, const DirectX::SimpleMath::Matrix& view, const DirectX::SimpleMath::Matrix& proj) const
+        {
+            basic.render(context, scene.nodeList, view, proj);
+            skinnedBasic.render(context, scene, view, proj);
+        }
+
+        size_t registerRenderObject(const RenderObject& renderObject);
+        ID3D11InputLayout* getInputLayout(const RenderObject& renderObject);
+        void createInputLayout(const RenderObject& renderObject, ID3D11Device* device, const D3D11_INPUT_ELEMENT_DESC descs[], const size_t count);
+        
+
+    private:
+
+        BasicRenderPass basic;
+        SkinnedRenderPass skinnedBasic;
     };
 }
 

@@ -339,11 +339,11 @@ namespace bdr
                     mesh,
                 };
 
-                if (renderPass->getInputLayout() == nullptr) {
+                if (m_pRenderPassManager->getInputLayout(renderObject) == nullptr) {
                     auto inputDescs = getInputElementDescs(mesh, primitive);
-                    renderPass->createInputLayout(m_deviceResources->GetD3DDevice(), inputDescs.data(), mesh.vertexBuffers.numPresentAttributes);
+                    m_pRenderPassManager->createInputLayout(renderObject, m_deviceResources->GetD3DDevice(), inputDescs.data(), mesh.vertexBuffers.numPresentAttributes);
                 }
-                renderPass->registerRenderObject(renderObject);
+                m_pRenderPassManager->registerRenderObject(renderObject);
             }
         }
 
