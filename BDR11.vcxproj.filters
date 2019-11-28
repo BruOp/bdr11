@@ -104,10 +104,10 @@
     <FxCompile Include="src\Shaders\basic_vs.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
-    <FxCompile Include="src\skinned_basic_vs.hlsl">
+    <FxCompile Include="src\Shaders\skinned_basic_ps.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
-    <FxCompile Include="src\skinned_basic_ps.hlsl">
+    <FxCompile Include="src\Shaders\skinned_basic_vs.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
   </ItemGroup>
