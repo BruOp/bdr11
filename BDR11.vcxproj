@@ -168,8 +168,10 @@
   <ItemGroup>
     <ClInclude Include="src\Animation.h" />
     <ClInclude Include="src\DeviceResources.h" />
+    <ClInclude Include="src\ECSRegistry.h" />
     <ClInclude Include="src\Game.h" />
     <ClInclude Include="src\GltfSceneLoader.h" />
+    <ClInclude Include="src\Memory.h" />
     <ClInclude Include="src\NodeList.h" />
     <ClInclude Include="src\Model.h" />
     <ClInclude Include="src\pch.h" />
@@ -182,6 +184,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Animation.cpp" />
+    <ClCompile Include="src\ECSRegistry.cpp" />
     <ClCompile Include="src\GltfSceneLoader.cpp" />
     <ClCompile Include="src\Main.cpp" />
     <ClCompile Include="src\DeviceResources.cpp" />

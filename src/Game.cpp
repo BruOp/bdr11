@@ -51,9 +51,9 @@ void Game::Update(DX::StepTimer const& timer)
 
     float radius = 3.0f;
     m_view = Matrix::CreateLookAt(Vector3{ radius * sinf(0.5f * totalTime), 0.5f, radius * cosf(0.5f * totalTime) }, Vector3::Zero, Vector3::UnitY);
-    for (const auto& animation : m_scene.animations) {
+    /*for (const auto& animation : m_scene.animations) {
         bdr::updateAnimation(m_scene.nodeList, animation, totalTime);
-    }
+    }*/
 }
 #pragma endregion
 
@@ -173,8 +173,8 @@ void Game::CreateDeviceDependentResources()
 
     renderPasses.init(device);
 
-    bdr::GltfSceneLoader sceneLoader{ m_deviceResources.get(), &renderPasses };
-    sceneLoader.loadGLTFModel(m_scene, "polly/", "project_polly.gltf");
+    bdr::gltf::SceneData sceneData{ m_deviceResources.get(), &renderPasses, &m_scene, "polly/", "project_polly.gltf" };
+    bdr::gltf::loadModel(sceneData);
 }
 
 // Allocate all memory resources that change on a window SizeChanged event.
@@ -192,7 +192,7 @@ void Game::OnDeviceLost()
     m_rasterState.Reset();
     m_states.reset();
     renderPasses.reset();
-    m_scene = bdr::Scene{};
+    m_scene.reset();
 }
 
 void Game::OnDeviceRestored()

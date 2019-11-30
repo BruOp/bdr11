@@ -5,6 +5,7 @@
 #include "DeviceResources.h"
 #include "NodeList.h"
 #include "Animation.h"
+#include "ECSRegistry.h"
 
 
 namespace tinygltf
@@ -29,65 +30,67 @@ namespace bdr
         BLENDWEIGHT = 32,
     };
 
-    struct GltfAttributeInfo
+    /*template<typename T>
+    struct ResourceManager
     {
-        std::string name;
-        std::string semanticName;
-        bool required;
-        MeshAttributes attrBit;
-    };
+        uint32_t sizeOfComponent = sizeof(T);
+        T* data;
 
-    const GltfAttributeInfo ATTR_INFO[]{
-        { "POSITION", "SV_Position", true, MeshAttributes::POSITION },
-        { "NORMAL", "NORMAL", true, MeshAttributes::NORMAL },
-        { "TEXCOORD_0", "TEXCOORD", true, MeshAttributes::TEXCOORD },
-        { "TANGENT", "TANGENT", false, MeshAttributes::TANGENT },
-        { "JOINTS_0", "BLENDINDICES", false, MeshAttributes::BLENDINDICES },
-        { "WEIGHTS_0", "BLENDWEIGHT", false, MeshAttributes::BLENDWEIGHT },
-    };
-
-    template<size_t attrCount>
-    struct VertexBufferSet
-    {
-        static constexpr size_t numSupportedAttributes = attrCount;
-        std::array<ID3D11Buffer*, attrCount> vertexBuffers;
-        uint32_t strides[attrCount];
-        uint8_t presentAttributesMask;
-        uint8_t numPresentAttributes;
-    };
+        inline T& operator[](const size_t idx) const
+        {
+            return data[idx];
+        };
+        inline const T& operator[](const size_t idx) const
+        {
+            return data[idx];
+        };
+    };*/
 
     struct Mesh
     {
-        VertexBufferSet<6u> vertexBuffers;
+        static constexpr size_t maxAttrCount = 6u;
+
+        std::array<ID3D11Buffer*, maxAttrCount> vertexBuffers;
         ID3D11Buffer* indexBuffer;
         DXGI_FORMAT indexFormat;
-
         uint32_t indexCount = 0;
+        uint32_t strides[maxAttrCount];
+        uint8_t presentAttributesMask;
+        uint8_t numPresentAttr;
 
         void destroy()
         {
-            for (auto buffer : vertexBuffers.vertexBuffers) {
+            for (auto buffer : vertexBuffers) {
                 buffer != nullptr && buffer->Release();
             }
             indexBuffer->Release();
         }
     };
 
-    struct RenderObject
-    {
-        int32_t SceneNodeIdx;
-        int32_t skinIdx = -1;
-        DirectX::SimpleMath::Matrix modelTransform;
-        Mesh mesh;
-    };
-
     class Scene
     {
     public:
-        NodeList nodeList;
+        ECSRegistry registry;
         std::vector<Skin> skins;
         std::vector<Animation> animations;
-        Microsoft::WRL::ComPtr<ID3D11InputLayout> pInputLayout = nullptr;
-        // Need a list of Models
+        std::vector<Mesh> meshes;
+
+        void reset()
+        {
+            for (auto& mesh : meshes) {
+                mesh.destroy();
+            }
+
+            registry.clearComponentData();
+        }
+
+        uint32_t addMesh(const Mesh& mesh) {
+            meshes.push_back(mesh);
+            return meshes.size() - 1;
+        };
+        uint32_t addMesh(Mesh&& mesh) {
+            meshes.push_back(std::forward<Mesh>(mesh));
+            return meshes.size() - 1;
+        };
     };
 }

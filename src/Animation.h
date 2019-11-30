@@ -1,9 +1,16 @@
 #pragma once
 #include "pch.h"
-#include "NodeList.h"
 
 namespace bdr
 {
+    enum TransformType : uint8_t
+    {
+        Rotation = 1,
+        Translation = 2,
+        Scale = 4,
+        // Weights not supported
+    };
+
     struct Animation
     {
         enum InterpolationType : uint8_t
@@ -15,7 +22,7 @@ namespace bdr
 
         struct Channel
         {
-            int32_t targetNodeIdx;
+            uint32_t targetEntity;
             float maxInput;
             TransformType targetType;
             InterpolationType interpolationType;
@@ -28,10 +35,10 @@ namespace bdr
 
     struct Skin
     {
-        std::vector<int32_t> jointIndices;
+        std::vector<uint32_t> jointEntities;
         std::vector<DirectX::SimpleMath::Matrix> inverseBindMatrices;
     };
 
-    void updateAnimation(NodeList& nodeList, const Animation& animation, const float currentTime);
+    //void updateAnimation(NodeList& nodeList, const Animation& animation, const float currentTime);
 
 }

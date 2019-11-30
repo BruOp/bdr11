@@ -3,7 +3,7 @@ cbuffer VS_CONSTANT_BUFFER : register(b0)
     matrix modelViewProj;
     uint numJoinMatrices;
     float3 padding;
-    matrix jointMatrices[64];
+    matrix jointMatrices[62];
 }
 
 struct VSInput

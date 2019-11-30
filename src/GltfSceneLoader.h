@@ -2,29 +2,66 @@
 #include "pch.h"
 #include "Scene.h"
 #include "RenderPass.h"
+#include "ECSRegistry.h"
 
 namespace bdr
 {
-    struct GltfSceneLoader
+    namespace gltf
     {
-        GltfSceneLoader(DX::DeviceResources* deviceResources, RenderPassManager* renderPassManager) :
-            m_deviceResources{deviceResources },
-            m_pRenderPassManager{ renderPassManager }
-        {};
+        struct AttributeInfo
+        {
+            std::string name;
+            std::string semanticName;
+            bool required;
+            MeshAttributes attrBit;
+        };
 
-        DX::DeviceResources* m_deviceResources = nullptr;
-        RenderPassManager* m_pRenderPassManager = nullptr;
+        const AttributeInfo ATTR_INFO[]{
+            { "POSITION", "SV_Position", true, MeshAttributes::POSITION },
+            { "NORMAL", "NORMAL", true, MeshAttributes::NORMAL },
+            { "TEXCOORD_0", "TEXCOORD", true, MeshAttributes::TEXCOORD },
+            { "TANGENT", "TANGENT", false, MeshAttributes::TANGENT },
+            { "JOINTS_0", "BLENDINDICES", false, MeshAttributes::BLENDINDICES },
+            { "WEIGHTS_0", "BLENDWEIGHT", false, MeshAttributes::BLENDWEIGHT },
+        };
 
-        void loadGLTFModel(Scene& scene, const std::string& gltfFolder, const std::string& gltfFileName);
+        struct EntityMapping
+        {
+            int32_t gltfNodeIdx;
+            uint32_t entity;
+        };
 
-    private:
-        tinygltf::Model const* inputModel = nullptr;
+        struct SceneData
+        {
+            DX::DeviceResources* pDeviceResources = nullptr;
+            RenderPassManager* pRenderPassManager = nullptr;
+            Scene* pScene = nullptr;
+            const std::string fileFolder;
+            const std::string fileName;
+            std::vector<uint32_t> nodeMap;
+            std::vector<uint32_t> meshMap;
+            std::vector<uint32_t> textureMap;
+            tinygltf::Model inputModel;
 
-        int32_t processNode(Scene& scene, std::vector<int32_t>& idxMap, int32_t inputNodeIdx, int32_t nodeIdx, int32_t parentIdx) const;
-        Skin processSkin(std::vector<int32_t>& idxMap, const tinygltf::Skin& inputSkin);
-        Animation processAnimation(const std::vector<int32_t>& idxMap, const tinygltf::Animation& animation);
-        Mesh processPrimitive(const tinygltf::Primitive& inputPrimitive) const;
-        std::array<D3D11_INPUT_ELEMENT_DESC, _countof(ATTR_INFO)> getInputElementDescs(const Mesh& mesh, const tinygltf::Primitive& inputPrimitive) const;
-        void createBuffer(ID3D11Buffer** dxBuffer, const tinygltf::Accessor& accessor, const uint32_t usageFlag) const;
-    };
+            SceneData(
+                DX::DeviceResources* pDeviceResources,
+                RenderPassManager* pRenderPassManager,
+                Scene* scene,
+                const std::string& folder,
+                const std::string& file
+            ) :
+                pDeviceResources{ pDeviceResources },
+                pRenderPassManager{ pRenderPassManager },
+                pScene{ scene },
+                fileFolder(folder),
+                fileName(file),
+                nodeMap{},
+                meshMap{},
+                textureMap{},
+                inputModel{}
+            { };
+        };
+
+        void loadModel(SceneData& sceneData);
+    }
 }

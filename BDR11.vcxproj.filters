@@ -51,6 +51,10 @@
     <ClInclude Include="src\RenderFeature.h">
       <Filter>Graphics</Filter>
     </ClInclude>
+    <ClInclude Include="src\ECSRegistry.h" />
+    <ClInclude Include="src\Memory.h">
+      <Filter>Common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\DeviceResources.cpp">
@@ -80,6 +84,7 @@
     <ClCompile Include="src\RenderPass.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
+    <ClCompile Include="src\ECSRegistry.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc" />
