@@ -67,6 +67,8 @@
 #include <stdexcept>
 
 #include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 
 #include "ReadData.h"
 
@@ -223,3 +225,11 @@ namespace Utility
 #endif
 
 #define BreakIfFailed( hr ) if (FAILED(hr)) __debugbreak()
+
+#define UNCOPIABLE( T ) \
+        T(const T&) = delete; \
+        T& operator=(const T&) = delete;
+
+#define UNMOVABLE( T ) \
+        T(T&&) = delete; \
+        T& operator=(T&&) = delete;

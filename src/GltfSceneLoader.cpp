@@ -3,9 +3,6 @@
 #include "GltfSceneLoader.h"
 #include <iostream>
 
-#include "Scene.h"
-#include "DeviceResources.h"
-
 #define TINYGLTF_IMPLEMENTATION
 #define TINYGLTF_NO_STB_IMAGE
 #define TINYGLTF_NO_STB_IMAGE_WRITE
@@ -31,14 +28,14 @@ namespace bdr
             return true;
         };
 
-        DXGI_FORMAT getFormat(size_t attrInfoIdx, int32_t componentType)
+        DXGI_FORMAT getFormat(const AttributeInfo& attrInfo, int32_t componentType)
         {
-            switch (attrInfoIdx) {
-            case 0: // Position
+            switch (attrInfo.attrBit) {
+            case MeshAttributes::POSITION:
                 return DXGI_FORMAT_R32G32B32_FLOAT;
-            case 1: // Normal
+            case MeshAttributes::NORMAL:
                 return DXGI_FORMAT_R32G32B32_FLOAT;
-            case 2: // TexCoord_0
+            case MeshAttributes::TEXCOORD:
                 if (componentType == TINYGLTF_COMPONENT_TYPE_FLOAT) {
                     return DXGI_FORMAT_R32G32_FLOAT;
                 }
@@ -48,16 +45,16 @@ namespace bdr
                 else if (componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT) {
                     return DXGI_FORMAT_R16G16_UNORM;
                 }
-            case 3: // Tangent
+            case MeshAttributes::TANGENT:
                 return DXGI_FORMAT_R32G32B32A32_FLOAT;
-            case 4: // JOINTS_0
+            case MeshAttributes::BLENDINDICES:
                 if (componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE) {
                     return DXGI_FORMAT_R8G8B8A8_UINT;
                 }
                 else if (componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT) {
                     return DXGI_FORMAT_R16G16B16A16_UINT;
                 }
-            case 5: // WEIGHTS_0
+            case MeshAttributes::BLENDWEIGHT: // WEIGHTS_0
                 if (componentType == TINYGLTF_COMPONENT_TYPE_FLOAT) {
                     return DXGI_FORMAT_R32G32B32A32_FLOAT;
                 }
@@ -91,27 +88,29 @@ namespace bdr
             }
         }
 
-        uint32_t getByteSize(const tinygltf::Accessor& accessor)
+        uint32_t getPerElementCount(const tinygltf::Accessor& accessor)
         {
-            uint32_t byteSize = getByteStride(accessor);
-
             switch (accessor.type) {
             case TINYGLTF_TYPE_SCALAR:
-                return byteSize;
+                return 1u;
             case TINYGLTF_TYPE_VEC2:
-                return byteSize * 2;
+                return 2u;
             case TINYGLTF_TYPE_VEC3:
-                return byteSize * 3;
+                return 3u;
             case TINYGLTF_TYPE_VEC4:
             case TINYGLTF_TYPE_MAT2:
-                return byteSize * 4;
+                return 4u;
             case TINYGLTF_TYPE_MAT3:
-                return byteSize * 9;
+                return 9u;
             case TINYGLTF_TYPE_MAT4:
-                return byteSize * 16;
+                return 16u;
             }
-
             return 0;
+        }
+
+        uint32_t getByteSize(const tinygltf::Accessor& accessor)
+        {
+            return getByteStride(accessor) * getPerElementCount(accessor);
         }
 
         void copyAccessorData(const tinygltf::Model& inputModel, const tinygltf::Accessor& accessor, void* dst)
@@ -132,6 +131,38 @@ namespace bdr
             dst.resize(accessor.count * numElements);
             memcpy(dst.data(), &buffer.data.at(accessor.byteOffset + bufferView.byteOffset), accessor.count * getByteStride(accessor));
         }
+
+
+        InputLayoutDetail getInputLayoutDetails(const tinygltf::Accessor& accessor, const AttributeInfo& attrInfo)
+        {
+            InputLayoutDetail detail{};
+            detail.attrMask = attrInfo.attrBit;
+            detail.format = getFormat(attrInfo, accessor.componentType);
+            detail.semanticName = attrInfo.semanticName;
+            detail.vectorSize = getPerElementCount(accessor);
+            
+            switch (accessor.componentType) {
+            case TINYGLTF_COMPONENT_TYPE_BYTE:
+            case TINYGLTF_COMPONENT_TYPE_SHORT:
+            case TINYGLTF_COMPONENT_TYPE_INT:
+                detail.type = InputLayoutDetail::Type::INT;
+                break;
+            case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE:
+            case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT:
+            case TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT:
+                if (attrInfo.attrBit & MeshAttributes::BLENDINDICES) {
+                    detail.type = InputLayoutDetail::Type::UINT;
+                }
+                else {
+                    detail.type = InputLayoutDetail::Type::FLOAT;
+                }
+                break;
+            default:
+                detail.type = InputLayoutDetail::Type::FLOAT;
+            }
+
+            return detail;
+        };
 
         Transform processTransform(const tinygltf::Node& inputNode)
         {
@@ -162,8 +193,9 @@ namespace bdr
                     static_cast<float>(inputNode.translation[2]),
                 };
                 transform.mask |= TransformType::Rotation;
-
             }
+
+            return transform;
         }
 
         Matrix getMatrixFromTransform(const Transform& transform)
@@ -181,25 +213,11 @@ namespace bdr
             return localTransform;
         };
 
-        /*
-            Create entities for each Node and it's primitives in the scene
-            While creating entities, fill mapping between gltf Scene nodes and our entities.
-            Nodes are produced _depth first_, ensuring that parents appear before their children in the entity list.
-        */
-        void processNodeTree(SceneData& sceneData)
-        {
-            sceneData.nodeMap.resize(sceneData.inputModel.nodes.size());
-            for (const tinygltf::Scene& inputScene : sceneData.inputModel.scenes) {
-                for (const int32_t node : inputScene.nodes) {
-                    processNode(sceneData, node);
-                }
-            }
-        }
 
         // Allocates a new entity and adds an entry to the mapping for each node, recursively.
         void processNode(SceneData& sceneData, int32_t inputNodeIdx, int32_t parentNodeIdx = -1)
         {
-            const tinygltf::Node& inputNode = sceneData.inputModel.nodes[inputNodeIdx];
+            const tinygltf::Node& inputNode = sceneData.inputModel->nodes[inputNodeIdx];
             auto& registry = sceneData.pScene->registry;
 
             const uint32_t entity = getNewEntity(registry);
@@ -214,7 +232,7 @@ namespace bdr
             }
 
             if (inputNode.mesh > -1) {
-                const tinygltf::Mesh& inputMesh = sceneData.inputModel.meshes[inputNode.mesh];
+                const tinygltf::Mesh& inputMesh = sceneData.inputModel->meshes[inputNode.mesh];
 
                 if (inputMesh.primitives.size() > 1) {
                     // If we have multiple primitves, we create a new entity for each one, assigning the
@@ -241,9 +259,24 @@ namespace bdr
             }
         }
 
+        /*
+            Create entities for each Node and it's primitives in the scene
+            While creating entities, fill mapping between gltf Scene nodes and our entities.
+            Nodes are produced _depth first_, ensuring that parents appear before their children in the entity list.
+        */
+        void processNodeTree(SceneData& sceneData)
+        {
+            sceneData.nodeMap.resize(sceneData.inputModel->nodes.size());
+            for (const tinygltf::Scene& inputScene : sceneData.inputModel->scenes) {
+                for (const int32_t node : inputScene.nodes) {
+                    processNode(sceneData, node);
+                }
+            }
+        }
+
         void createBuffer(SceneData& sceneData, ID3D11Buffer** dxBuffer, const tinygltf::Accessor& accessor, const uint32_t usageFlag)
         {
-            const tinygltf::Model& inputModel = sceneData.inputModel;
+            const tinygltf::Model& inputModel = *sceneData.inputModel;
             const tinygltf::BufferView& bufferView = inputModel.bufferViews[accessor.bufferView];
             const tinygltf::Buffer& buffer = inputModel.buffers[bufferView.buffer];
 
@@ -254,12 +287,12 @@ namespace bdr
             initData.SysMemSlicePitch = 0;
 
             // Create the buffer with the device.
-            DX::ThrowIfFailed(sceneData.pDeviceResources->GetD3DDevice()->CreateBuffer(&bufferDesc, &initData, dxBuffer));
+            DX::ThrowIfFailed(sceneData.pRenderer->getDevice()->CreateBuffer(&bufferDesc, &initData, dxBuffer));
         }
 
-        Mesh processPrimitive(SceneData& sceneData, const tinygltf::Primitive& inputPrimitive)
+        uint32_t processPrimitive(SceneData& sceneData, const tinygltf::Primitive& inputPrimitive)
         {
-            const tinygltf::Model& inputModel = sceneData.inputModel;
+            const tinygltf::Model& inputModel = *sceneData.inputModel;
             Mesh mesh{};
             // Index buffer
             const tinygltf::Accessor& indexAccessor = inputModel.accessors[inputPrimitive.indices];
@@ -285,7 +318,7 @@ namespace bdr
                 initData.SysMemSlicePitch = 0;
 
                 // Create the buffer with the device.
-                DX::ThrowIfFailed(sceneData.pDeviceResources->GetD3DDevice()->CreateBuffer(&bufferDesc, &initData, &mesh.indexBuffer));
+                DX::ThrowIfFailed(sceneData.pRenderer->getDevice()->CreateBuffer(&bufferDesc, &initData, &mesh.indexBuffer));
             }
             break;
             case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT:
@@ -301,6 +334,7 @@ namespace bdr
             }
 
             uint32_t vertBufferIdx = 0;
+            InputLayoutDetail details[Mesh::maxAttrCount] = {};
             for (size_t i = 0; i < _countof(ATTR_INFO); i++) {
                 const AttributeInfo& attrInfo = ATTR_INFO[i];
                 const std::string& attrName = attrInfo.name;
@@ -315,35 +349,37 @@ namespace bdr
                 }
 
                 int accessorIndex = inputPrimitive.attributes.at(attrName);
-                const tinygltf::Accessor& accessor = sceneData.inputModel.accessors[accessorIndex];
+                const tinygltf::Accessor& accessor = sceneData.inputModel->accessors[accessorIndex];
                 createBuffer(sceneData, &mesh.vertexBuffers[vertBufferIdx], accessor, D3D11_BIND_VERTEX_BUFFER);
                 mesh.presentAttributesMask |= attrInfo.attrBit;
                 mesh.strides[vertBufferIdx] = getByteSize(accessor);
+
+                details[vertBufferIdx] = getInputLayoutDetails(accessor, attrInfo);
+
                 ++vertBufferIdx;
             }
             mesh.numPresentAttr = uint8_t(vertBufferIdx);
-            return mesh;
+            
+            return sceneData.pRenderer->addMesh(mesh, details);            
         }
 
-        std::vector<uint32_t> processMeshes(SceneData& sceneData)
+        void processMeshes(SceneData& sceneData)
         {
-            const auto& inputModel = sceneData.inputModel;
+            const auto& inputModel = *sceneData.inputModel;
             sceneData.meshMap.resize(inputModel.meshes.size());
             for (size_t i = 0; i < inputModel.meshes.size(); ++i) {
                 const tinygltf::Mesh& inputMesh = inputModel.meshes[i];
 
                 const auto& primitive = inputMesh.primitives[0];
-                Mesh newMesh{ processPrimitive(sceneData, primitive) };
-                uint32_t parentMeshIdx = sceneData.pScene->addMesh(newMesh);
+                uint32_t parentMeshIdx = processPrimitive(sceneData, primitive);
                 sceneData.meshMap[i] = parentMeshIdx;
 
                 if (inputMesh.primitives.size() > 1) {
-                    for (size_t i = 1; i < inputMesh.primitives.size(); ++i) {
-                        const auto& childPrimitive = inputMesh.primitives[i];
-                        Mesh childMesh{ processPrimitive(sceneData, childPrimitive) };
-                        uint32_t meshIdx = sceneData.pScene->addMesh(childMesh);
+                    for (size_t j = 1; j < inputMesh.primitives.size(); ++j) {
+                        const auto& childPrimitive = inputMesh.primitives[j];
+                        uint32_t meshIdx = processPrimitive(sceneData, childPrimitive);
                         // We want to guarentee that our primitives are always tightly packed.
-                        ASSERT(meshIdx == parentMeshIdx + i);
+                        ASSERT(meshIdx == parentMeshIdx + j);
                     }
                 }
             }
@@ -355,7 +391,7 @@ namespace bdr
         void processTransforms(SceneData& sceneData)
         {
             auto& registry = sceneData.pScene->registry;
-            const auto& inputNodes = sceneData.inputModel.nodes;
+            const auto& inputNodes = sceneData.inputModel->nodes;
             for (size_t i = 0; i < inputNodes.size(); ++i) {
                 const tinygltf::Node& node = inputNodes[i];
                 uint32_t entity = sceneData.nodeMap[i];
@@ -380,7 +416,8 @@ namespace bdr
             loader.SetImageLoader(loadImageDataCallback, nullptr);
             std::string err, warn;
             tinygltf::Model gltfModel;
-            bool res = loader.LoadASCIIFromFile(&sceneData.inputModel, &err, &warn, sceneData.fileFolder + sceneData.fileName);
+            sceneData.inputModel = &gltfModel;
+            bool res = loader.LoadASCIIFromFile(&gltfModel, &err, &warn, sceneData.fileFolder + sceneData.fileName);
 
             if (!warn.empty()) {
                 std::cout << warn << std::endl;
@@ -397,6 +434,8 @@ namespace bdr
             processMeshes(sceneData);
             processNodeTree(sceneData);
             processTransforms(sceneData);
+
+            sceneData.inputModel = nullptr;
         }
 
         /*Skin processSkin(SceneData& sceneData, const tinygltf::Skin& inputSkin)
@@ -410,7 +449,7 @@ namespace bdr
                 skin.jointIndices[i] = sceneData.nodeMap[inputSkin.joints[i]];
             }
 
-            const tinygltf::Accessor& accessor = sceneData.inputModel.accessors[inputSkin.inverseBindMatrices];
+            const tinygltf::Accessor& accessor = sceneData.inputModel->accessors[inputSkin.inverseBindMatrices];
             const tinygltf::BufferView& bufferView = inputModel->bufferViews[accessor.bufferView];
             const tinygltf::Buffer& buffer = inputModel->buffers[bufferView.buffer];
             memcpy(skin.inverseBindMatrices.data(), &buffer.data.at(accessor.byteOffset + bufferView.byteOffset), getByteSize(accessor) * accessor.count);
@@ -451,13 +490,13 @@ namespace bdr
         //            interpolationType = Animation::InterpolationType::Step;
         //        }
 
-        //        const tinygltf::Accessor& inputAccessor = sceneData.inputModel.accessors[inputSampler.input];
+        //        const tinygltf::Accessor& inputAccessor = sceneData.inputModel->accessors[inputSampler.input];
 
         //        if (inputAccessor.componentType != TINYGLTF_COMPONENT_TYPE_FLOAT) {
         //            throw std::runtime_error("Don't support non float samplers just yet");
         //        }
 
-        //        const tinygltf::Accessor& outputAccessor = sceneData.inputModel.accessors[inputSampler.input];
+        //        const tinygltf::Accessor& outputAccessor = sceneData.inputModel->accessors[inputSampler.input];
 
         //        if (outputAccessor.componentType != TINYGLTF_COMPONENT_TYPE_FLOAT) {
         //            throw std::runtime_error("Don't support non float samplers just yet");
@@ -503,30 +542,5 @@ namespace bdr
         //    }
         //    return output;
         //}
-
-        /*std::array<D3D11_INPUT_ELEMENT_DESC, _countof(ATTR_INFO)> getInputElementDescs(const Mesh& mesh, const tinygltf::Primitive& inputPrimitive)
-        {
-            std::array<D3D11_INPUT_ELEMENT_DESC, _countof(ATTR_INFO)> inputLayoutDescriptions{};
-
-            uint32_t layoutIdx = 0;
-            for (size_t i = 0; i < _countof(ATTR_INFO); i++) {
-                const GltfAttributeInfo& attrInfo{ ATTR_INFO[i] };
-                if (mesh.presentAttributesMask & attrInfo.attrBit) {
-                    const tinygltf::Accessor& accessor = inputModel->accessors[inputPrimitive.attributes.at(attrInfo.name)];
-                    inputLayoutDescriptions[layoutIdx] = {
-                        attrInfo.semanticName.c_str(),
-                        0,
-                        getFormat(i, accessor.componentType),
-                        layoutIdx,
-                        D3D11_APPEND_ALIGNED_ELEMENT,
-                        D3D11_INPUT_PER_VERTEX_DATA,
-                        0,
-                    };
-                    ++layoutIdx;
-                }
-            }
-            return inputLayoutDescriptions;
-        };*/
-
     }
 }

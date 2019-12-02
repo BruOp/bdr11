@@ -1,8 +1,15 @@
 #pragma once
 #include "pch.h"
+
+#include "Mesh.h"
 #include "Scene.h"
-#include "RenderPass.h"
-#include "ECSRegistry.h"
+#include "Renderer.h"
+
+namespace tinygltf
+{
+    class Model;
+}
+
 
 namespace bdr
 {
@@ -33,26 +40,23 @@ namespace bdr
 
         struct SceneData
         {
-            DX::DeviceResources* pDeviceResources = nullptr;
-            RenderPassManager* pRenderPassManager = nullptr;
             Scene* pScene = nullptr;
+            Renderer* pRenderer = nullptr;
             const std::string fileFolder;
             const std::string fileName;
             std::vector<uint32_t> nodeMap;
             std::vector<uint32_t> meshMap;
             std::vector<uint32_t> textureMap;
-            tinygltf::Model inputModel;
+            tinygltf::Model* inputModel;
 
             SceneData(
-                DX::DeviceResources* pDeviceResources,
-                RenderPassManager* pRenderPassManager,
                 Scene* scene,
+                Renderer* pRenderer,
                 const std::string& folder,
                 const std::string& file
             ) :
-                pDeviceResources{ pDeviceResources },
-                pRenderPassManager{ pRenderPassManager },
                 pScene{ scene },
+                pRenderer{ pRenderer },
                 fileFolder(folder),
                 fileName(file),
                 nodeMap{},

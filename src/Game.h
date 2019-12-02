@@ -4,10 +4,9 @@
 
 #pragma once
 
-#include "DeviceResources.h"
 #include "StepTimer.h"
 #include "Scene.h"
-#include "RenderPass.h"
+#include "Renderer.h"
 
 // A basic game implementation that creates a D3D11 device and
 // provides a game loop.
@@ -48,16 +47,13 @@ private:
     void CreateDeviceDependentResources();
     void CreateWindowSizeDependentResources();
 
-    // Device resources.
-    std::unique_ptr<DX::DeviceResources>    m_deviceResources;
-
     // Rendering loop timer.
     DX::StepTimer                           m_timer;
 
     Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_rasterState;
     std::unique_ptr<DirectX::CommonStates> m_states = nullptr;
-    bdr::RenderPassManager renderPasses;
-    bdr::Scene m_scene{};
+    bdr::Scene m_scene = {};
+    bdr::Renderer m_renderer = {};
 
     DirectX::SimpleMath::Matrix m_view = DirectX::SimpleMath::Matrix::Identity;
     DirectX::SimpleMath::Matrix m_proj = DirectX::SimpleMath::Matrix::Identity;

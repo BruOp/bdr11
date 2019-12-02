@@ -121,7 +121,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>d3d11.lib;dxgi.lib;dxguid.lib;uuid.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>d3d11.lib;dxgi.lib;dxguid.lib;uuid.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;odbc32.lib;odbccp32.lib;D3DCompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -168,14 +168,18 @@
   <ItemGroup>
     <ClInclude Include="src\Animation.h" />
     <ClInclude Include="src\DeviceResources.h" />
+    <ClInclude Include="src\DXHelpers.h" />
     <ClInclude Include="src\ECSRegistry.h" />
     <ClInclude Include="src\Game.h" />
     <ClInclude Include="src\GltfSceneLoader.h" />
-    <ClInclude Include="src\Memory.h" />
+    <ClInclude Include="src\InputLayoutManager.h" />
+    <ClInclude Include="src\bdrMemory.h" />
+    <ClInclude Include="src\Mesh.h" />
     <ClInclude Include="src\NodeList.h" />
     <ClInclude Include="src\Model.h" />
     <ClInclude Include="src\pch.h" />
     <ClInclude Include="src\ReadData.h" />
+    <ClInclude Include="src\Renderer.h" />
     <ClInclude Include="src\RenderFeature.h" />
     <ClInclude Include="src\RenderObject.h" />
     <ClInclude Include="src\RenderPass.h" />
@@ -186,6 +190,7 @@
     <ClCompile Include="src\Animation.cpp" />
     <ClCompile Include="src\ECSRegistry.cpp" />
     <ClCompile Include="src\GltfSceneLoader.cpp" />
+    <ClCompile Include="src\InputLayoutManager.cpp" />
     <ClCompile Include="src\Main.cpp" />
     <ClCompile Include="src\DeviceResources.cpp" />
     <ClCompile Include="src\Game.cpp" />
@@ -195,6 +200,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="src\Renderer.cpp" />
     <ClCompile Include="src\RenderFeature.cpp" />
     <ClCompile Include="src\RenderPass.cpp" />
     <ClCompile Include="src\Scene.cpp" />

@@ -3,14 +3,14 @@
 
 namespace bdr
 {
-    namespace memory
+    namespace Memory
     {
-        void* alloc(uint32_t allocSizeBytes)
+        void* allocate(uint32_t allocSizeBytes)
         {
             return malloc(allocSizeBytes);
         }
 
-        void* realloc(void* data, uint32_t sizeBytes)
+        void* reallocate(void* data, uint32_t sizeBytes)
         {
             return realloc(data, sizeBytes);
         }

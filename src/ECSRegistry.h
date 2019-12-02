@@ -1,7 +1,6 @@
 #pragma once
 #include "pch.h"
 
-#include "Memory.h"
 #include "Animation.h"
 
 namespace bdr
@@ -63,20 +62,17 @@ namespace bdr
     class ECSRegistry
     {
     public:
-        ECSRegistry()
+        ECSRegistry() : numComponents{ 0 }, numAllocatedEntities{ 0 }, pFreeNode{ nullptr }
         {
-            numComponents = (((size_t)&numComponents - (size_t)&cmpMasks)) / sizeof(ECSRegistry);
+            numComponents = uint32_t((((size_t)&numComponents - (size_t)&cmpMasks)) / sizeof(GenericComponentArray));
         };
         ~ECSRegistry()
         {
             clearComponentData();
         };
 
-        ECSRegistry(const ECSRegistry&) = delete;
-        ECSRegistry(ECSRegistry&&) = delete;
-
-        ECSRegistry& operator=(ECSRegistry&&) = delete;
-        ECSRegistry& operator=(const ECSRegistry&) = delete;
+        UNCOPIABLE(ECSRegistry);
+        UNMOVABLE(ECSRegistry);
 
         // Component Data
         ComponentArray<uint32_t> cmpMasks;
@@ -106,87 +102,14 @@ namespace bdr
             return dataBegin[index];
         };
 
-        void clearComponentData()
-        {
-            for (uint32_t i = 0; i < numComponents; ++i) {
-                GenericComponentArray& cmpArray = getComponentArray(i);
-                memory::release(cmpArray.data);
-                cmpArray.data = nullptr;
-            }
-
-            numAllocatedEntities = 0;
-            numEntities = 0;
-        }
+        void clearComponentData();
     };
 
-    void initializeFreeList(ECSRegistry& registry)
-    {
-        ASSERT(registry.pFreeNode == nullptr, "Not sure why we're initializing a non empty free list!");
-        registry.pFreeNode = nullptr;
+    void initializeFreeList(ECSRegistry& registry);
 
-        // Build our linked list, starting from the back
-        for (size_t i = registry.numAllocatedEntities; i > 0; --i) {
-            registry.freeEntitiesNodes[i].node = i;
-            
-            if (!(registry.cmpMasks[i] & CmpMasks::ALLOCATED)) {
-                FreeEntityNode* head = &registry.freeEntitiesNodes[i];
-                head->next = registry.pFreeNode;
+    void increaseRegistrySize(ECSRegistry& registry, uint32_t size = 1024);
 
-                if (head->next != nullptr) {
-                    head->next->prev = head;
-                }
+    uint32_t getNewEntity(ECSRegistry& registry);
 
-                registry.pFreeNode = head;
-            }
-        }
-
-        ASSERT(registry.pFreeNode != nullptr);
-    }
-
-    void increaseRegistrySize(ECSRegistry& registry, uint32_t size = 1024)
-    {
-        uint32_t newSize = registry.numAllocatedEntities + size;
-
-        for (size_t i = 0; i < registry.numComponents; i++) {
-            GenericComponentArray& cmpArray = registry.getComponentArray(i);
-            uint32_t newMemSize = cmpArray.sizeOfComponent * newSize;
-
-            if (cmpArray.data != nullptr) {
-                cmpArray.data = memory::realloc(cmpArray.data, newMemSize);
-
-                // Fill new memory with zeros
-                uint32_t prevMemSize = registry.numAllocatedEntities * cmpArray.sizeOfComponent;
-                uint8_t* offset = (uint8_t*)cmpArray.data + prevMemSize;
-                memory::zero(offset, newMemSize - prevMemSize);
-            }
-            else {
-                // No existing data! Allocate memory
-                cmpArray.data = memory::alloc(newMemSize);
-                memory::zero(cmpArray.data, newMemSize);
-            }
-        }
-
-        registry.numAllocatedEntities = newSize;
-        initializeFreeList(registry);
-    }
-
-    uint32_t getNewEntity(ECSRegistry& registry)
-    {
-        if (registry.pFreeNode == nullptr) {
-            // Need to allocate new entities
-            increaseRegistrySize(registry);
-        }
-
-        const FreeEntityNode* head = registry.pFreeNode;
-        uint32_t entity = head->node;
-
-        registry.numEntities = registry.numEntities + 1;
-        registry.pFreeNode = head->next;
-        // Set default entity state
-        registry.parents[entity] = 0;
-        registry.cmpMasks[entity] |= CmpMasks::ALLOCATED;
-        return entity;
-    };
-    
 }
 

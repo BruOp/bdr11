@@ -16,19 +16,19 @@ using Microsoft::WRL::ComPtr;
 
 Game::Game() noexcept(false)
 {
-    m_deviceResources = std::make_unique<DX::DeviceResources>();
-    m_deviceResources->RegisterDeviceNotify(this);
+    m_renderer.deviceResources->RegisterDeviceNotify(this);
 }
 
 // Initialize the Direct3D resources required to run.
 void Game::Initialize(HWND window, int width, int height)
 {
-    m_deviceResources->SetWindow(window, width, height);
+    m_renderer.deviceResources->SetWindow(window, width, height);
 
-    m_deviceResources->CreateDeviceResources();
+    m_renderer.deviceResources->CreateDeviceResources();
+    m_renderer.inputLayoutManager.init(m_renderer.deviceResources->GetD3DDevice());
     CreateDeviceDependentResources();
 
-    m_deviceResources->CreateWindowSizeDependentResources();
+    m_renderer.deviceResources->CreateWindowSizeDependentResources();
     CreateWindowSizeDependentResources();
 }
 
@@ -68,41 +68,41 @@ void Game::Render()
 
     Clear();
 
-    m_deviceResources->PIXBeginEvent(L"Render");
-    auto context = m_deviceResources->GetD3DDeviceContext();
+    m_renderer.deviceResources->PIXBeginEvent(L"Render");
+    auto context = m_renderer.deviceResources->GetD3DDeviceContext();
 
     // TODO: Add your rendering code here.
     context->OMSetBlendState(m_states->Opaque(), nullptr, 0xFFFFFFFF);
     context->OMSetDepthStencilState(m_states->DepthDefault(), 0);
     context->RSSetState(m_rasterState.Get());
 
-    renderPasses.render(context, m_scene, m_view, m_proj);
+    //renderPasses.render(context, m_scene, m_view, m_proj);
 
-    m_deviceResources->PIXEndEvent();
+    m_renderer.deviceResources->PIXEndEvent();
 
     // Show the new frame.
-    m_deviceResources->Present();
+    m_renderer.deviceResources->Present();
 }
 
 // Helper method to clear the back buffers.
 void Game::Clear()
 {
-    m_deviceResources->PIXBeginEvent(L"Clear");
+    m_renderer.deviceResources->PIXBeginEvent(L"Clear");
 
     // Clear the views.
-    auto context = m_deviceResources->GetD3DDeviceContext();
-    auto renderTarget = m_deviceResources->GetRenderTargetView();
-    auto depthStencil = m_deviceResources->GetDepthStencilView();
+    auto context = m_renderer.deviceResources->GetD3DDeviceContext();
+    auto renderTarget = m_renderer.deviceResources->GetRenderTargetView();
+    auto depthStencil = m_renderer.deviceResources->GetDepthStencilView();
 
     context->ClearRenderTargetView(renderTarget, Colors::Black);
     context->ClearDepthStencilView(depthStencil, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
     context->OMSetRenderTargets(1, &renderTarget, depthStencil);
 
     // Set the viewport.
-    auto viewport = m_deviceResources->GetScreenViewport();
+    auto viewport = m_renderer.deviceResources->GetScreenViewport();
     context->RSSetViewports(1, &viewport);
 
-    m_deviceResources->PIXEndEvent();
+    m_renderer.deviceResources->PIXEndEvent();
 }
 #pragma endregion
 
@@ -132,13 +132,13 @@ void Game::OnResuming()
 
 void Game::OnWindowMoved()
 {
-    auto r = m_deviceResources->GetOutputSize();
-    m_deviceResources->WindowSizeChanged(r.right, r.bottom);
+    auto r = m_renderer.deviceResources->GetOutputSize();
+    m_renderer.deviceResources->WindowSizeChanged(r.right, r.bottom);
 }
 
 void Game::OnWindowSizeChanged(int width, int height)
 {
-    if (!m_deviceResources->WindowSizeChanged(width, height))
+    if (!m_renderer.deviceResources->WindowSizeChanged(width, height))
         return;
 
     CreateWindowSizeDependentResources();
@@ -159,7 +159,7 @@ void Game::GetDefaultSize(int& width, int& height) const
 // These are the resources that depend on the device.
 void Game::CreateDeviceDependentResources()
 {
-    ID3D11Device1* device = m_deviceResources->GetD3DDevice();
+    ID3D11Device1* device = m_renderer.getDevice();
 
     CD3D11_RASTERIZER_DESC rastDesc{
         D3D11_FILL_SOLID, D3D11_CULL_BACK, TRUE,
@@ -171,9 +171,9 @@ void Game::CreateDeviceDependentResources()
     DX::ThrowIfFailed(device->CreateRasterizerState(&rastDesc, m_rasterState.ReleaseAndGetAddressOf()));
     m_states = std::make_unique<CommonStates>(device);
 
-    renderPasses.init(device);
+    //renderPasses.init(device);
 
-    bdr::gltf::SceneData sceneData{ m_deviceResources.get(), &renderPasses, &m_scene, "polly/", "project_polly.gltf" };
+    bdr::gltf::SceneData sceneData{ &m_scene, &m_renderer, "polly/", "project_polly.gltf" };
     bdr::gltf::loadModel(sceneData);
 }
 
@@ -181,7 +181,7 @@ void Game::CreateDeviceDependentResources()
 void Game::CreateWindowSizeDependentResources()
 {
     m_view = Matrix::CreateLookAt(Vector3{ 2.0f, 2.0f, 2.0f }, Vector3::Zero, Vector3::UnitY);
-    RECT viewPort = m_deviceResources->GetOutputSize();
+    RECT viewPort = m_renderer.deviceResources->GetOutputSize();
     float width = float(viewPort.right - viewPort.left);
     float height = float(viewPort.bottom - viewPort.top);
     m_proj = Matrix::CreatePerspectiveFieldOfView(XM_PI / 4.0f, width / height, 0.1f, 10.f);
@@ -191,8 +191,8 @@ void Game::OnDeviceLost()
 {
     m_rasterState.Reset();
     m_states.reset();
-    renderPasses.reset();
     m_scene.reset();
+    m_renderer.reset();
 }
 
 void Game::OnDeviceRestored()
