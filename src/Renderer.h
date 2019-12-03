@@ -30,6 +30,40 @@ namespace bdr
             }
         }
 
+        void setWindow(HWND window, int newWidth, int newHeight)
+        {
+            width = uint32_t(newWidth);
+            height = uint32_t(newHeight);
+            deviceResources->SetWindow(window, newWidth, newHeight);
+        }
+
+        inline RECT getOutputSize() const
+        {
+            return deviceResources->GetOutputSize();
+        }
+
+        bool hasWindowSizeChanged(int newWidth, int newHeight)
+        {
+            const bool hasSizeChanged = deviceResources->WindowSizeChanged(newWidth, newHeight);
+            if (hasSizeChanged) {
+                width = uint32_t(newWidth);
+                height = uint32_t(newHeight);
+            }
+            return hasSizeChanged;
+        }
+
+        inline void createDeviceResources()
+        {
+            deviceResources->CreateDeviceResources();
+            inputLayoutManager.init(deviceResources->GetD3DDevice());
+        }
+
+        inline void createWindowSizeDependentResources()
+        {
+            deviceResources->CreateWindowSizeDependentResources();
+        }
+
+
         uint32_t addMesh(Mesh mesh, const InputLayoutDetail details[])
         {
             mesh.inputLayoutHandle = inputLayoutManager.getOrCreateInputLayout(details, mesh.numPresentAttr);
@@ -50,6 +84,8 @@ namespace bdr
         }
 
         // Device resources.
+        uint32_t width = 0;
+        uint32_t height = 0;
         std::unique_ptr<DX::DeviceResources> deviceResources;
         InputLayoutManager inputLayoutManager;
         std::vector<Mesh> meshes;

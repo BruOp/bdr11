@@ -22,13 +22,12 @@ Game::Game() noexcept(false)
 // Initialize the Direct3D resources required to run.
 void Game::Initialize(HWND window, int width, int height)
 {
-    m_renderer.deviceResources->SetWindow(window, width, height);
+    m_renderer.setWindow(window, width, height);
 
-    m_renderer.deviceResources->CreateDeviceResources();
-    m_renderer.inputLayoutManager.init(m_renderer.deviceResources->GetD3DDevice());
+    m_renderer.createDeviceResources();
     CreateDeviceDependentResources();
 
-    m_renderer.deviceResources->CreateWindowSizeDependentResources();
+    m_renderer.createWindowSizeDependentResources();
     CreateWindowSizeDependentResources();
 }
 
@@ -132,13 +131,13 @@ void Game::OnResuming()
 
 void Game::OnWindowMoved()
 {
-    auto r = m_renderer.deviceResources->GetOutputSize();
-    m_renderer.deviceResources->WindowSizeChanged(r.right, r.bottom);
+    auto r = m_renderer.getOutputSize();
+    m_renderer.hasWindowSizeChanged(r.right, r.bottom);
 }
 
 void Game::OnWindowSizeChanged(int width, int height)
 {
-    if (!m_renderer.deviceResources->WindowSizeChanged(width, height))
+    if (!m_renderer.hasWindowSizeChanged(width, height))
         return;
 
     CreateWindowSizeDependentResources();
@@ -150,8 +149,8 @@ void Game::OnWindowSizeChanged(int width, int height)
 void Game::GetDefaultSize(int& width, int& height) const
 {
     // TODO: Change to desired default window size (note minimum size is 320x200).
-    width = 800;
-    height = 600;
+    width = 1600;
+    height = 900;
 }
 #pragma endregion
 
@@ -181,9 +180,8 @@ void Game::CreateDeviceDependentResources()
 void Game::CreateWindowSizeDependentResources()
 {
     m_view = Matrix::CreateLookAt(Vector3{ 2.0f, 2.0f, 2.0f }, Vector3::Zero, Vector3::UnitY);
-    RECT viewPort = m_renderer.deviceResources->GetOutputSize();
-    float width = float(viewPort.right - viewPort.left);
-    float height = float(viewPort.bottom - viewPort.top);
+    float width = float(m_renderer.width);
+    float height = float(m_renderer.height);
     m_proj = Matrix::CreatePerspectiveFieldOfView(XM_PI / 4.0f, width / height, 0.1f, 10.f);
 }
 
