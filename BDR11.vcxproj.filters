@@ -33,14 +33,8 @@
     <ClInclude Include="src\Animation.h">
       <Filter>Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="src\NodeList.h">
-      <Filter>Graphics</Filter>
-    </ClInclude>
     <ClInclude Include="src\ReadData.h">
       <Filter>Common</Filter>
-    </ClInclude>
-    <ClInclude Include="src\RenderPass.h">
-      <Filter>Graphics</Filter>
     </ClInclude>
     <ClInclude Include="src\GltfSceneLoader.h">
       <Filter>Graphics</Filter>
@@ -79,13 +73,7 @@
     <ClCompile Include="src\Animation.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
-    <ClCompile Include="src\NodeList.cpp">
-      <Filter>Graphics</Filter>
-    </ClCompile>
     <ClCompile Include="src\GltfSceneLoader.cpp">
-      <Filter>Graphics</Filter>
-    </ClCompile>
-    <ClCompile Include="src\RenderPass.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
     <ClCompile Include="src\ECSRegistry.cpp" />
