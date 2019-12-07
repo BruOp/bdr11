@@ -27,7 +27,7 @@ void renderScene(bdr::Renderer& renderer, bdr::Scene& scene, bdr::View& view)
 
     for (size_t entityId = 0; entityId < registry.numEntities; ++entityId) {
         const uint32_t cmpMask = registry.cmpMasks[entityId];
-        const uint32_t requirements = bdr::CmpMasks::MESH | bdr::CmpMasks::MATERIAL | bdr::CmpMasks::TRANSFORM;
+        const uint32_t requirements = bdr::CmpMasks::MESH | bdr::CmpMasks::MATERIAL;
         if ((cmpMask & requirements) == requirements) {
             bdr::DrawConstants& drawConstants = registry.drawConstants[entityId];
             const bdr::Material& material = registry.materials[entityId];

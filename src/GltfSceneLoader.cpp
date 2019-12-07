@@ -246,7 +246,7 @@ namespace bdr
                         registry.meshes[childEntity] = sceneData.meshMap[inputNode.mesh] + i;
                         registry.materials[childEntity] = sceneData.pRenderer->materials[0];
                         registry.localMatrices[childEntity] = Matrix::Identity;
-                        registry.cmpMasks[childEntity] |= (CmpMasks::MESH | CmpMasks::PARENT | CmpMasks::MATERIAL | CmpMasks::TRANSFORM);
+                        registry.cmpMasks[childEntity] |= (CmpMasks::MESH | CmpMasks::PARENT | CmpMasks::MATERIAL);
                     }
                 }
                 else {
@@ -403,9 +403,9 @@ namespace bdr
                 uint32_t entity = sceneData.nodeMap[i];
                 const Transform transform = processTransform(node);
                 registry.transforms[entity] = transform;
+                registry.cmpMasks[entity] |= CmpMasks::TRANSFORM;
                 const Matrix local = getMatrixFromTransform(transform);
                 registry.localMatrices[entity] = local;
-                registry.cmpMasks[entity] |= CmpMasks::TRANSFORM;
 
                 uint32_t parent = registry.parents[entity];
                 if (parent == entity) {
