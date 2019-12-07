@@ -198,23 +198,20 @@ void DeviceResources::CreateDeviceResources()
     ThrowIfFailed(hr);
 
 #ifndef NDEBUG
-    ComPtr<ID3D11Debug> d3dDebug;
-    if (SUCCEEDED(device.As(&d3dDebug))) {
-        ComPtr<ID3D11InfoQueue> d3dInfoQueue;
-        if (SUCCEEDED(d3dDebug.As(&d3dInfoQueue))) {
-        #ifdef _DEBUG
-            d3dInfoQueue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_CORRUPTION, true);
-            d3dInfoQueue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_ERROR, true);
-        #endif
-            D3D11_MESSAGE_ID hide[] =
-            {
-                D3D11_MESSAGE_ID_SETPRIVATEDATA_CHANGINGPARAMS,
-            };
-            D3D11_INFO_QUEUE_FILTER filter = {};
-            filter.DenyList.NumIDs = _countof(hide);
-            filter.DenyList.pIDList = hide;
-            d3dInfoQueue->AddStorageFilterEntries(&filter);
-        }
+    ComPtr<ID3D11InfoQueue> d3dInfoQueue;
+    if (SUCCEEDED(device->QueryInterface(d3dInfoQueue.ReleaseAndGetAddressOf()))) {
+    #ifdef _DEBUG
+        d3dInfoQueue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_CORRUPTION, true);
+        d3dInfoQueue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_ERROR, true);
+    #endif
+        D3D11_MESSAGE_ID hide[] =
+        {
+            D3D11_MESSAGE_ID_SETPRIVATEDATA_CHANGINGPARAMS,
+        };
+        D3D11_INFO_QUEUE_FILTER filter = {};
+        filter.DenyList.NumIDs = _countof(hide);
+        filter.DenyList.pIDList = hide;
+        d3dInfoQueue->AddStorageFilterEntries(&filter);
     }
 #endif
 
