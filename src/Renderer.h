@@ -4,9 +4,16 @@
 #include "DeviceResources.h"
 #include "Mesh.h"
 #include "InputLayoutManager.h"
+#include "Material.h"
 
 namespace bdr
 {
+    struct View
+    {
+        DirectX::SimpleMath::Matrix viewTransform;
+        DirectX::SimpleMath::Matrix projection;
+    };
+
     class Renderer
     {
     public:
@@ -17,7 +24,9 @@ namespace bdr
 
         ~Renderer()
         {
-            reset();
+            for (size_t i = 0; i < meshes.size(); i++) {
+                meshes[i].destroy();
+            }
         }
 
         UNCOPIABLE(Renderer);
@@ -28,6 +37,8 @@ namespace bdr
             for (size_t i = 0; i < meshes.size(); i++) {
                 meshes[i].destroy();
             }
+            inputLayoutManager.reset();
+            materials.reset();
         }
 
         void setWindow(HWND window, int newWidth, int newHeight)
@@ -88,6 +99,8 @@ namespace bdr
         uint32_t height = 0;
         std::unique_ptr<DX::DeviceResources> deviceResources;
         InputLayoutManager inputLayoutManager;
+
         std::vector<Mesh> meshes;
+        MaterialManager materials;
     };
 }

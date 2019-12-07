@@ -2,6 +2,7 @@
 #include "pch.h"
 
 #include "Animation.h"
+#include "Material.h"
 
 namespace bdr
 {
@@ -11,7 +12,8 @@ namespace bdr
         PARENT = (1 << 1),
         SKIN = (1 << 2),
         MESH = (1 << 3),
-        TRANFORM = (1 << 4),
+        TRANSFORM = (1 << 4),
+        MATERIAL = (1 << 5),
     };
 
     template<typename T>
@@ -83,6 +85,9 @@ namespace bdr
         ComponentArray<DirectX::SimpleMath::Matrix> localMatrices;
         ComponentArray<DirectX::SimpleMath::Matrix> globalMatrices;
         ComponentArray<FreeEntityNode> freeEntitiesNodes;
+        ComponentArray<Material> materials;
+        ComponentArray<GenericMaterialData> materialData;
+        ComponentArray<DrawConstants> drawConstants;
 
         // This is used to calculate the number of components and store them.
         // DO NOT MOVE -- it's position in the layout of this struct is crucial to it's functionality

@@ -7,12 +7,55 @@
 #include "Scene.h"
 #include "GltfSceneLoader.h"
 
+
 extern void ExitGame();
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
 
 using Microsoft::WRL::ComPtr;
+
+void renderScene(bdr::Renderer& renderer, bdr::Scene& scene, bdr::View& view)
+{
+    const uint32_t offsets[6] = { 0, 0, 0, 0, 0, 0 };
+    bdr::ECSRegistry& registry = scene.registry;
+
+    ID3D11DeviceContext1* context = renderer.deviceResources->GetD3DDeviceContext();
+
+    // TODO: Build Constant buffer data in batches
+    Matrix viewProjTransform = view.viewTransform * view.projection;
+
+    for (size_t entityId = 0; entityId < registry.numEntities; ++entityId) {
+        const uint32_t cmpMask = registry.cmpMasks[entityId];
+        const uint32_t requirements = bdr::CmpMasks::MESH | bdr::CmpMasks::MATERIAL | bdr::CmpMasks::TRANSFORM;
+        if ((cmpMask & requirements) == requirements) {
+            bdr::DrawConstants& drawConstants = registry.drawConstants[entityId];
+            const bdr::Material& material = registry.materials[entityId];
+            const bdr::Mesh& mesh = renderer.meshes[registry.meshes[entityId]];
+
+            // Set IAInputLayout
+            context->IASetVertexBuffers(0, mesh.numPresentAttr, mesh.vertexBuffers, mesh.strides, offsets);
+            context->IASetIndexBuffer(mesh.indexBuffer, mesh.indexFormat, 0);
+            context->IASetInputLayout(renderer.inputLayoutManager[mesh.inputLayoutHandle]);
+
+            // Set shaders
+            context->VSSetShader(material.vertexShader, nullptr, 0);
+            context->PSSetShader(material.pixelShader, nullptr, 0);
+
+            // Set constant buffers
+            drawConstants.MVP = (registry.globalMatrices[entityId] * viewProjTransform).Transpose();
+            material.vertexCB.copyToGPU(context, drawConstants);
+
+            ID3D11Buffer* vsBuffers[] = { material.vertexCB };
+            context->VSSetConstantBuffers(0, 1, vsBuffers);
+
+            //ID3D11Buffer* psBuffers[] = { material.pixelCB };
+            //context->PSSetConstantBuffers(0, 1, psBuffers);
+            context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+            context->DrawIndexed(mesh.indexCount, 0, 0);
+        }
+    }
+}
 
 Game::Game() noexcept(false)
 {
@@ -50,6 +93,15 @@ void Game::Update(DX::StepTimer const& timer)
 
     float radius = 3.0f;
     m_view = Matrix::CreateLookAt(Vector3{ radius * sinf(0.5f * totalTime), 0.5f, radius * cosf(0.5f * totalTime) }, Vector3::Zero, Vector3::UnitY);
+
+    bdr::ECSRegistry& registry = m_scene.registry;
+    for (uint32_t entityId = 0; entityId < m_scene.registry.numEntities; entityId++) {
+        if (registry.cmpMasks[entityId] & bdr::CmpMasks::PARENT) {
+            const Matrix& parentMatrix = registry.globalMatrices[registry.parents[entityId]];
+            registry.globalMatrices[entityId] = registry.localMatrices[entityId] * parentMatrix;
+        }
+    }
+
     /*for (const auto& animation : m_scene.animations) {
         bdr::updateAnimation(m_scene.nodeList, animation, totalTime);
     }*/
@@ -75,7 +127,8 @@ void Game::Render()
     context->OMSetDepthStencilState(m_states->DepthDefault(), 0);
     context->RSSetState(m_rasterState.Get());
 
-    //renderPasses.render(context, m_scene, m_view, m_proj);
+    bdr::View view = { m_view, m_proj };
+    renderScene(m_renderer, m_scene, view);
 
     m_renderer.deviceResources->PIXEndEvent();
 
@@ -170,9 +223,9 @@ void Game::CreateDeviceDependentResources()
     DX::ThrowIfFailed(device->CreateRasterizerState(&rastDesc, m_rasterState.ReleaseAndGetAddressOf()));
     m_states = std::make_unique<CommonStates>(device);
 
-    //renderPasses.init(device);
+    m_renderer.materials.initMaterial(m_renderer.getDevice(), L"basic_vs.cso", L"basic_ps.cso");
 
-    bdr::gltf::SceneData sceneData{ &m_scene, &m_renderer, "polly/", "project_polly.gltf" };
+    bdr::gltf::SceneData sceneData{ &m_scene, &m_renderer, "FlightHelmet/", "FlightHelmet.gltf" };
     bdr::gltf::loadModel(sceneData);
 }
 
@@ -182,7 +235,7 @@ void Game::CreateWindowSizeDependentResources()
     m_view = Matrix::CreateLookAt(Vector3{ 2.0f, 2.0f, 2.0f }, Vector3::Zero, Vector3::UnitY);
     float width = float(m_renderer.width);
     float height = float(m_renderer.height);
-    m_proj = Matrix::CreatePerspectiveFieldOfView(XM_PI / 4.0f, width / height, 0.1f, 10.f);
+    m_proj = Matrix::CreatePerspectiveFieldOfView(XM_PI / 4.0f, width / height, 0.1f, 100.f);
 }
 
 void Game::OnDeviceLost()

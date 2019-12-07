@@ -50,8 +50,10 @@ namespace bdr
         void reset()
         {
             for (size_t i = 0; i < _countof(inputLayouts); i++) {
-                inputLayouts[i]->Release();
-                inputLayouts[i] = nullptr;
+                if (inputLayouts[i] != nullptr) {
+                    inputLayouts[i]->Release();
+                    inputLayouts[i] = nullptr;
+                }
             }
         };
 

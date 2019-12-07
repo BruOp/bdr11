@@ -39,16 +39,10 @@
     <ClInclude Include="src\ReadData.h">
       <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="src\RenderObject.h">
-      <Filter>Graphics</Filter>
-    </ClInclude>
     <ClInclude Include="src\RenderPass.h">
       <Filter>Graphics</Filter>
     </ClInclude>
     <ClInclude Include="src\GltfSceneLoader.h">
-      <Filter>Graphics</Filter>
-    </ClInclude>
-    <ClInclude Include="src\RenderFeature.h">
       <Filter>Graphics</Filter>
     </ClInclude>
     <ClInclude Include="src\ECSRegistry.h" />
@@ -64,6 +58,9 @@
     </ClInclude>
     <ClInclude Include="src\bdrMemory.h">
       <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Material.h">
+      <Filter>Graphics</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -88,15 +85,15 @@
     <ClCompile Include="src\GltfSceneLoader.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
-    <ClCompile Include="src\RenderFeature.cpp">
-      <Filter>Graphics</Filter>
-    </ClCompile>
     <ClCompile Include="src\RenderPass.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
     <ClCompile Include="src\ECSRegistry.cpp" />
     <ClCompile Include="src\Renderer.cpp" />
     <ClCompile Include="src\InputLayoutManager.cpp" />
+    <ClCompile Include="src\Material.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc" />

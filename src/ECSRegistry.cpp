@@ -12,7 +12,7 @@ namespace bdr
         registry.pFreeNode = nullptr;
 
         // Build our linked list, starting from the back
-        for (uint32_t i = registry.numAllocatedEntities - 1; i > 0; --i) {
+        for (int32_t i = registry.numAllocatedEntities - 1; i >= 0; --i) {
             registry.freeEntitiesNodes[i].node = i;
 
             if (!(registry.cmpMasks[i] & CmpMasks::ALLOCATED)) {

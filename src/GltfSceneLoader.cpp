@@ -140,7 +140,7 @@ namespace bdr
             detail.format = getFormat(attrInfo, accessor.componentType);
             detail.semanticName = attrInfo.semanticName;
             detail.vectorSize = getPerElementCount(accessor);
-            
+
             switch (accessor.componentType) {
             case TINYGLTF_COMPONENT_TYPE_BYTE:
             case TINYGLTF_COMPONENT_TYPE_SHORT:
@@ -192,7 +192,7 @@ namespace bdr
                     static_cast<float>(inputNode.translation[1]),
                     static_cast<float>(inputNode.translation[2]),
                 };
-                transform.mask |= TransformType::Rotation;
+                transform.mask |= TransformType::Translation;
             }
 
             return transform;
@@ -226,6 +226,7 @@ namespace bdr
             if (parentNodeIdx > -1) {
                 // This is safe only because we process the tree depth first
                 registry.parents[entity] = sceneData.nodeMap[parentNodeIdx];
+                registry.cmpMasks[entity] |= CmpMasks::PARENT;
             }
             else {
                 registry.parents[entity] = entity;
@@ -243,11 +244,16 @@ namespace bdr
                         registry.parents[childEntity] = entity;
                         // Our mesh map guarentees that primitives are stored adjacent to one another.
                         registry.meshes[childEntity] = sceneData.meshMap[inputNode.mesh] + i;
+                        registry.materials[childEntity] = sceneData.pRenderer->materials[0];
+                        registry.localMatrices[childEntity] = Matrix::Identity;
+                        registry.cmpMasks[childEntity] |= (CmpMasks::MESH | CmpMasks::PARENT | CmpMasks::MATERIAL | CmpMasks::TRANSFORM);
                     }
                 }
                 else {
                     // Otherwise, we just assign the existing mesh to our entity
                     registry.meshes[entity] = sceneData.meshMap[inputNode.mesh];
+                    registry.materials[entity] = sceneData.pRenderer->materials[0];
+                    registry.cmpMasks[entity] |= (CmpMasks::MESH | CmpMasks::MATERIAL);
                 }
             }
 
@@ -359,8 +365,8 @@ namespace bdr
                 ++vertBufferIdx;
             }
             mesh.numPresentAttr = uint8_t(vertBufferIdx);
-            
-            return sceneData.pRenderer->addMesh(mesh, details);            
+
+            return sceneData.pRenderer->addMesh(mesh, details);
         }
 
         void processMeshes(SceneData& sceneData)
@@ -399,13 +405,14 @@ namespace bdr
                 registry.transforms[entity] = transform;
                 const Matrix local = getMatrixFromTransform(transform);
                 registry.localMatrices[entity] = local;
+                registry.cmpMasks[entity] |= CmpMasks::TRANSFORM;
 
                 uint32_t parent = registry.parents[entity];
                 if (parent == entity) {
                     registry.globalMatrices[entity] = local;
                 }
                 else {
-                    registry.globalMatrices[entity] = registry.globalMatrices[parent] * local;
+                    registry.globalMatrices[entity] = local * registry.globalMatrices[parent];
                 }
             }
         }

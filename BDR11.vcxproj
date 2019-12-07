@@ -180,8 +180,7 @@
     <ClInclude Include="src\pch.h" />
     <ClInclude Include="src\ReadData.h" />
     <ClInclude Include="src\Renderer.h" />
-    <ClInclude Include="src\RenderFeature.h" />
-    <ClInclude Include="src\RenderObject.h" />
+    <ClInclude Include="src\Material.h" />
     <ClInclude Include="src\RenderPass.h" />
     <ClInclude Include="src\Scene.h" />
     <ClInclude Include="src\StepTimer.h" />
@@ -201,7 +200,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="src\Renderer.cpp" />
-    <ClCompile Include="src\RenderFeature.cpp" />
+    <ClCompile Include="src\Material.cpp" />
     <ClCompile Include="src\RenderPass.cpp" />
     <ClCompile Include="src\Scene.cpp" />
   </ItemGroup>
