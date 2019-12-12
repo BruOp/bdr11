@@ -13,6 +13,51 @@ namespace bdr
 {
     namespace gltf
     {
+        const AttributeInfo ATTR_INFO[]{
+            {
+                "POSITION",
+                "SV_Position",
+                MeshAttributes::POSITION,
+                AttributeInfo::REQUIRED | AttributeInfo::USED_FOR_SKINNING
+            },
+            {
+                "NORMAL",
+                "NORMAL",
+                MeshAttributes::NORMAL,
+                AttributeInfo::REQUIRED | AttributeInfo::USED_FOR_SKINNING
+            },
+            {
+                "TEXCOORD_0",
+                "TEXCOORD",
+                MeshAttributes::TEXCOORD,
+                AttributeInfo::REQUIRED
+            },
+            {
+                "TANGENT",
+                "TANGENT",
+                MeshAttributes::TANGENT,
+                AttributeInfo::USED_FOR_SKINNING
+            },
+            {
+                "JOINTS_0",
+                "BLENDINDICES",
+                MeshAttributes::BLENDINDICES,
+                AttributeInfo::REQUIRED | AttributeInfo::USED_FOR_SKINNING | AttributeInfo::PRESKIN_ONLY
+            },
+            {
+                "WEIGHTS_0",
+                "BLENDWEIGHT",
+                MeshAttributes::BLENDWEIGHT,
+                AttributeInfo::REQUIRED | AttributeInfo::USED_FOR_SKINNING | AttributeInfo::PRESKIN_ONLY
+            },
+        };
+
+        AttributeInfo genericAttrInfo[] = {
+            ATTR_INFO[0], ATTR_INFO[1], ATTR_INFO[2], ATTR_INFO[3],
+        };
+        AttributeInfo preskinAttrInfo[] = {
+            ATTR_INFO[0], ATTR_INFO[1], ATTR_INFO[3], ATTR_INFO[4], ATTR_INFO[5],
+        };
 
         bool loadImageDataCallback(
             tinygltf::Image* image,
@@ -233,27 +278,26 @@ namespace bdr
             }
 
             if (inputNode.mesh > -1) {
-                const tinygltf::Mesh& inputMesh = sceneData.inputModel->meshes[inputNode.mesh];
+                uint32_t meshIdx = sceneData.meshMap[inputNode.mesh];
 
-                if (inputMesh.primitives.size() > 1) {
+                // Assign the first mesh to our entity
+                registry.meshes[entity] = meshIdx;
+                registry.materials[entity] = sceneData.pRenderer->materials[0];
+                registry.cmpMasks[entity] |= (CmpMasks::MESH | CmpMasks::MATERIAL);
+
+                // Handle submeshes
+                meshIdx = sceneData.pRenderer->meshes[meshIdx].subMeshIdx;
+                while (meshIdx != UINT32_MAX) {
                     // If we have multiple primitves, we create a new entity for each one, assigning the
                     // current entity as their mutual parent.
-                    for (size_t i = 0; i < inputMesh.primitives.size(); ++i) {
-                        const auto& primitive = inputMesh.primitives[i];
-                        const uint32_t childEntity = getNewEntity(registry);
-                        registry.parents[childEntity] = entity;
-                        // Our mesh map guarentees that primitives are stored adjacent to one another.
-                        registry.meshes[childEntity] = sceneData.meshMap[inputNode.mesh] + i;
-                        registry.materials[childEntity] = sceneData.pRenderer->materials[0];
-                        registry.localMatrices[childEntity] = Matrix::Identity;
-                        registry.cmpMasks[childEntity] |= (CmpMasks::MESH | CmpMasks::PARENT | CmpMasks::MATERIAL);
-                    }
-                }
-                else {
-                    // Otherwise, we just assign the existing mesh to our entity
-                    registry.meshes[entity] = sceneData.meshMap[inputNode.mesh];
-                    registry.materials[entity] = sceneData.pRenderer->materials[0];
-                    registry.cmpMasks[entity] |= (CmpMasks::MESH | CmpMasks::MATERIAL);
+                    const uint32_t childEntity = getNewEntity(registry);
+                    registry.parents[childEntity] = entity;
+                    registry.meshes[childEntity] = meshIdx;
+                    registry.materials[childEntity] = sceneData.pRenderer->materials[0];
+                    registry.localMatrices[childEntity] = Matrix::Identity;
+                    registry.cmpMasks[childEntity] |= (CmpMasks::MESH | CmpMasks::PARENT | CmpMasks::MATERIAL);
+
+                    meshIdx = sceneData.pRenderer->meshes[meshIdx].subMeshIdx;
                 }
             }
 
@@ -280,13 +324,17 @@ namespace bdr
             }
         }
 
-        void createBuffer(SceneData& sceneData, ID3D11Buffer** dxBuffer, const tinygltf::Accessor& accessor, const uint32_t usageFlag)
+        void createBuffer(SceneData& sceneData, ID3D11Buffer** dxBuffer, const tinygltf::Accessor& accessor, const uint32_t bindFlags)
         {
             const tinygltf::Model& inputModel = *sceneData.inputModel;
             const tinygltf::BufferView& bufferView = inputModel.bufferViews[accessor.bufferView];
             const tinygltf::Buffer& buffer = inputModel.buffers[bufferView.buffer];
 
-            D3D11_BUFFER_DESC bufferDesc = CD3D11_BUFFER_DESC(getByteSize(accessor) * accessor.count, usageFlag);
+            D3D11_BUFFER_DESC bufferDesc = CD3D11_BUFFER_DESC(getByteSize(accessor) * accessor.count, bindFlags);
+            if (bindFlags & D3D11_BIND_UNORDERED_ACCESS) {
+                bufferDesc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS;
+            }
+
             D3D11_SUBRESOURCE_DATA initData;
             initData.pSysMem = &buffer.data.at(accessor.byteOffset + bufferView.byteOffset);
             initData.SysMemPitch = 0;
@@ -296,11 +344,89 @@ namespace bdr
             DX::ThrowIfFailed(sceneData.pRenderer->getDevice()->CreateBuffer(&bufferDesc, &initData, dxBuffer));
         }
 
+        void processVertexBuffers(
+            SceneData& sceneData,
+            const tinygltf::Primitive& inputPrimitive,
+            Mesh& mesh,
+            const AttributeInfo attrInfos[],
+            const size_t attrInfoCount,
+            const uint32_t bindFlags
+        )
+        {
+            bool isSkinned = inputPrimitive.attributes.count("JOINTS_0") > 0 && inputPrimitive.attributes.count("WEIGHTS_0") > 0;
+
+            uint32_t vertBufferIdx = 0;
+            for (size_t i = 0; i < attrInfoCount; ++i) {
+                const AttributeInfo& attrInfo = attrInfos[i];
+                const std::string& attrName = attrInfo.name;
+
+                if (inputPrimitive.attributes.count(attrName) == 0) {
+                    if (attrInfo.flags & AttributeInfo::REQUIRED) {
+                        throw std::runtime_error("Cannot handle meshes without " + attrName);
+                    }
+                    else {
+                        continue;
+                    }
+                }
+
+                int accessorIndex = inputPrimitive.attributes.at(attrName);
+                const tinygltf::Accessor& accessor = sceneData.inputModel->accessors[accessorIndex];
+
+                if (attrInfo.attrBit & MeshAttributes::POSITION) {
+                    mesh.numVertices = accessor.count;
+                }
+
+                createBuffer(sceneData, &mesh.vertexBuffers[vertBufferIdx], accessor, bindFlags);
+                mesh.presentAttributesMask |= attrInfo.attrBit;
+                mesh.strides[vertBufferIdx] = getByteSize(accessor);
+
+
+                // If the mesh is skinned and it's a relevant attribute, create UAVs
+                if (isSkinned && (attrInfo.flags & AttributeInfo::USED_FOR_SKINNING)) {
+                    D3D11_UNORDERED_ACCESS_VIEW_DESC desc{};
+                    desc.Format = DXGI_FORMAT_R32_TYPELESS;
+                    desc.Buffer = D3D11_BUFFER_UAV{ 0, mesh.numVertices, D3D11_BUFFER_UAV_FLAG_RAW };
+                    desc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
+                    DX::ThrowIfFailed(sceneData.pRenderer->getDevice()->CreateUnorderedAccessView(mesh.vertexBuffers[vertBufferIdx], &desc, &mesh.uavs[vertBufferIdx]));
+                }
+
+                ++vertBufferIdx;
+            }
+            mesh.numPresentAttr = uint8_t(vertBufferIdx);
+
+        }
+
+        uint32_t getInputLayout(SceneData& sceneData, const tinygltf::Primitive& inputPrimitive, const AttributeInfo attrInfos[], const size_t attrInfoCount)
+        {
+            InputLayoutDetail details[Mesh::maxAttrCount] = {};
+            for (size_t i = 0; i < attrInfoCount; ++i) {
+                const AttributeInfo& attrInfo = attrInfos[i];
+                const std::string& attrName = attrInfo.name;
+
+                if (inputPrimitive.attributes.count(attrName) == 0) {
+                    if (attrInfo.flags & AttributeInfo::REQUIRED) {
+                        throw std::runtime_error("Cannot handle meshes without " + attrName);
+                    }
+                    else {
+                        continue;
+                    }
+                }
+
+                int accessorIndex = inputPrimitive.attributes.at(attrName);
+                const tinygltf::Accessor& accessor = sceneData.inputModel->accessors[accessorIndex];
+
+                details[i] = getInputLayoutDetails(accessor, attrInfo);
+            }
+            return sceneData.pRenderer->getInputLayout(details, attrInfoCount);
+        }
+
         uint32_t processPrimitive(SceneData& sceneData, const tinygltf::Primitive& inputPrimitive)
         {
             const tinygltf::Model& inputModel = *sceneData.inputModel;
-            Mesh mesh{};
-            Mesh preskin{};
+
+            const uint32_t meshIdx = sceneData.pRenderer->getNewMesh();
+            Mesh& mesh = sceneData.pRenderer->meshes[meshIdx];
+
             // Index buffer
             const tinygltf::Accessor& indexAccessor = inputModel.accessors[inputPrimitive.indices];
             mesh.numIndices = uint32_t(indexAccessor.count);
@@ -339,63 +465,20 @@ namespace bdr
             default:
                 throw std::runtime_error("Cannot support indices of this type!");
             }
-
             bool isSkinned = inputPrimitive.attributes.count("JOINTS_0") > 0 && inputPrimitive.attributes.count("WEIGHTS_0") > 0;
-            
-            uint32_t vertBufferIdx = 0;
-            uint32_t preskinBufferIdx = 0;
-            InputLayoutDetail details[Mesh::maxAttrCount] = {};
-            for (size_t i = 0; i < _countof(ATTR_INFO); i++) {
-                const AttributeInfo& attrInfo = ATTR_INFO[i];
-                const std::string& attrName = attrInfo.name;
+            uint32_t flags = D3D11_BIND_VERTEX_BUFFER | (isSkinned ? D3D11_BIND_UNORDERED_ACCESS : D3D11_BIND_VERTEX_BUFFER);
 
-                if (inputPrimitive.attributes.count(attrName) == 0) {
-                    if (attrInfo.flags & AttributeInfo::REQUIRED) {
-                        throw std::runtime_error("Cannot handle meshes without " + attrName);
-                    }
-                    else {
-                        continue;
-                    }
-                }
-
-                int accessorIndex = inputPrimitive.attributes.at(attrName);
-                const tinygltf::Accessor& accessor = sceneData.inputModel->accessors[accessorIndex];
-
-                if (!(attrInfo.flags & AttributeInfo::PRESKIN_ONLY)) {
-                    createBuffer(sceneData, &mesh.vertexBuffers[vertBufferIdx], accessor, D3D11_BIND_VERTEX_BUFFER);
-                    mesh.presentAttributesMask |= attrInfo.attrBit;
-                    mesh.strides[vertBufferIdx] = getByteSize(accessor);
-
-                    details[vertBufferIdx] = getInputLayoutDetails(accessor, attrInfo);
-                    
-                    // If the mesh is skinned and it's a relevant attribute, create UAVs
-                    if (isSkinned && (attrInfo.flags & AttributeInfo::USED_FOR_SKINNING)) {
-                        DX::ThrowIfFailed(sceneData.pRenderer->getDevice()->CreateUnorderedAccessView(mesh.vertexBuffers[vertBufferIdx], nullptr, &mesh.uavs[vertBufferIdx]));
-                    }
-
-                    ++vertBufferIdx;
-                }
-                
-                if (attrInfo.attrBit & MeshAttributes::POSITION) {
-                    mesh.numVertices = accessor.count;
-                    preskin.numVertices = accessor.count;
-                }
-
-                if (isSkinned && (attrInfo.flags & AttributeInfo::USED_FOR_SKINNING)) {
-                    createBuffer(sceneData, &preskin.vertexBuffers[preskinBufferIdx], accessor, D3D11_BIND_UNORDERED_ACCESS);
-                    preskin.presentAttributesMask |= attrInfo.attrBit;
-                    preskin.strides[preskinBufferIdx] = getByteSize(accessor);
-                    DX::ThrowIfFailed(sceneData.pRenderer->getDevice()->CreateUnorderedAccessView(preskin.vertexBuffers[preskinBufferIdx], nullptr, &preskin.uavs[preskinBufferIdx]));
-                    ++preskinBufferIdx;
-                }                
-            }
-            mesh.numPresentAttr = uint8_t(vertBufferIdx);
-            preskin.numPresentAttr = uint8_t(preskinBufferIdx);
+            processVertexBuffers(sceneData, inputPrimitive, mesh, genericAttrInfo, _countof(genericAttrInfo), flags);
+            mesh.inputLayoutHandle = getInputLayout(sceneData, inputPrimitive, genericAttrInfo, _countof(genericAttrInfo));
 
             if (isSkinned) {
-                sceneData.pRenderer->addPreskinMesh(preskin);
+                const uint32_t preskinIdx = sceneData.pRenderer->getNewMesh();
+                Mesh& preskinMesh = sceneData.pRenderer->meshes[preskinIdx];
+                processVertexBuffers(sceneData, inputPrimitive, preskinMesh, preskinAttrInfo, _countof(preskinAttrInfo), D3D11_BIND_UNORDERED_ACCESS);
+
+                sceneData.pRenderer->meshes[meshIdx].preskinMeshIdx = preskinIdx;
             }
-            return sceneData.pRenderer->addMesh(mesh, details);
+            return meshIdx;
         }
 
         void processMeshes(SceneData& sceneData)
@@ -413,8 +496,8 @@ namespace bdr
                     for (size_t j = 1; j < inputMesh.primitives.size(); ++j) {
                         const auto& childPrimitive = inputMesh.primitives[j];
                         uint32_t meshIdx = processPrimitive(sceneData, childPrimitive);
-                        // We want to guarentee that our primitives are always tightly packed.
-                        ASSERT(meshIdx == parentMeshIdx + j);
+                        sceneData.pRenderer->meshes[parentMeshIdx].subMeshIdx = meshIdx;
+                        parentMeshIdx = meshIdx;
                     }
                 }
             }

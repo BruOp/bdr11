@@ -74,24 +74,15 @@ namespace bdr
             deviceResources->CreateWindowSizeDependentResources();
         }
 
-        uint32_t addPreskinMesh(Mesh& mesh)
+        uint32_t getNewMesh()
         {
-            meshes.push_back(mesh);
+            meshes.emplace_back();
             return meshes.size() - 1;
         };
 
-        uint32_t addMesh(Mesh mesh, const InputLayoutDetail details[])
+        uint32_t getInputLayout(const InputLayoutDetail details[], uint8_t numAttributes)
         {
-            mesh.inputLayoutHandle = inputLayoutManager.getOrCreateInputLayout(details, mesh.numPresentAttr);
-            meshes.push_back(std::move(mesh));
-            return meshes.size() - 1;
-        };
-
-        uint32_t addMesh(Mesh&& mesh, const InputLayoutDetail details[])
-        {
-            mesh.inputLayoutHandle = inputLayoutManager.getOrCreateInputLayout(details, mesh.numPresentAttr);
-            meshes.push_back(std::forward<Mesh>(mesh));
-            return meshes.size() - 1;
+            return inputLayoutManager.getOrCreateInputLayout(details, numAttributes);
         };
 
         ID3D11Device1* getDevice() const

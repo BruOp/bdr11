@@ -30,45 +30,6 @@ namespace bdr
             uint8_t flags;
         };
 
-        const AttributeInfo ATTR_INFO[]{
-            {
-                "POSITION",
-                "SV_Position",
-                MeshAttributes::POSITION,
-                AttributeInfo::REQUIRED | AttributeInfo::USED_FOR_SKINNING
-            },
-            {
-                "NORMAL",
-                "NORMAL",
-                MeshAttributes::NORMAL,
-                AttributeInfo::REQUIRED | AttributeInfo::USED_FOR_SKINNING
-            },
-            {
-                "TEXCOORD_0",
-                "TEXCOORD",
-                MeshAttributes::TEXCOORD,
-                AttributeInfo::REQUIRED
-            },
-            {
-                "TANGENT",
-                "TANGENT",
-                MeshAttributes::TANGENT,
-                AttributeInfo::USED_FOR_SKINNING
-            },
-            {
-                "JOINTS_0",
-                "BLENDINDICES",
-                MeshAttributes::BLENDINDICES,
-                AttributeInfo::USED_FOR_SKINNING | AttributeInfo::PRESKIN_ONLY
-            },
-            {
-                "WEIGHTS_0",
-                "BLENDWEIGHT",
-                MeshAttributes::BLENDWEIGHT,
-                AttributeInfo::USED_FOR_SKINNING | AttributeInfo::PRESKIN_ONLY
-            },
-        };
-
         struct EntityMapping
         {
             int32_t gltfNodeIdx;
