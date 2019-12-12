@@ -52,7 +52,7 @@ void renderScene(bdr::Renderer& renderer, bdr::Scene& scene, bdr::View& view)
             //ID3D11Buffer* psBuffers[] = { material.pixelCB };
             //context->PSSetConstantBuffers(0, 1, psBuffers);
             context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-            context->DrawIndexed(mesh.indexCount, 0, 0);
+            context->DrawIndexed(mesh.numIndices, 0, 0);
         }
     }
 }

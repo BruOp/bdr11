@@ -74,6 +74,11 @@ namespace bdr
             deviceResources->CreateWindowSizeDependentResources();
         }
 
+        uint32_t addPreskinMesh(Mesh& mesh)
+        {
+            meshes.push_back(mesh);
+            return meshes.size() - 1;
+        };
 
         uint32_t addMesh(Mesh mesh, const InputLayoutDetail details[])
         {

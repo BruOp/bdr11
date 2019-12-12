@@ -300,9 +300,10 @@ namespace bdr
         {
             const tinygltf::Model& inputModel = *sceneData.inputModel;
             Mesh mesh{};
+            Mesh preskin{};
             // Index buffer
             const tinygltf::Accessor& indexAccessor = inputModel.accessors[inputPrimitive.indices];
-            mesh.indexCount = uint32_t(indexAccessor.count);
+            mesh.numIndices = uint32_t(indexAccessor.count);
             switch (indexAccessor.componentType) {
             case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE:
             {
@@ -339,14 +340,17 @@ namespace bdr
                 throw std::runtime_error("Cannot support indices of this type!");
             }
 
+            bool isSkinned = inputPrimitive.attributes.count("JOINTS_0") > 0 && inputPrimitive.attributes.count("WEIGHTS_0") > 0;
+            
             uint32_t vertBufferIdx = 0;
+            uint32_t preskinBufferIdx = 0;
             InputLayoutDetail details[Mesh::maxAttrCount] = {};
             for (size_t i = 0; i < _countof(ATTR_INFO); i++) {
                 const AttributeInfo& attrInfo = ATTR_INFO[i];
                 const std::string& attrName = attrInfo.name;
 
                 if (inputPrimitive.attributes.count(attrName) == 0) {
-                    if (attrInfo.required) {
+                    if (attrInfo.flags & AttributeInfo::REQUIRED) {
                         throw std::runtime_error("Cannot handle meshes without " + attrName);
                     }
                     else {
@@ -356,16 +360,41 @@ namespace bdr
 
                 int accessorIndex = inputPrimitive.attributes.at(attrName);
                 const tinygltf::Accessor& accessor = sceneData.inputModel->accessors[accessorIndex];
-                createBuffer(sceneData, &mesh.vertexBuffers[vertBufferIdx], accessor, D3D11_BIND_VERTEX_BUFFER);
-                mesh.presentAttributesMask |= attrInfo.attrBit;
-                mesh.strides[vertBufferIdx] = getByteSize(accessor);
 
-                details[vertBufferIdx] = getInputLayoutDetails(accessor, attrInfo);
+                if (!(attrInfo.flags & AttributeInfo::PRESKIN_ONLY)) {
+                    createBuffer(sceneData, &mesh.vertexBuffers[vertBufferIdx], accessor, D3D11_BIND_VERTEX_BUFFER);
+                    mesh.presentAttributesMask |= attrInfo.attrBit;
+                    mesh.strides[vertBufferIdx] = getByteSize(accessor);
 
-                ++vertBufferIdx;
+                    details[vertBufferIdx] = getInputLayoutDetails(accessor, attrInfo);
+                    
+                    // If the mesh is skinned and it's a relevant attribute, create UAVs
+                    if (isSkinned && (attrInfo.flags & AttributeInfo::USED_FOR_SKINNING)) {
+                        DX::ThrowIfFailed(sceneData.pRenderer->getDevice()->CreateUnorderedAccessView(mesh.vertexBuffers[vertBufferIdx], nullptr, &mesh.uavs[vertBufferIdx]));
+                    }
+
+                    ++vertBufferIdx;
+                }
+                
+                if (attrInfo.attrBit & MeshAttributes::POSITION) {
+                    mesh.numVertices = accessor.count;
+                    preskin.numVertices = accessor.count;
+                }
+
+                if (isSkinned && (attrInfo.flags & AttributeInfo::USED_FOR_SKINNING)) {
+                    createBuffer(sceneData, &preskin.vertexBuffers[preskinBufferIdx], accessor, D3D11_BIND_UNORDERED_ACCESS);
+                    preskin.presentAttributesMask |= attrInfo.attrBit;
+                    preskin.strides[preskinBufferIdx] = getByteSize(accessor);
+                    DX::ThrowIfFailed(sceneData.pRenderer->getDevice()->CreateUnorderedAccessView(preskin.vertexBuffers[preskinBufferIdx], nullptr, &preskin.uavs[preskinBufferIdx]));
+                    ++preskinBufferIdx;
+                }                
             }
             mesh.numPresentAttr = uint8_t(vertBufferIdx);
+            preskin.numPresentAttr = uint8_t(preskinBufferIdx);
 
+            if (isSkinned) {
+                sceneData.pRenderer->addPreskinMesh(preskin);
+            }
             return sceneData.pRenderer->addMesh(mesh, details);
         }
 

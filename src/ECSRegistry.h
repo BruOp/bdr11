@@ -81,6 +81,7 @@ namespace bdr
         ComponentArray<uint32_t> parents;
         ComponentArray<uint32_t> skinIds;
         ComponentArray<uint32_t> meshes;
+        ComponentArray<uint32_t> preskinMeshes;
         ComponentArray<Transform> transforms;
         ComponentArray<DirectX::SimpleMath::Matrix> localMatrices;
         ComponentArray<DirectX::SimpleMath::Matrix> globalMatrices;

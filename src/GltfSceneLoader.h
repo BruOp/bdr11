@@ -17,19 +17,56 @@ namespace bdr
     {
         struct AttributeInfo
         {
+            enum Flags : uint8_t
+            {
+                REQUIRED = 1,
+                USED_FOR_SKINNING = 2,
+                PRESKIN_ONLY = 4,
+            };
+
             std::string name;
             std::string semanticName;
-            bool required;
             MeshAttributes attrBit;
+            uint8_t flags;
         };
 
         const AttributeInfo ATTR_INFO[]{
-            { "POSITION", "SV_Position", true, MeshAttributes::POSITION },
-            { "NORMAL", "NORMAL", true, MeshAttributes::NORMAL },
-            { "TEXCOORD_0", "TEXCOORD", true, MeshAttributes::TEXCOORD },
-            { "TANGENT", "TANGENT", false, MeshAttributes::TANGENT },
-            { "JOINTS_0", "BLENDINDICES", false, MeshAttributes::BLENDINDICES },
-            { "WEIGHTS_0", "BLENDWEIGHT", false, MeshAttributes::BLENDWEIGHT },
+            {
+                "POSITION",
+                "SV_Position",
+                MeshAttributes::POSITION,
+                AttributeInfo::REQUIRED | AttributeInfo::USED_FOR_SKINNING
+            },
+            {
+                "NORMAL",
+                "NORMAL",
+                MeshAttributes::NORMAL,
+                AttributeInfo::REQUIRED | AttributeInfo::USED_FOR_SKINNING
+            },
+            {
+                "TEXCOORD_0",
+                "TEXCOORD",
+                MeshAttributes::TEXCOORD,
+                AttributeInfo::REQUIRED
+            },
+            {
+                "TANGENT",
+                "TANGENT",
+                MeshAttributes::TANGENT,
+                AttributeInfo::USED_FOR_SKINNING
+            },
+            {
+                "JOINTS_0",
+                "BLENDINDICES",
+                MeshAttributes::BLENDINDICES,
+                AttributeInfo::USED_FOR_SKINNING | AttributeInfo::PRESKIN_ONLY
+            },
+            {
+                "WEIGHTS_0",
+                "BLENDWEIGHT",
+                MeshAttributes::BLENDWEIGHT,
+                AttributeInfo::USED_FOR_SKINNING | AttributeInfo::PRESKIN_ONLY
+            },
         };
 
         struct EntityMapping
