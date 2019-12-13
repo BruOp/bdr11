@@ -44,9 +44,9 @@ namespace bdr
                 transform.translation = Vector3::Lerp(previous, next, t);
                 break;
             }
-            default:
-                Utility::Printf("Skipping weights animation node");
-                continue;
+            //default:
+            //    Utility::Printf("Skipping weights animation node");
+            //    continue;
             }
         }
     }

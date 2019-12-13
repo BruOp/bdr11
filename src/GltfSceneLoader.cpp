@@ -33,12 +33,6 @@ namespace bdr
                 AttributeInfo::REQUIRED
             },
             {
-                "TANGENT",
-                "TANGENT",
-                MeshAttributes::TANGENT,
-                AttributeInfo::USED_FOR_SKINNING
-            },
-            {
                 "JOINTS_0",
                 "BLENDINDICES",
                 MeshAttributes::BLENDINDICES,
@@ -50,10 +44,16 @@ namespace bdr
                 MeshAttributes::BLENDWEIGHT,
                 AttributeInfo::REQUIRED | AttributeInfo::USED_FOR_SKINNING | AttributeInfo::PRESKIN_ONLY
             },
+            {
+                "TANGENT",
+                "TANGENT",
+                MeshAttributes::TANGENT,
+                AttributeInfo::USED_FOR_SKINNING
+            },
         };
 
         AttributeInfo genericAttrInfo[] = {
-            ATTR_INFO[0], ATTR_INFO[1], ATTR_INFO[2], ATTR_INFO[3],
+            ATTR_INFO[0], ATTR_INFO[1], ATTR_INFO[2], ATTR_INFO[5],
         };
         AttributeInfo preskinAttrInfo[] = {
             ATTR_INFO[0], ATTR_INFO[1], ATTR_INFO[3], ATTR_INFO[4], ATTR_INFO[5],
@@ -158,14 +158,6 @@ namespace bdr
             return getByteStride(accessor) * getPerElementCount(accessor);
         }
 
-        void copyAccessorData(const tinygltf::Model& inputModel, const tinygltf::Accessor& accessor, void* dst)
-        {
-            const tinygltf::BufferView& bufferView = inputModel.bufferViews[accessor.bufferView];
-            const tinygltf::Buffer& buffer = inputModel.buffers[bufferView.buffer];
-
-            memcpy(dst, &buffer.data.at(accessor.byteOffset + bufferView.byteOffset), accessor.count * getByteStride(accessor));
-        }
-
         template<class T>
         void copyAccessorDataToVector(const tinygltf::Model* inputModel, const tinygltf::Accessor& accessor, std::vector<T>& dst, uint32_t numElements = 1)
         {
@@ -174,7 +166,7 @@ namespace bdr
             const tinygltf::Buffer& buffer = inputModel->buffers[bufferView.buffer];
 
             dst.resize(accessor.count * numElements);
-            memcpy(dst.data(), &buffer.data.at(accessor.byteOffset + bufferView.byteOffset), accessor.count * getByteStride(accessor));
+            memcpy(dst.data(), &buffer.data.at(accessor.byteOffset + bufferView.byteOffset), accessor.count * getByteSize(accessor));
         }
 
 
@@ -271,6 +263,7 @@ namespace bdr
 
                 if (inputNode.skin > -1) {
                     registry.skinIds[entity] = inputNode.skin;
+                    registry.cmpMasks[entity] |= CmpMasks::SKIN;
                 }
 
                 // Handle submeshes
@@ -284,6 +277,11 @@ namespace bdr
                     registry.materials[childEntity] = sceneData.pRenderer->materials[0];
                     registry.localMatrices[childEntity] = Matrix::Identity;
                     registry.cmpMasks[childEntity] |= (CmpMasks::MESH | CmpMasks::PARENT | CmpMasks::MATERIAL);
+
+                    if (inputNode.skin > -1) {
+                        registry.skinIds[childEntity] = inputNode.skin;
+                        registry.cmpMasks[childEntity] |= CmpMasks::SKIN;
+                    }
 
                     meshIdx = sceneData.pRenderer->meshes[meshIdx].subMeshIdx;
                 }
@@ -375,7 +373,9 @@ namespace bdr
                         D3D11_UNORDERED_ACCESS_VIEW_DESC desc{};
                         if (bindFlags & D3D11_BIND_VERTEX_BUFFER) {
                             desc.Format = DXGI_FORMAT_R32_TYPELESS;
-                            desc.Buffer = D3D11_BUFFER_UAV{ 0, mesh.numVertices * mesh.strides[vertBufferIdx] / 4u, D3D11_BUFFER_UAV_FLAG_RAW };
+                            desc.Buffer.FirstElement = 0;
+                            desc.Buffer.NumElements = mesh.numVertices * mesh.strides[vertBufferIdx] / 4u;
+                            desc.Buffer.Flags = D3D11_BUFFER_UAV_FLAG_RAW;
                         }
                         else {
                             desc.Format = getFormat(attrInfo, accessor.componentType);
@@ -389,7 +389,8 @@ namespace bdr
                         ASSERT((bindFlags & D3D11_BIND_VERTEX_BUFFER) == 0, "Cannot create SRV for vertex buffers!");
                         D3D11_SHADER_RESOURCE_VIEW_DESC desc{};
                         desc.Format = getFormat(attrInfo, accessor.componentType);
-                        desc.Buffer = D3D11_BUFFER_SRV{ 0, mesh.numVertices };
+                        desc.Buffer.ElementOffset = 0;
+                        desc.Buffer.NumElements = mesh.numVertices;
                         desc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
                         DX::ThrowIfFailed(sceneData.pRenderer->getDevice()->CreateShaderResourceView(mesh.vertexBuffers[vertBufferIdx], &desc, &mesh.srvs[vertBufferIdx]));
                     }
@@ -492,19 +493,21 @@ namespace bdr
             sceneData.meshMap.resize(inputModel.meshes.size());
             for (size_t i = 0; i < inputModel.meshes.size(); ++i) {
                 const tinygltf::Mesh& inputMesh = inputModel.meshes[i];
+                uint32_t parentMeshIdx = UINT32_MAX;
 
-                const auto& primitive = inputMesh.primitives[0];
-                uint32_t parentMeshIdx = processPrimitive(sceneData, primitive);
-                sceneData.meshMap[i] = parentMeshIdx;
+                for (size_t j = 0; j < inputMesh.primitives.size(); ++j) {
+                    const auto& primitive = inputMesh.primitives[j];
+                    uint32_t meshIdx = processPrimitive(sceneData, primitive);
 
-                if (inputMesh.primitives.size() > 1) {
-                    for (size_t j = 1; j < inputMesh.primitives.size(); ++j) {
-                        const auto& childPrimitive = inputMesh.primitives[j];
-                        uint32_t meshIdx = processPrimitive(sceneData, childPrimitive);
+                    if (parentMeshIdx != UINT32_MAX) {
                         sceneData.pRenderer->meshes[parentMeshIdx].subMeshIdx = meshIdx;
-                        parentMeshIdx = meshIdx;
                     }
+                    if (j == 0) {
+                        sceneData.meshMap[i] = meshIdx;
+                    }
+                    parentMeshIdx = meshIdx;
                 }
+
             }
         }
 
@@ -593,7 +596,7 @@ namespace bdr
                     throw std::runtime_error("Don't support non float samplers just yet");
                 }
 
-                const tinygltf::Accessor& outputAccessor = sceneData.inputModel->accessors[inputSampler.input];
+                const tinygltf::Accessor& outputAccessor = sceneData.inputModel->accessors[inputSampler.output];
 
                 if (outputAccessor.componentType != TINYGLTF_COMPONENT_TYPE_FLOAT) {
                     throw std::runtime_error("Don't support non float samplers just yet");
@@ -612,7 +615,7 @@ namespace bdr
                 animationChannel.output.reserve(outputAccessor.count);
                 if (animationChannel.targetType == TransformType::Rotation) {
 
-                    copyAccessorDataToVector<float>(sceneData.inputModel, inputAccessor, data, 4u);
+                    copyAccessorDataToVector<float>(sceneData.inputModel, outputAccessor, data, 4u);
 
                     for (size_t j = 0; j < outputAccessor.count; j++) {
                         animationChannel.output.emplace_back(
@@ -624,7 +627,7 @@ namespace bdr
                     }
                 }
                 else {
-                    copyAccessorDataToVector<float>(sceneData.inputModel, inputAccessor, data, 3u);
+                    copyAccessorDataToVector<float>(sceneData.inputModel, outputAccessor, data, 3u);
                     for (size_t j = 0; j < outputAccessor.count; j++) {
                         animationChannel.output.emplace_back(
                             data[j * 3 + 0],
@@ -663,7 +666,7 @@ namespace bdr
             processMeshes(sceneData);
             processNodeTree(sceneData);
             processTransforms(sceneData);
-            
+
             for (size_t i = 0; i < sceneData.inputModel->skins.size(); i++) {
                 const tinygltf::Skin& inputSkin = sceneData.inputModel->skins[i];
                 Skin skin = processSkin(sceneData, inputSkin);

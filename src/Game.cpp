@@ -21,6 +21,7 @@ void renderScene(bdr::Renderer& renderer, bdr::Scene& scene, bdr::View& view)
     bdr::ECSRegistry& registry = scene.registry;
 
     ID3D11DeviceContext1* context = renderer.deviceResources->GetD3DDeviceContext();
+    renderer.deviceResources->PIXBeginEvent(L"Skinning");
 
     for (size_t entityId = 0; entityId < registry.numEntities; ++entityId) {
         const uint32_t cmpMask = registry.cmpMasks[entityId];
@@ -29,18 +30,16 @@ void renderScene(bdr::Renderer& renderer, bdr::Scene& scene, bdr::View& view)
             // Compute joint matrices
             const bdr::Skin& skin = scene.skins[registry.skinIds[entityId]];
             bdr::Mesh& mesh = renderer.meshes[registry.meshes[entityId]];
-            bdr::Mesh& preskin = renderer.meshes[registry.preskinMeshes[entityId]];
+            bdr::Mesh& preskin = renderer.meshes[mesh.preskinMeshIdx];
             bdr::JointBuffer& jointBuffer = renderer.jointBuffers[registry.jointBuffer[entityId]];
             std::vector<Matrix> jointMatrices(skin.inverseBindMatrices.size());
-            const Matrix& modelTransform = registry.globalMatrices[entityId];
-            const Matrix invModel{ modelTransform.Invert() };
+            const Matrix invModel{ registry.globalMatrices[entityId].Invert() };
             
             for (size_t joint = 0; joint < jointMatrices.size(); ++joint) {
                 uint32_t jointEntity = skin.jointEntities[joint];
-                jointMatrices[joint] = (invModel * registry.globalMatrices[jointEntity] * skin.inverseBindMatrices[joint]).Transpose();
+                jointMatrices[joint] = (skin.inverseBindMatrices[joint] * registry.globalMatrices[jointEntity] * invModel).Transpose();
             }
 
-            
             ASSERT(jointBuffer.buffer != nullptr);
             D3D11_MAPPED_SUBRESOURCE mappedResource;
             DX::ThrowIfFailed(context->Map(jointBuffer.buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource));
@@ -49,13 +48,20 @@ void renderScene(bdr::Renderer& renderer, bdr::Scene& scene, bdr::View& view)
 
             ID3D11ShaderResourceView * srvs[]{ jointBuffer.srv };
             context->CSSetShaderResources(0u, 1u, srvs);
-            context->CSSetShaderResources(1u, 5u, preskin.srvs);
+            context->CSSetShaderResources(1u, 4u, preskin.srvs);
             context->CSSetUnorderedAccessViews(0u, 1u, mesh.uavs, nullptr);
             context->CSSetShader(renderer.computeShader.Get(), nullptr, 0);
             uint32_t numDispatches = uint32_t(ceilf(float(mesh.numVertices) / 64.0f));
             context->Dispatch(numDispatches, 1, 1);
         }
     }
+
+    ID3D11UnorderedAccessView* nullUAV = NULL;
+    context->CSSetUnorderedAccessViews(1, 1, &nullUAV, nullptr);
+    
+    renderer.deviceResources->PIXEndEvent();
+
+    renderer.deviceResources->PIXBeginEvent(L"Render Meshes");
 
     // TODO: Build Constant buffer data in batches
     Matrix viewProjTransform = view.viewTransform * view.projection;
@@ -90,6 +96,11 @@ void renderScene(bdr::Renderer& renderer, bdr::Scene& scene, bdr::View& view)
             context->DrawIndexed(mesh.numIndices, 0, 0);
         }
     }
+    ID3D11Buffer* nullVB = nullptr;
+    uint32_t nullStrides[]{ 0 };
+    uint32_t nullOffsets[]{ 0 };
+    context->IASetVertexBuffers(0, 1, &nullVB, nullStrides, nullOffsets);
+    renderer.deviceResources->PIXEndEvent();
 }
 
 Game::Game() noexcept(false)

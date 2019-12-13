@@ -34,6 +34,9 @@ namespace bdr
 
         void destroy()
         {
+            for (auto srv : srvs) {
+                srv != nullptr && srv->Release();
+            }
             for (auto uav : uavs) {
                 uav != nullptr && uav->Release();
             }
