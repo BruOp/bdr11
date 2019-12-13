@@ -1,8 +1,11 @@
 #pragma once
 #include "pch.h"
 
+
 namespace bdr
 {
+    class ECSRegistry;
+
     enum TransformType : uint8_t
     {
         Rotation = 1,
@@ -38,7 +41,4 @@ namespace bdr
         std::vector<uint32_t> jointEntities;
         std::vector<DirectX::SimpleMath::Matrix> inverseBindMatrices;
     };
-
-    //void updateAnimation(NodeList& nodeList, const Animation& animation, const float currentTime);
-
 }

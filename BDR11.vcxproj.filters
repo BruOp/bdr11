@@ -14,6 +14,9 @@
     <Filter Include="Shaders">
       <UniqueIdentifier>{88197a49-7ebc-40e3-a2f8-532b9705d4dc}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Systems">
+      <UniqueIdentifier>{b40362ed-875f-44d0-9daf-333459f002b2}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\DeviceResources.h">
@@ -55,6 +58,9 @@
     </ClInclude>
     <ClInclude Include="src\Material.h">
       <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="src\AnimationSystem.h">
+      <Filter>Systems</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -110,6 +116,9 @@
       <Filter>Shaders</Filter>
     </FxCompile>
     <FxCompile Include="src\Shaders\skinned_basic_vs.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="src\skinning.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
   </ItemGroup>

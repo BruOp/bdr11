@@ -53,6 +53,8 @@ namespace bdr
         DirectX::SimpleMath::Vector3 scale;
     };
 
+    DirectX::SimpleMath::Matrix getMatrixFromTransform(const Transform& transform);
+
     // Used to retrieve the next "free" entity, one that has been allocated by unused.
     struct FreeEntityNode
     {
@@ -82,6 +84,7 @@ namespace bdr
         ComponentArray<uint32_t> skinIds;
         ComponentArray<uint32_t> meshes;
         ComponentArray<uint32_t> preskinMeshes;
+        ComponentArray<uint32_t> jointBuffer;
         ComponentArray<Transform> transforms;
         ComponentArray<DirectX::SimpleMath::Matrix> localMatrices;
         ComponentArray<DirectX::SimpleMath::Matrix> globalMatrices;
@@ -91,7 +94,7 @@ namespace bdr
         ComponentArray<DrawConstants> drawConstants;
 
         // This is used to calculate the number of components and store them.
-        // DO NOT MOVE -- it's position in the layout of this struct is crucial to it's functionality
+        // DO NOT MOVE -- it's position in the layout of this class is crucial to it's functionality
         uint32_t numComponents = 0;
 
         uint32_t numEntities = 0;

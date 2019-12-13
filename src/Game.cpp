@@ -6,7 +6,7 @@
 #include "Game.h"
 #include "Scene.h"
 #include "GltfSceneLoader.h"
-
+#include "AnimationSystem.h"
 
 extern void ExitGame();
 
@@ -21,6 +21,41 @@ void renderScene(bdr::Renderer& renderer, bdr::Scene& scene, bdr::View& view)
     bdr::ECSRegistry& registry = scene.registry;
 
     ID3D11DeviceContext1* context = renderer.deviceResources->GetD3DDeviceContext();
+
+    for (size_t entityId = 0; entityId < registry.numEntities; ++entityId) {
+        const uint32_t cmpMask = registry.cmpMasks[entityId];
+
+        if (cmpMask & bdr::CmpMasks::SKIN) {
+            // Compute joint matrices
+            const bdr::Skin& skin = scene.skins[registry.skinIds[entityId]];
+            bdr::Mesh& mesh = renderer.meshes[registry.meshes[entityId]];
+            bdr::Mesh& preskin = renderer.meshes[registry.preskinMeshes[entityId]];
+            bdr::JointBuffer& jointBuffer = renderer.jointBuffers[registry.jointBuffer[entityId]];
+            std::vector<Matrix> jointMatrices(skin.inverseBindMatrices.size());
+            const Matrix& modelTransform = registry.globalMatrices[entityId];
+            const Matrix invModel{ modelTransform.Invert() };
+            
+            for (size_t joint = 0; joint < jointMatrices.size(); ++joint) {
+                uint32_t jointEntity = skin.jointEntities[joint];
+                jointMatrices[joint] = (invModel * registry.globalMatrices[jointEntity] * skin.inverseBindMatrices[joint]).Transpose();
+            }
+
+            
+            ASSERT(jointBuffer.buffer != nullptr);
+            D3D11_MAPPED_SUBRESOURCE mappedResource;
+            DX::ThrowIfFailed(context->Map(jointBuffer.buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource));
+            CopyMemory(mappedResource.pData, jointMatrices.data(), sizeof(Matrix) * jointMatrices.size());
+            context->Unmap(jointBuffer.buffer, 0);
+
+            ID3D11ShaderResourceView * srvs[]{ jointBuffer.srv };
+            context->CSSetShaderResources(0u, 1u, srvs);
+            context->CSSetShaderResources(1u, 5u, preskin.srvs);
+            context->CSSetUnorderedAccessViews(0u, 1u, mesh.uavs, nullptr);
+            context->CSSetShader(renderer.computeShader.Get(), nullptr, 0);
+            uint32_t numDispatches = uint32_t(ceilf(float(mesh.numVertices) / 64.0f));
+            context->Dispatch(numDispatches, 1, 1);
+        }
+    }
 
     // TODO: Build Constant buffer data in batches
     Matrix viewProjTransform = view.viewTransform * view.projection;
@@ -95,16 +130,11 @@ void Game::Update(DX::StepTimer const& timer)
     m_view = Matrix::CreateLookAt(Vector3{ radius * sinf(0.5f * totalTime), 0.5f, radius * cosf(0.5f * totalTime) }, Vector3::Zero, Vector3::UnitY);
 
     bdr::ECSRegistry& registry = m_scene.registry;
-    for (uint32_t entityId = 0; entityId < m_scene.registry.numEntities; entityId++) {
-        if (registry.cmpMasks[entityId] & bdr::CmpMasks::PARENT) {
-            const Matrix& parentMatrix = registry.globalMatrices[registry.parents[entityId]];
-            registry.globalMatrices[entityId] = registry.localMatrices[entityId] * parentMatrix;
-        }
+    
+    for (const bdr::Animation& animation : m_scene.animations) {
+        updateAnimation(registry, animation, totalTime);
     }
-
-    /*for (const auto& animation : m_scene.animations) {
-        bdr::updateAnimation(m_scene.nodeList, animation, totalTime);
-    }*/
+    updateMatrices(registry);
 }
 #pragma endregion
 
@@ -225,7 +255,9 @@ void Game::CreateDeviceDependentResources()
 
     m_renderer.materials.initMaterial(m_renderer.getDevice(), L"basic_vs.cso", L"basic_ps.cso");
 
-    bdr::gltf::SceneData sceneData{ &m_scene, &m_renderer, "FlightHelmet/", "FlightHelmet.gltf" };
+    std::vector<uint8_t> blob = DX::ReadData(L"skinning.cso");
+    DX::ThrowIfFailed(m_renderer.getDevice()->CreateComputeShader(blob.data(), blob.size(), nullptr, m_renderer.computeShader.ReleaseAndGetAddressOf()));
+    bdr::gltf::SceneData sceneData{ &m_scene, &m_renderer, "polly/", "project_polly.gltf" };
     bdr::gltf::loadModel(sceneData);
 }
 

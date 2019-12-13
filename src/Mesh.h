@@ -20,6 +20,7 @@ namespace bdr
 
         ID3D11Buffer* vertexBuffers[maxAttrCount] = { nullptr, nullptr, nullptr, nullptr, nullptr };
         ID3D11UnorderedAccessView* uavs[maxAttrCount] = { nullptr, nullptr, nullptr, nullptr, nullptr };
+        ID3D11ShaderResourceView* srvs[maxAttrCount] = { nullptr, nullptr, nullptr, nullptr, nullptr };
         ID3D11Buffer* indexBuffer = nullptr;
         DXGI_FORMAT indexFormat;
         uint32_t inputLayoutHandle = UINT32_MAX;

@@ -1,6 +1,7 @@
 #pragma once
 #include "pch.h"
 
+#include "Animation.h"
 #include "DeviceResources.h"
 #include "Mesh.h"
 #include "InputLayoutManager.h"
@@ -14,6 +15,27 @@ namespace bdr
         DirectX::SimpleMath::Matrix projection;
     };
 
+    struct JointBuffer
+    {
+        ID3D11Buffer* buffer = nullptr;
+        ID3D11ShaderResourceView* srv = nullptr;
+
+        void reset()
+        {
+            if (srv != nullptr) {
+                srv->Release();
+                srv = nullptr;
+            }
+
+            if (buffer != nullptr) {
+                buffer->Release();
+                buffer = nullptr;
+            }
+        }
+    };
+
+    JointBuffer createJointBuffer(ID3D11Device* device, const Skin& skin);
+
     class Renderer
     {
     public:
@@ -24,9 +46,7 @@ namespace bdr
 
         ~Renderer()
         {
-            for (size_t i = 0; i < meshes.size(); i++) {
-                meshes[i].destroy();
-            }
+            reset();
         }
 
         UNCOPIABLE(Renderer);
@@ -36,6 +56,9 @@ namespace bdr
         {
             for (size_t i = 0; i < meshes.size(); i++) {
                 meshes[i].destroy();
+            }
+            for (JointBuffer& jointBuffer: jointBuffers) {
+                jointBuffer.reset();
             }
             inputLayoutManager.reset();
             materials.reset();
@@ -94,9 +117,12 @@ namespace bdr
         uint32_t width = 0;
         uint32_t height = 0;
         std::unique_ptr<DX::DeviceResources> deviceResources;
+        Microsoft::WRL::ComPtr<ID3D11ComputeShader> computeShader = nullptr;
+
         InputLayoutManager inputLayoutManager;
 
         std::vector<Mesh> meshes;
+        std::vector<JointBuffer> jointBuffers;
         MaterialManager materials;
     };
 }
