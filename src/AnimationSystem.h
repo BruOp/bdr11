@@ -14,12 +14,12 @@ namespace bdr
             while (nextIdx < channel.input.size() && channel.input[nextIdx] < animationTime) {
                 ++nextIdx;
             }
-            size_t previousIdx = nextIdx == 0 ? channel.input.size() - 1 : nextIdx - 1;
+            size_t previousIdx = nextIdx == 0 ? 0 : nextIdx - 1;
 
             float previousTime = channel.input[previousIdx];
             float nextTime = channel.input[nextIdx];
             // Interpolation Value
-            float t = (currentTime - previousTime) / (nextTime - previousTime);
+            float t = (animationTime - previousTime) / (nextTime - previousTime);
 
             Transform& transform = registry.transforms[channel.targetEntity];
             switch (channel.targetType) {

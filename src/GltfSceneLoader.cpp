@@ -164,7 +164,7 @@ namespace bdr
             // Num elements is useful for flattening Vec3 and Vec4 arrays
             const tinygltf::BufferView& bufferView = inputModel->bufferViews[accessor.bufferView];
             const tinygltf::Buffer& buffer = inputModel->buffers[bufferView.buffer];
-
+            ASSERT(bufferView.byteStride == 0);
             dst.resize(accessor.count * numElements);
             memcpy(dst.data(), &buffer.data.at(accessor.byteOffset + bufferView.byteOffset), accessor.count * getByteSize(accessor));
         }
@@ -475,7 +475,7 @@ namespace bdr
             uint32_t flags = D3D11_BIND_VERTEX_BUFFER | (isSkinned ? D3D11_BIND_UNORDERED_ACCESS : D3D11_BIND_VERTEX_BUFFER);
 
             processVertexBuffers(sceneData, inputPrimitive, mesh, genericAttrInfo, _countof(genericAttrInfo), flags);
-            mesh.inputLayoutHandle = getInputLayout(sceneData, inputPrimitive, genericAttrInfo, _countof(genericAttrInfo));
+            mesh.inputLayoutHandle = getInputLayout(sceneData, inputPrimitive, genericAttrInfo, mesh.numPresentAttr);
 
             if (isSkinned) {
                 const uint32_t preskinIdx = sceneData.pRenderer->getNewMesh();

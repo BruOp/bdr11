@@ -46,8 +46,7 @@ void renderScene(bdr::Renderer& renderer, bdr::Scene& scene, bdr::View& view)
             CopyMemory(mappedResource.pData, jointMatrices.data(), sizeof(Matrix) * jointMatrices.size());
             context->Unmap(jointBuffer.buffer, 0);
 
-            ID3D11ShaderResourceView * srvs[]{ jointBuffer.srv };
-            context->CSSetShaderResources(0u, 1u, srvs);
+            context->CSSetShaderResources(0u, 1u, &jointBuffer.srv);
             context->CSSetShaderResources(1u, 4u, preskin.srvs);
             context->CSSetUnorderedAccessViews(0u, 1u, mesh.uavs, nullptr);
             context->CSSetShader(renderer.computeShader.Get(), nullptr, 0);
@@ -57,7 +56,7 @@ void renderScene(bdr::Renderer& renderer, bdr::Scene& scene, bdr::View& view)
     }
 
     ID3D11UnorderedAccessView* nullUAV = NULL;
-    context->CSSetUnorderedAccessViews(1, 1, &nullUAV, nullptr);
+    context->CSSetUnorderedAccessViews(0, 1, &nullUAV, nullptr);
     
     renderer.deviceResources->PIXEndEvent();
 
@@ -137,8 +136,8 @@ void Game::Update(DX::StepTimer const& timer)
     //float frameTime = float(timer.GetElapsedSeconds());
     float totalTime = float(timer.GetTotalSeconds());
 
-    float radius = 3.0f;
-    m_view = Matrix::CreateLookAt(Vector3{ radius * sinf(0.5f * totalTime), 0.5f, radius * cosf(0.5f * totalTime) }, Vector3::Zero, Vector3::UnitY);
+    float radius = 2.0f;
+    m_view = Matrix::CreateLookAt(Vector3{ radius, 0.5f, radius }, Vector3::Zero, Vector3::UnitY);
 
     bdr::ECSRegistry& registry = m_scene.registry;
     

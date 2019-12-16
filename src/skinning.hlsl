@@ -23,14 +23,13 @@ void main(uint3 DTid : SV_DispatchThreadID)
 	{
 		float3 position = in_POS.Load(DTid.x);
 		uint4 joints = in_INDICES.Load(DTid.x);
-		float4 weights = in_WEIGHTS.Load(DTid.x);
-		matrix skinMatrix = mul(boneBuffer[joints.x].transform, weights.x)
-			+ mul(boneBuffer[joints.y].transform, weights.y)
-			+ mul(boneBuffer[joints.z].transform, weights.z)
-			+ mul(boneBuffer[joints.w].transform, weights.w);
-		position = mul(float4(position, 1.0), skinMatrix).xyz;
-		//uint4 indices = in_INDICES.Load(DTid.x);
-		//float4 weights = in_WEIGHTS.Load(DTid.x);
+		float4 weights = (in_WEIGHTS.Load(DTid.x));
+		matrix skinMatrix = mul(weights.x, boneBuffer[joints.x].transform)
+			+ mul(weights.y, boneBuffer[joints.y].transform)
+			+ mul(weights.z, boneBuffer[joints.z].transform)
+			+ mul(weights.w, boneBuffer[joints.w].transform);
+		float4 newPos = mul(float4(position, 1.0), skinMatrix);
+		position = newPos.xyz / newPos.w;
 	
 		out_Pos.Store3(pos_offset, asuint(position));
 	}
