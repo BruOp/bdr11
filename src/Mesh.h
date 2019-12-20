@@ -28,7 +28,6 @@ namespace bdr
         uint32_t numVertices = 0;
         uint32_t strides[maxAttrCount];
         uint32_t preskinMeshIdx = UINT32_MAX;
-        uint32_t subMeshIdx = UINT32_MAX;
         uint8_t presentAttributesMask;
         uint8_t numPresentAttr;
 

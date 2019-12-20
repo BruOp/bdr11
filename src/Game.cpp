@@ -30,6 +30,7 @@ void renderScene(bdr::Renderer& renderer, bdr::Scene& scene, bdr::View& view)
             // Compute joint matrices
             const bdr::Skin& skin = scene.skins[registry.skinIds[entityId]];
             bdr::Mesh& mesh = renderer.meshes[registry.meshes[entityId]];
+            ASSERT(mesh.preskinMeshIdx != UINT32_MAX, "Skinned meshes must have preskinned mesh");
             bdr::Mesh& preskin = renderer.meshes[mesh.preskinMeshIdx];
             bdr::JointBuffer& jointBuffer = renderer.jointBuffers[registry.jointBuffer[entityId]];
             std::vector<Matrix> jointMatrices(skin.inverseBindMatrices.size());

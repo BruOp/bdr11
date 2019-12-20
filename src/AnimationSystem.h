@@ -59,6 +59,7 @@ namespace bdr
             if (cmpMask & CmpMasks::TRANSFORM) {
                 const Transform& transform = registry.transforms[entity];
                 local = getMatrixFromTransform(transform);
+                registry.localMatrices[entity] = local;
             }
 
             if (cmpMask & CmpMasks::PARENT) {

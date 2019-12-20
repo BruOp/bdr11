@@ -158,6 +158,11 @@ namespace bdr
             return getByteStride(accessor) * getPerElementCount(accessor);
         }
 
+        uint64_t getMeshMapKey(const uint32_t meshIdx, const uint32_t primitiveIdx)
+        {
+            return (uint64_t(meshIdx) << 32) | uint64_t(primitiveIdx);
+        }
+
         template<class T>
         void copyAccessorDataToVector(const tinygltf::Model* inputModel, const tinygltf::Accessor& accessor, std::vector<T>& dst, uint32_t numElements = 1)
         {
@@ -236,77 +241,39 @@ namespace bdr
         }
 
         // Allocates a new entity and adds an entry to the mapping for each node, recursively.
-        void processNode(SceneData& sceneData, int32_t inputNodeIdx, int32_t parentNodeIdx = -1)
+        void traverseNode(SceneData& sceneData, int32_t inputNodeIdx, int32_t parentNodeIdx = -1)
         {
-            const tinygltf::Node& inputNode = sceneData.inputModel->nodes[inputNodeIdx];
-            auto& registry = sceneData.pScene->registry;
+            const SceneNode& node = sceneData.nodes[inputNodeIdx];
 
-            const uint32_t entity = getNewEntity(registry);
-            sceneData.nodeMap[inputNodeIdx] = entity;
-
+            // Copy
+            SceneNode output{ node };
+            
             if (parentNodeIdx > -1) {
-                // This is safe only because we process the tree depth first
-                registry.parents[entity] = sceneData.nodeMap[parentNodeIdx];
-                registry.cmpMasks[entity] |= CmpMasks::PARENT;
+                output.parentId = parentNodeIdx;
+            }
+            
+            if (output.meshId > -1) {
+                const tinygltf::Mesh& inputMesh = sceneData.inputModel->meshes[output.meshId];
+                int32_t parentId = parentNodeIdx;
+                for (int32_t primitiveIdx = 0; primitiveIdx < inputMesh.primitives.size(); ++primitiveIdx) {
+                    SceneNode newNode{ output };
+                    newNode.primitiveId = primitiveIdx;
+                    newNode.parentId = parentId;
+                    sceneData.traversedNodes.push_back(newNode);
+                    // We do this so that subsequent primitives actually have the node as their parent.
+                    // Basically if our tree looks like A -> B, and B has three primitives, this flattens
+                    // to A, B1(A), B2(B1), B3(B1). Not sure this is preferable to A, B, C1(B), C2(B), C3(B)
+                    parentId = inputNodeIdx;
+                }
             }
             else {
-                registry.parents[entity] = entity;
-            }
-
-            if (inputNode.mesh > -1) {
-                uint32_t meshIdx = sceneData.meshMap[inputNode.mesh];
-
-                // Assign the first mesh to our entity
-                registry.meshes[entity] = meshIdx;
-                registry.materials[entity] = sceneData.pRenderer->materials[0];
-                registry.cmpMasks[entity] |= (CmpMasks::MESH | CmpMasks::MATERIAL);
-
-                if (inputNode.skin > -1) {
-                    registry.skinIds[entity] = inputNode.skin;
-                    registry.cmpMasks[entity] |= CmpMasks::SKIN;
-                }
-
-                // Handle submeshes
-                meshIdx = sceneData.pRenderer->meshes[meshIdx].subMeshIdx;
-                while (meshIdx != UINT32_MAX) {
-                    // If we have multiple primitves, we create a new entity for each one, assigning the
-                    // current entity as their mutual parent.
-                    const uint32_t childEntity = getNewEntity(registry);
-                    registry.parents[childEntity] = entity;
-                    registry.meshes[childEntity] = meshIdx;
-                    registry.materials[childEntity] = sceneData.pRenderer->materials[0];
-                    registry.localMatrices[childEntity] = Matrix::Identity;
-                    registry.cmpMasks[childEntity] |= (CmpMasks::MESH | CmpMasks::PARENT | CmpMasks::MATERIAL);
-
-                    if (inputNode.skin > -1) {
-                        registry.skinIds[childEntity] = inputNode.skin;
-                        registry.cmpMasks[childEntity] |= CmpMasks::SKIN;
-                    }
-
-                    meshIdx = sceneData.pRenderer->meshes[meshIdx].subMeshIdx;
-                }
+                sceneData.traversedNodes.push_back(output);
             }
 
             // If there are children, process them and reference the current entity as their parents
-            if (inputNode.children.size() > 0) {
-                for (const int inputChildIdx : inputNode.children) {
-                    processNode(sceneData, inputChildIdx, inputNodeIdx);
-                }
-            }
-        }
-
-        /*
-            Create entities for each Node and it's primitives in the scene
-            While creating entities, fill mapping between gltf Scene nodes and our entities.
-            Nodes are produced _depth first_, ensuring that parents appear before their children in the entity list.
-        */
-        void processNodeTree(SceneData& sceneData)
-        {
-            sceneData.nodeMap.resize(sceneData.inputModel->nodes.size());
-            for (const tinygltf::Scene& inputScene : sceneData.inputModel->scenes) {
-                for (const int32_t node : inputScene.nodes) {
-                    processNode(sceneData, node);
-                }
+            const tinygltf::Node& inputNode = sceneData.inputModel->nodes[inputNodeIdx];
+            for (const int inputChildIdx : inputNode.children) {
+                traverseNode(sceneData, inputChildIdx, inputNodeIdx);
             }
         }
 
@@ -490,49 +457,16 @@ namespace bdr
         void processMeshes(SceneData& sceneData)
         {
             const auto& inputModel = *sceneData.inputModel;
-            sceneData.meshMap.resize(inputModel.meshes.size());
-            for (size_t i = 0; i < inputModel.meshes.size(); ++i) {
-                const tinygltf::Mesh& inputMesh = inputModel.meshes[i];
-                uint32_t parentMeshIdx = UINT32_MAX;
-
-                for (size_t j = 0; j < inputMesh.primitives.size(); ++j) {
-                    const auto& primitive = inputMesh.primitives[j];
+            
+            for (uint32_t inputMeshIdx = 0; inputMeshIdx < inputModel.meshes.size(); ++inputMeshIdx) {
+                const tinygltf::Mesh& inputMesh = inputModel.meshes[inputMeshIdx];
+                
+                for (uint32_t primitiveIdx = 0; primitiveIdx < inputMesh.primitives.size(); ++primitiveIdx) {
+                    const auto& primitive = inputMesh.primitives[primitiveIdx];
                     uint32_t meshIdx = processPrimitive(sceneData, primitive);
 
-                    if (parentMeshIdx != UINT32_MAX) {
-                        sceneData.pRenderer->meshes[parentMeshIdx].subMeshIdx = meshIdx;
-                    }
-                    if (j == 0) {
-                        sceneData.meshMap[i] = meshIdx;
-                    }
-                    parentMeshIdx = meshIdx;
-                }
-
-            }
-        }
-
-        // Populates components for the entities associated with the scene nodes
-        // Notice that it does not touch the entities created for meshes with multiple
-        // primitives, as those will have a common parent that this does update.
-        void processTransforms(SceneData& sceneData)
-        {
-            auto& registry = sceneData.pScene->registry;
-            const auto& inputNodes = sceneData.inputModel->nodes;
-            for (size_t i = 0; i < inputNodes.size(); ++i) {
-                const tinygltf::Node& node = inputNodes[i];
-                uint32_t entity = sceneData.nodeMap[i];
-                const Transform transform = processTransform(node);
-                registry.transforms[entity] = transform;
-                registry.cmpMasks[entity] |= CmpMasks::TRANSFORM;
-                const Matrix local = getMatrixFromTransform(transform);
-                registry.localMatrices[entity] = local;
-
-                uint32_t parent = registry.parents[entity];
-                if (parent == entity) {
-                    registry.globalMatrices[entity] = local;
-                }
-                else {
-                    registry.globalMatrices[entity] = local * registry.globalMatrices[parent];
+                    uint64_t key = getMeshMapKey(inputMeshIdx, primitiveIdx);
+                    sceneData.meshMap[key] = meshIdx;
                 }
             }
         }
@@ -545,7 +479,7 @@ namespace bdr
             };
 
             for (size_t i = 0; i < skin.jointEntities.size(); ++i) {
-                skin.jointEntities[i] = sceneData.nodeMap[inputSkin.joints[i]];
+                skin.jointEntities[i] = sceneData.nodeToEntityMap[inputSkin.joints[i]];
             }
 
             const tinygltf::Accessor& accessor = sceneData.inputModel->accessors[inputSkin.inverseBindMatrices];
@@ -603,7 +537,7 @@ namespace bdr
                 }
 
                 Animation::Channel animationChannel{
-                    sceneData.nodeMap[inputChannel.target_node],
+                    sceneData.nodeToEntityMap[inputChannel.target_node],
                     inputAccessor.maxValues[0],
                     channelType,
                     interpolationType,
@@ -642,6 +576,9 @@ namespace bdr
             }
             return output;
         }
+
+        // Load model takes an instance of sceneData and loads the entire GLTF scene into our ECS registry,
+        // loading materials, meshes defined in the scene and adding them to the renderer.
         void loadModel(SceneData& sceneData)
         {
             tinygltf::TinyGLTF loader;
@@ -663,10 +600,71 @@ namespace bdr
                 throw std::runtime_error("Failed to load GLTF Model");
             }
 
-            processMeshes(sceneData);
-            processNodeTree(sceneData);
-            processTransforms(sceneData);
+            // Copy Node List
+            sceneData.nodes.resize(sceneData.inputModel->nodes.size());
+            for (uint32_t i = 0; i < sceneData.nodes.size(); i++) {
+                const tinygltf::Node& node = sceneData.inputModel->nodes[i];
+                
+                SceneNode output;
+                output.name = node.name;
+                output.index = i;
+                output.meshId = node.mesh;
+                output.skinId = node.skin;
+                output.isJoint = false;
+                sceneData.nodes[i] = output;
+            }
+            
+            // Mark Joint Nodes
+            for (size_t i = 0; i < sceneData.inputModel->skins.size(); i++) {
+                const tinygltf::Skin& inputSkin = sceneData.inputModel->skins[i];
+                for (const auto jointIdx : inputSkin.joints) {
+                    sceneData.nodes[jointIdx].isJoint = true;
+                }
+            }
 
+            // Traverse Scene, producing list of entities to create
+            const auto& rootNodes = gltfModel.scenes[gltfModel.defaultScene].nodes;
+            for (int32_t rootNode : rootNodes) {
+                traverseNode(sceneData, rootNode);
+            }
+
+            // sceneData.traversedNodes is now full, in traversal order.
+            processMeshes(sceneData);
+
+            // Create entities
+            sceneData.nodeToEntityMap.resize(sceneData.nodes.size());
+            ECSRegistry& registry = sceneData.pScene->registry;
+            for (size_t i = 0; i < sceneData.traversedNodes.size(); i++) {
+                const SceneNode& node = sceneData.traversedNodes[i];
+                uint32_t entity = getNewEntity(registry);
+                // Don't map submeshes
+                if (node.primitiveId < 1) {
+                    sceneData.nodeToEntityMap[node.index] = entity;
+                }
+
+                if (node.parentId != -1) {
+                    registry.parents[entity] = sceneData.nodeToEntityMap[node.parentId];
+                    registry.cmpMasks[entity] |= PARENT;
+                }
+
+                if (node.meshId != -1) {
+                    registry.meshes[entity] = sceneData.meshMap[getMeshMapKey(node.meshId, node.primitiveId)];
+                    registry.materials[entity] = sceneData.pRenderer->materials[0];
+                    registry.cmpMasks[entity] |= MESH | MATERIAL;
+                    
+                    if (node.skinId != -1) {
+                        registry.skinIds[entity] = node.skinId;
+                        registry.cmpMasks[entity] |= SKIN;
+                    }
+                }
+
+
+                registry.transforms[entity] = processTransform(sceneData.inputModel->nodes[node.index]);
+                registry.localMatrices[entity] = getMatrixFromTransform(registry.transforms[entity]);
+                registry.cmpMasks[entity] |= TRANSFORM;
+            }
+
+            // Create Skins
             for (size_t i = 0; i < sceneData.inputModel->skins.size(); i++) {
                 const tinygltf::Skin& inputSkin = sceneData.inputModel->skins[i];
                 Skin skin = processSkin(sceneData, inputSkin);
@@ -675,6 +673,7 @@ namespace bdr
                 sceneData.pScene->skins.push_back(std::move(skin));
             }
 
+            // Create aniamtions
             for (size_t i = 0; i < sceneData.inputModel->animations.size(); i++) {
                 const tinygltf::Animation& animation = sceneData.inputModel->animations[i];
                 sceneData.pScene->animations.push_back(processAnimation(sceneData, animation));

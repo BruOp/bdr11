@@ -1,5 +1,6 @@
 #pragma once
 #include "pch.h"
+#include <unordered_map>
 
 #include "Mesh.h"
 #include "Scene.h"
@@ -30,10 +31,15 @@ namespace bdr
             uint8_t flags;
         };
 
-        struct EntityMapping
+        struct SceneNode
         {
-            int32_t gltfNodeIdx;
-            uint32_t entity;
+            std::string name;
+            uint32_t index = UINT32_MAX;
+            int32_t parentId = -1;
+            int32_t meshId = -1;
+            int32_t primitiveId = -1;
+            int32_t skinId = -1;
+            bool isJoint = false;
         };
 
         struct SceneData
@@ -42,8 +48,10 @@ namespace bdr
             Renderer* pRenderer = nullptr;
             const std::string fileFolder;
             const std::string fileName;
-            std::vector<uint32_t> nodeMap;
-            std::vector<uint32_t> meshMap;
+            std::vector<SceneNode> nodes;
+            std::vector<SceneNode> traversedNodes;
+            std::vector<uint32_t> nodeToEntityMap;
+            std::unordered_map<uint64_t, uint32_t> meshMap;
             std::vector<uint32_t> textureMap;
             tinygltf::Model* inputModel;
 
@@ -57,7 +65,9 @@ namespace bdr
                 pRenderer{ pRenderer },
                 fileFolder(folder),
                 fileName(file),
-                nodeMap{},
+                nodes{},
+                traversedNodes{},
+                nodeToEntityMap{},
                 meshMap{},
                 textureMap{},
                 inputModel{}
