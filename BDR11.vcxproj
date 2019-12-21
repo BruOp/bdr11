@@ -186,6 +186,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Animation.cpp" />
+    <ClCompile Include="src\AnimationSystem.cpp" />
     <ClCompile Include="src\ECSRegistry.cpp" />
     <ClCompile Include="src\GltfSceneLoader.cpp" />
     <ClCompile Include="src\InputLayoutManager.cpp" />

@@ -164,13 +164,13 @@ namespace bdr
         }
 
         template<class T>
-        void copyAccessorDataToVector(const tinygltf::Model* inputModel, const tinygltf::Accessor& accessor, std::vector<T>& dst, uint32_t numElements = 1)
+        void copyAccessorDataToVector(const tinygltf::Model* inputModel, const tinygltf::Accessor& accessor, std::vector<T>& dst)
         {
             // Num elements is useful for flattening Vec3 and Vec4 arrays
             const tinygltf::BufferView& bufferView = inputModel->bufferViews[accessor.bufferView];
             const tinygltf::Buffer& buffer = inputModel->buffers[bufferView.buffer];
             ASSERT(bufferView.byteStride == 0);
-            dst.resize(accessor.count * numElements);
+            dst.resize(accessor.count);
             memcpy(dst.data(), &buffer.data.at(accessor.byteOffset + bufferView.byteOffset), accessor.count * getByteSize(accessor));
         }
 
@@ -247,11 +247,11 @@ namespace bdr
 
             // Copy
             SceneNode output{ node };
-            
+
             if (parentNodeIdx > -1) {
                 output.parentId = parentNodeIdx;
             }
-            
+
             if (output.meshId > -1) {
                 const tinygltf::Mesh& inputMesh = sceneData.inputModel->meshes[output.meshId];
                 int32_t parentId = parentNodeIdx;
@@ -457,10 +457,10 @@ namespace bdr
         void processMeshes(SceneData& sceneData)
         {
             const auto& inputModel = *sceneData.inputModel;
-            
+
             for (uint32_t inputMeshIdx = 0; inputMeshIdx < inputModel.meshes.size(); ++inputMeshIdx) {
                 const tinygltf::Mesh& inputMesh = inputModel.meshes[inputMeshIdx];
-                
+
                 for (uint32_t primitiveIdx = 0; primitiveIdx < inputMesh.primitives.size(); ++primitiveIdx) {
                     const auto& primitive = inputMesh.primitives[primitiveIdx];
                     uint32_t meshIdx = processPrimitive(sceneData, primitive);
@@ -490,90 +490,61 @@ namespace bdr
             return skin;
         }
 
+        template<typename ChannelT, typename OutputT>
+        ChannelT processChannel(SceneData& sceneData, const tinygltf::AnimationChannel& inputChannel, const tinygltf::AnimationSampler& inputSampler)
+        {
+            Animation::InterpolationType interpolationType = Animation::InterpolationType::CubicSpline;
+            if (inputSampler.interpolation.compare("LINEAR")) {
+                interpolationType = Animation::InterpolationType::Linear;
+            }
+            else if (inputSampler.interpolation.compare("STEP")) {
+                interpolationType = Animation::InterpolationType::Step;
+            }
+
+            const tinygltf::Accessor& inputAccessor = sceneData.inputModel->accessors[inputSampler.input];
+            const tinygltf::Accessor& outputAccessor = sceneData.inputModel->accessors[inputSampler.output];
+
+            if (inputAccessor.componentType != TINYGLTF_COMPONENT_TYPE_FLOAT || outputAccessor.componentType != TINYGLTF_COMPONENT_TYPE_FLOAT) {
+                throw std::runtime_error("Don't support non float samplers just yet");
+            }
+
+            ChannelT channel{};
+            channel.targetEntity = sceneData.nodeToEntityMap[inputChannel.target_node];
+            channel.maxInput = inputAccessor.maxValues[0];
+            channel.interpolationType = interpolationType;
+
+            copyAccessorDataToVector<float>(sceneData.inputModel, inputAccessor, channel.input);
+            copyAccessorDataToVector<OutputT>(sceneData.inputModel, outputAccessor, channel.output);
+
+            return channel;
+        }
+
         Animation processAnimation(SceneData& sceneData, const tinygltf::Animation& animation)
         {
             Animation output{};
 
-            output.channels.reserve(animation.channels.size());
             for (size_t i = 0; i < animation.channels.size(); ++i) {
                 const tinygltf::AnimationChannel& inputChannel = animation.channels[i];
                 const tinygltf::AnimationSampler& inputSampler = animation.samplers[inputChannel.sampler];
 
-                uint32_t numElements = 3;
-                TransformType channelType;
                 if (inputChannel.target_path.compare("scale") == 0) {
-                    channelType = TransformType::Scale;
+                    auto channel{ processChannel<Animation::ScaleChannel, Vector3>(sceneData, inputChannel, inputSampler) };
+                    addScaleChannel(output, std::move(channel));
                 }
                 else if (inputChannel.target_path.compare("rotation") == 0) {
-                    channelType = TransformType::Rotation;
-                    numElements = 4;
+                    auto channel{ processChannel<Animation::RotationChannel, Vector4>(sceneData, inputChannel, inputSampler) };
+                    addRotationChannel(output, std::move(channel));
                 }
                 else if (inputChannel.target_path.compare("translation") == 0) {
-                    channelType = TransformType::Translation;
+                    auto channel{ processChannel<Animation::TranslationChannel, Vector3>(sceneData, inputChannel, inputSampler) };
+                    addTranslationChannel(output, std::move(channel));
                 }
                 else {
                     Utility::Print("Don't support weights yet!");
                     continue;
                 }
-
-                Animation::InterpolationType interpolationType = Animation::InterpolationType::CubicSpline;
-                if (inputSampler.interpolation.compare("LINEAR")) {
-                    interpolationType = Animation::InterpolationType::Linear;
-                }
-                else if (inputSampler.interpolation.compare("STEP")) {
-                    interpolationType = Animation::InterpolationType::Step;
-                }
-
-                const tinygltf::Accessor& inputAccessor = sceneData.inputModel->accessors[inputSampler.input];
-
-                if (inputAccessor.componentType != TINYGLTF_COMPONENT_TYPE_FLOAT) {
-                    throw std::runtime_error("Don't support non float samplers just yet");
-                }
-
-                const tinygltf::Accessor& outputAccessor = sceneData.inputModel->accessors[inputSampler.output];
-
-                if (outputAccessor.componentType != TINYGLTF_COMPONENT_TYPE_FLOAT) {
-                    throw std::runtime_error("Don't support non float samplers just yet");
-                }
-
-                Animation::Channel animationChannel{
-                    sceneData.nodeToEntityMap[inputChannel.target_node],
-                    inputAccessor.maxValues[0],
-                    channelType,
-                    interpolationType,
-                };
-
-                copyAccessorDataToVector<float>(sceneData.inputModel, inputAccessor, animationChannel.input);
-
-                std::vector<float> data{};
-                animationChannel.output.reserve(outputAccessor.count);
-                if (animationChannel.targetType == TransformType::Rotation) {
-
-                    copyAccessorDataToVector<float>(sceneData.inputModel, outputAccessor, data, 4u);
-
-                    for (size_t j = 0; j < outputAccessor.count; j++) {
-                        animationChannel.output.emplace_back(
-                            data[j * 4 + 0],
-                            data[j * 4 + 1],
-                            data[j * 4 + 2],
-                            data[j * 4 + 3]
-                        );
-                    }
-                }
-                else {
-                    copyAccessorDataToVector<float>(sceneData.inputModel, outputAccessor, data, 3u);
-                    for (size_t j = 0; j < outputAccessor.count; j++) {
-                        animationChannel.output.emplace_back(
-                            data[j * 3 + 0],
-                            data[j * 3 + 1],
-                            data[j * 3 + 2],
-                            0.0f
-                        );
-                    }
-                }
-
-                output.channels.push_back(animationChannel);
             }
+
             return output;
         }
 
@@ -604,7 +575,7 @@ namespace bdr
             sceneData.nodes.resize(sceneData.inputModel->nodes.size());
             for (uint32_t i = 0; i < sceneData.nodes.size(); i++) {
                 const tinygltf::Node& node = sceneData.inputModel->nodes[i];
-                
+
                 SceneNode output;
                 output.name = node.name;
                 output.index = i;
@@ -613,7 +584,7 @@ namespace bdr
                 output.isJoint = false;
                 sceneData.nodes[i] = output;
             }
-            
+
             // Mark Joint Nodes
             for (size_t i = 0; i < sceneData.inputModel->skins.size(); i++) {
                 const tinygltf::Skin& inputSkin = sceneData.inputModel->skins[i];
@@ -651,7 +622,7 @@ namespace bdr
                     registry.meshes[entity] = sceneData.meshMap[getMeshMapKey(node.meshId, node.primitiveId)];
                     registry.materials[entity] = sceneData.pRenderer->materials[0];
                     registry.cmpMasks[entity] |= MESH | MATERIAL;
-                    
+
                     if (node.skinId != -1) {
                         registry.skinIds[entity] = node.skinId;
                         registry.cmpMasks[entity] |= SKIN;

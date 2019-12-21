@@ -49,15 +49,15 @@ void renderScene(bdr::Renderer& renderer, bdr::Scene& scene, bdr::View& view)
 
             context->CSSetShaderResources(0u, 1u, &jointBuffer.srv);
             context->CSSetShaderResources(1u, 4u, preskin.srvs);
-            context->CSSetUnorderedAccessViews(0u, 1u, mesh.uavs, nullptr);
+            context->CSSetUnorderedAccessViews(0u, 2u, mesh.uavs, nullptr);
             context->CSSetShader(renderer.computeShader.Get(), nullptr, 0);
             uint32_t numDispatches = uint32_t(ceilf(float(mesh.numVertices) / 64.0f));
             context->Dispatch(numDispatches, 1, 1);
         }
     }
 
-    ID3D11UnorderedAccessView* nullUAV = NULL;
-    context->CSSetUnorderedAccessViews(0, 1, &nullUAV, nullptr);
+    ID3D11UnorderedAccessView* nullUAVs[] = { nullptr, nullptr };
+    context->CSSetUnorderedAccessViews(0, 2, nullUAVs, nullptr);
     
     renderer.deviceResources->PIXEndEvent();
 
@@ -142,7 +142,12 @@ void Game::Update(DX::StepTimer const& timer)
 
     bdr::ECSRegistry& registry = m_scene.registry;
     
-    for (const bdr::Animation& animation : m_scene.animations) {
+    if (m_scene.animations.size() > 0 && m_scene.animations[0].playingState != bdr::Animation::Playing) {
+        m_scene.animations[0].playingState = bdr::Animation::Playing;
+        m_scene.animations[0].startTime = totalTime;
+    }
+
+    for (bdr::Animation& animation : m_scene.animations) {
         updateAnimation(registry, animation, totalTime);
     }
     updateMatrices(registry);

@@ -88,6 +88,9 @@
     <ClCompile Include="src\Material.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
+    <ClCompile Include="src\AnimationSystem.cpp">
+      <Filter>Systems</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc" />
