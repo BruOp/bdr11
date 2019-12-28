@@ -1,6 +1,7 @@
 #include "pch.h"
 
 #include "GltfSceneLoader.h"
+#include "GPUBuffer.h"
 #include <iostream>
 
 #define TINYGLTF_IMPLEMENTATION
@@ -73,44 +74,52 @@ namespace bdr
             return true;
         };
 
-        DXGI_FORMAT getFormat(const AttributeInfo& attrInfo, int32_t componentType)
+        BufferFormat getFormat(const AttributeInfo& attrInfo, int32_t componentType)
         {
             switch (attrInfo.attrBit) {
             case MeshAttributes::POSITION:
-                return DXGI_FORMAT_R32G32B32_FLOAT;
             case MeshAttributes::NORMAL:
-                return DXGI_FORMAT_R32G32B32_FLOAT;
+                return BufferFormat::FLOAT_3;
+            
             case MeshAttributes::TEXCOORD:
                 if (componentType == TINYGLTF_COMPONENT_TYPE_FLOAT) {
-                    return DXGI_FORMAT_R32G32_FLOAT;
+                    return BufferFormat::FLOAT_2;
                 }
                 else if (componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE) {
-                    return DXGI_FORMAT_R8G8_UNORM;
+                    return BufferFormat::UNORM8_2;
                 }
                 else if (componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT) {
-                    return DXGI_FORMAT_R16G16_UNORM;
+                    return BufferFormat::UNORM16_2;
                 }
+            
             case MeshAttributes::TANGENT:
-                return DXGI_FORMAT_R32G32B32A32_FLOAT;
+                return BufferFormat::FLOAT_4;
+            
             case MeshAttributes::BLENDINDICES:
                 if (componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE) {
-                    return DXGI_FORMAT_R8G8B8A8_UINT;
+                    return BufferFormat::UINT8_4;
                 }
                 else if (componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT) {
-                    return DXGI_FORMAT_R16G16B16A16_UINT;
+                    return BufferFormat::UINT16_4;
                 }
+            
             case MeshAttributes::BLENDWEIGHT: // WEIGHTS_0
                 if (componentType == TINYGLTF_COMPONENT_TYPE_FLOAT) {
-                    return DXGI_FORMAT_R32G32B32A32_FLOAT;
+                    return BufferFormat::FLOAT_4;
                 }
                 else if (componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE) {
-                    return DXGI_FORMAT_R8G8B8A8_UNORM;
+                    return BufferFormat::UNORM8_4;
                 }
                 else if (componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT) {
-                    return DXGI_FORMAT_R16G16B16A16_UNORM;
+                    return BufferFormat::UNORM16_4;
                 }
             }
             throw std::runtime_error("Could not determine format");
+        }
+
+        DXGI_FORMAT getDXFormat(const AttributeInfo& attrInfo, int32_t componentType)
+        {
+            return mapFormatToDXGI(getFormat(attrInfo, componentType));
         }
 
         uint32_t getByteStride(const tinygltf::Accessor& accessor)
@@ -177,9 +186,10 @@ namespace bdr
 
         InputLayoutDetail getInputLayoutDetails(const tinygltf::Accessor& accessor, const AttributeInfo& attrInfo)
         {
+            // TODO refactor to use new GPUBuffer formats and info
             InputLayoutDetail detail{};
             detail.attrMask = attrInfo.attrBit;
-            detail.format = getFormat(attrInfo, accessor.componentType);
+            detail.format = getDXFormat(attrInfo, accessor.componentType);
             detail.semanticName = attrInfo.semanticName;
             detail.vectorSize = getPerElementCount(accessor);
 
@@ -277,25 +287,25 @@ namespace bdr
             }
         }
 
-        void createBuffer(SceneData& sceneData, ID3D11Buffer** dxBuffer, const tinygltf::Accessor& accessor, const uint32_t bindFlags)
-        {
-            const tinygltf::Model& inputModel = *sceneData.inputModel;
-            const tinygltf::BufferView& bufferView = inputModel.bufferViews[accessor.bufferView];
-            const tinygltf::Buffer& buffer = inputModel.buffers[bufferView.buffer];
+        //void createBuffer(SceneData& sceneData, ID3D11Buffer** dxBuffer, const tinygltf::Accessor& accessor, const uint32_t bindFlags)
+        //{
+        //    const tinygltf::Model& inputModel = *sceneData.inputModel;
+        //    const tinygltf::BufferView& bufferView = inputModel.bufferViews[accessor.bufferView];
+        //    const tinygltf::Buffer& buffer = inputModel.buffers[bufferView.buffer];
 
-            D3D11_BUFFER_DESC bufferDesc = CD3D11_BUFFER_DESC(getByteSize(accessor) * accessor.count, bindFlags);
-            if (bindFlags & D3D11_BIND_UNORDERED_ACCESS) {
-                bufferDesc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS;
-            }
+        //    D3D11_BUFFER_DESC bufferDesc = CD3D11_BUFFER_DESC(getByteSize(accessor) * accessor.count, bindFlags);
+        //    if (bindFlags & D3D11_BIND_UNORDERED_ACCESS) {
+        //        bufferDesc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS;
+        //    }
 
-            D3D11_SUBRESOURCE_DATA initData;
-            initData.pSysMem = &buffer.data.at(accessor.byteOffset + bufferView.byteOffset);
-            initData.SysMemPitch = 0;
-            initData.SysMemSlicePitch = 0;
+        //    D3D11_SUBRESOURCE_DATA initData;
+        //    initData.pSysMem = &buffer.data.at(accessor.byteOffset + bufferView.byteOffset);
+        //    initData.SysMemPitch = 0;
+        //    initData.SysMemSlicePitch = 0;
 
-            // Create the buffer with the device.
-            DX::ThrowIfFailed(sceneData.pRenderer->getDevice()->CreateBuffer(&bufferDesc, &initData, dxBuffer));
-        }
+        //    // Create the buffer with the device.
+        //    DX::ThrowIfFailed(sceneData.pRenderer->getDevice()->CreateBuffer(&bufferDesc, &initData, dxBuffer));
+        //}
 
         void processVertexBuffers(
             SceneData& sceneData,
@@ -303,11 +313,9 @@ namespace bdr
             Mesh& mesh,
             const AttributeInfo attrInfos[],
             const size_t attrInfoCount,
-            const uint32_t bindFlags
+            const uint8_t usage
         )
         {
-            bool isSkinned = inputPrimitive.attributes.count("JOINTS_0") > 0 && inputPrimitive.attributes.count("WEIGHTS_0") > 0;
-
             uint32_t vertBufferIdx = 0;
             for (size_t i = 0; i < attrInfoCount; ++i) {
                 const AttributeInfo& attrInfo = attrInfos[i];
@@ -324,45 +332,32 @@ namespace bdr
 
                 int accessorIndex = inputPrimitive.attributes.at(attrName);
                 const tinygltf::Accessor& accessor = sceneData.inputModel->accessors[accessorIndex];
+                const tinygltf::BufferView& bufferView = sceneData.inputModel->bufferViews[accessor.bufferView];
+                const tinygltf::Buffer& buffer = sceneData.inputModel->buffers[bufferView.buffer];
+                const size_t offset = accessor.byteOffset + bufferView.byteOffset;
+                ASSERT(bufferView.byteStride == 0, "Cannot handle byte strides for our vertex attributes");
 
                 if (attrInfo.attrBit & MeshAttributes::POSITION) {
                     mesh.numVertices = accessor.count;
                 }
 
-                createBuffer(sceneData, &mesh.vertexBuffers[vertBufferIdx], accessor, bindFlags);
+                BufferCreationInfo createInfo{};
+                createInfo.numElements = accessor.count;
+                if (!(attrInfo.flags & AttributeInfo::USED_FOR_SKINNING)) {
+                    // If it's not used for skinning, then don't create views for it.
+                    createInfo.usage = usage & ~(BufferUsage::ShaderReadable | BufferUsage::ComputeWritable);
+                }
+                else {
+                    createInfo.usage = usage;
+                }
+                createInfo.format = getFormat(attrInfo, accessor.componentType);
+
+                GPUBuffer gpuBuffer = createBuffer(sceneData.pRenderer->getDevice(), &buffer.data.at(offset), createInfo);
+                mesh.vertexBuffers[vertBufferIdx] = gpuBuffer.buffer;
+                mesh.srvs[vertBufferIdx] = gpuBuffer.srv;
+                mesh.uavs[vertBufferIdx] = gpuBuffer.uav;
                 mesh.presentAttributesMask |= attrInfo.attrBit;
                 mesh.strides[vertBufferIdx] = getByteSize(accessor);
-
-
-                // If the mesh is skinned and it's a relevant attribute, create UAVs/SRVs
-                if (isSkinned && (attrInfo.flags & AttributeInfo::USED_FOR_SKINNING)) {
-                    if (bindFlags & D3D11_BIND_UNORDERED_ACCESS) {
-                        D3D11_UNORDERED_ACCESS_VIEW_DESC desc{};
-                        if (bindFlags & D3D11_BIND_VERTEX_BUFFER) {
-                            desc.Format = DXGI_FORMAT_R32_TYPELESS;
-                            desc.Buffer.FirstElement = 0;
-                            desc.Buffer.NumElements = mesh.numVertices * mesh.strides[vertBufferIdx] / 4u;
-                            desc.Buffer.Flags = D3D11_BUFFER_UAV_FLAG_RAW;
-                        }
-                        else {
-                            desc.Format = getFormat(attrInfo, accessor.componentType);
-                            desc.Buffer = D3D11_BUFFER_UAV{ 0, mesh.numVertices };
-                        }
-                        desc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
-                        DX::ThrowIfFailed(sceneData.pRenderer->getDevice()->CreateUnorderedAccessView(mesh.vertexBuffers[vertBufferIdx], &desc, &mesh.uavs[vertBufferIdx]));
-                    }
-
-                    if (bindFlags & D3D11_BIND_SHADER_RESOURCE) {
-                        ASSERT((bindFlags & D3D11_BIND_VERTEX_BUFFER) == 0, "Cannot create SRV for vertex buffers!");
-                        D3D11_SHADER_RESOURCE_VIEW_DESC desc{};
-                        desc.Format = getFormat(attrInfo, accessor.componentType);
-                        desc.Buffer.ElementOffset = 0;
-                        desc.Buffer.NumElements = mesh.numVertices;
-                        desc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
-                        DX::ThrowIfFailed(sceneData.pRenderer->getDevice()->CreateShaderResourceView(mesh.vertexBuffers[vertBufferIdx], &desc, &mesh.srvs[vertBufferIdx]));
-                    }
-                }
-
                 ++vertBufferIdx;
             }
             mesh.numPresentAttr = uint8_t(vertBufferIdx);
@@ -403,51 +398,54 @@ namespace bdr
             // Index buffer
             const tinygltf::Accessor& indexAccessor = inputModel.accessors[inputPrimitive.indices];
             mesh.numIndices = uint32_t(indexAccessor.count);
-            switch (indexAccessor.componentType) {
-            case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE:
+
+            BufferCreationInfo indexCreateInfo{};
+            indexCreateInfo.numElements = indexAccessor.count;
+            indexCreateInfo.usage = BufferUsage::Index;
+            GPUBuffer gpuBuffer;
             {
-                mesh.indexFormat = DXGI_FORMAT_R16_UINT;
-                // Need to recast our indices
-                std::vector<uint16_t> indices(indexAccessor.count);
-                // Copy the data from the buffer, casting each element
                 const tinygltf::BufferView& bufferView = inputModel.bufferViews[indexAccessor.bufferView];
                 const tinygltf::Buffer& buffer = inputModel.buffers[bufferView.buffer];
-                for (size_t i = 0; i < indexAccessor.count; ++i) {
-                    size_t offset = indexAccessor.byteOffset + bufferView.byteOffset + i;
-                    indices[i] = uint16_t(buffer.data.at(offset));
+                size_t offset = indexAccessor.byteOffset + bufferView.byteOffset;
+
+                if (indexAccessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE) {
+                    indexCreateInfo.format = BufferFormat::UINT16;
+                    // Need to recast our indices
+                    std::vector<uint16_t> indices(indexAccessor.count);
+                    // Copy the data from the buffer, casting each element
+                    for (size_t i = 0; i < indexAccessor.count; ++i) {
+                        size_t elementOffset = indexAccessor.byteOffset + bufferView.byteOffset + i;
+                        indices[i] = uint16_t(buffer.data.at(elementOffset));
+                    }
+                    gpuBuffer = createBuffer(sceneData.pRenderer->getDevice(), indices.data(), indexCreateInfo);
                 }
-                // Create our buffer
-                D3D11_BUFFER_DESC bufferDesc = CD3D11_BUFFER_DESC(sizeof(uint16_t) * indices.size(), D3D11_BIND_INDEX_BUFFER);
-                D3D11_SUBRESOURCE_DATA initData;
-                initData.pSysMem = indices.data();
-                initData.SysMemPitch = 0;
-                initData.SysMemSlicePitch = 0;
+                else {
 
-                // Create the buffer with the device.
-                DX::ThrowIfFailed(sceneData.pRenderer->getDevice()->CreateBuffer(&bufferDesc, &initData, &mesh.indexBuffer));
+                    if (indexAccessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT) {
+                        indexCreateInfo.format = BufferFormat::UINT16;
+                    }
+                    else if (indexAccessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT) {
+                        indexCreateInfo.format = BufferFormat::UINT32;
+                    }
+                    else {
+                        throw std::runtime_error("Cannot support indices of this type!");
+                    }
+                    gpuBuffer = createBuffer(sceneData.pRenderer->getDevice(), &buffer.data.at(offset), indexCreateInfo);
+                }
             }
-            break;
-            case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT:
-                mesh.indexFormat = DXGI_FORMAT_R16_UINT;
-                createBuffer(sceneData, &mesh.indexBuffer, indexAccessor, D3D11_BIND_INDEX_BUFFER);
-                break;
-            case TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT:
-                mesh.indexFormat = DXGI_FORMAT_R32_UINT;
-                createBuffer(sceneData, &mesh.indexBuffer, indexAccessor, D3D11_BIND_INDEX_BUFFER);
-                break;
-            default:
-                throw std::runtime_error("Cannot support indices of this type!");
-            }
+            mesh.indexBuffer = gpuBuffer.buffer;
+            mesh.indexFormat = mapFormatToDXGI(indexCreateInfo.format);
+
             bool isSkinned = inputPrimitive.attributes.count("JOINTS_0") > 0 && inputPrimitive.attributes.count("WEIGHTS_0") > 0;
-            uint32_t flags = D3D11_BIND_VERTEX_BUFFER | (isSkinned ? D3D11_BIND_UNORDERED_ACCESS : D3D11_BIND_VERTEX_BUFFER);
 
-            processVertexBuffers(sceneData, inputPrimitive, mesh, genericAttrInfo, _countof(genericAttrInfo), flags);
+            uint8_t usage = BufferUsage::Vertex | (isSkinned ? BufferUsage::ComputeWritable : 0);
+            processVertexBuffers(sceneData, inputPrimitive, mesh, genericAttrInfo, _countof(genericAttrInfo), usage);
             mesh.inputLayoutHandle = getInputLayout(sceneData, inputPrimitive, genericAttrInfo, mesh.numPresentAttr);
 
             if (isSkinned) {
                 const uint32_t preskinIdx = sceneData.pRenderer->getNewMesh();
                 Mesh& preskinMesh = sceneData.pRenderer->meshes[preskinIdx];
-                processVertexBuffers(sceneData, inputPrimitive, preskinMesh, preskinAttrInfo, _countof(preskinAttrInfo), D3D11_BIND_SHADER_RESOURCE);
+                processVertexBuffers(sceneData, inputPrimitive, preskinMesh, preskinAttrInfo, _countof(preskinAttrInfo), BufferUsage::ShaderReadable);
 
                 sceneData.pRenderer->meshes[meshIdx].preskinMeshIdx = preskinIdx;
             }

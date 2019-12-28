@@ -62,6 +62,9 @@
     <ClInclude Include="src\AnimationSystem.h">
       <Filter>Systems</Filter>
     </ClInclude>
+    <ClInclude Include="src\GPUBuffer.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\DeviceResources.cpp">

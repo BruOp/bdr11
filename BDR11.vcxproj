@@ -173,6 +173,7 @@
     <ClInclude Include="src\ECSRegistry.h" />
     <ClInclude Include="src\Game.h" />
     <ClInclude Include="src\GltfSceneLoader.h" />
+    <ClInclude Include="src\GPUBuffer.h" />
     <ClInclude Include="src\InputLayoutManager.h" />
     <ClInclude Include="src\bdrMemory.h" />
     <ClInclude Include="src\Mesh.h" />
