@@ -6,6 +6,7 @@
 #include "Mesh.h"
 #include "InputLayoutManager.h"
 #include "Material.h"
+#include "GPUBuffer.h"
 
 namespace bdr
 {
@@ -15,26 +16,7 @@ namespace bdr
         DirectX::SimpleMath::Matrix projection;
     };
 
-    struct JointBuffer
-    {
-        ID3D11Buffer* buffer = nullptr;
-        ID3D11ShaderResourceView* srv = nullptr;
-
-        void reset()
-        {
-            if (srv != nullptr) {
-                srv->Release();
-                srv = nullptr;
-            }
-
-            if (buffer != nullptr) {
-                buffer->Release();
-                buffer = nullptr;
-            }
-        }
-    };
-
-    JointBuffer createJointBuffer(ID3D11Device* device, const Skin& skin);
+    GPUBuffer createJointBuffer(ID3D11Device* device, const Skin& skin);
 
     class Renderer
     {
@@ -57,14 +39,14 @@ namespace bdr
             for (size_t i = 0; i < meshes.size(); i++) {
                 meshes[i].destroy();
             }
-            for (JointBuffer& jointBuffer: jointBuffers) {
-                jointBuffer.reset();
+            for (GPUBuffer& jointBuffer : jointBuffers) {
+                bdr::reset(jointBuffer);
             }
             inputLayoutManager.reset();
             materials.reset();
         }
 
-        void setWindow(HWND window, int newWidth, int newHeight)
+        inline void setWindow(HWND window, int newWidth, int newHeight)
         {
             width = uint32_t(newWidth);
             height = uint32_t(newHeight);
@@ -97,18 +79,18 @@ namespace bdr
             deviceResources->CreateWindowSizeDependentResources();
         }
 
-        uint32_t getNewMesh()
+        inline uint32_t getNewMesh()
         {
             meshes.emplace_back();
             return meshes.size() - 1;
         };
 
-        uint32_t getInputLayout(const InputLayoutDetail details[], uint8_t numAttributes)
+        inline uint32_t getInputLayout(const InputLayoutDetail details[], uint8_t numAttributes)
         {
             return inputLayoutManager.getOrCreateInputLayout(details, numAttributes);
         };
 
-        ID3D11Device1* getDevice() const
+        inline ID3D11Device1* getDevice() const
         {
             return deviceResources->GetD3DDevice();
         }
@@ -122,7 +104,7 @@ namespace bdr
         InputLayoutManager inputLayoutManager;
 
         std::vector<Mesh> meshes;
-        std::vector<JointBuffer> jointBuffers;
+        std::vector<GPUBuffer> jointBuffers;
         MaterialManager materials;
     };
 }

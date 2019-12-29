@@ -63,7 +63,7 @@ namespace bdr
         BufferType type = BufferType::Default;
     };
 
-    DXGI_FORMAT mapFormatToDXGI(const BufferFormat bufferFormat)
+    inline DXGI_FORMAT mapFormatToDXGI(const BufferFormat bufferFormat)
     {
         switch (bufferFormat) {
         case UINT16:
@@ -96,7 +96,7 @@ namespace bdr
         }
     }
 
-    uint64_t getByteSize(const BufferCreationInfo& createInfo)
+    inline uint64_t getByteSize(const BufferCreationInfo& createInfo)
     {
         switch (createInfo.format) {
         case UINT16:
@@ -122,103 +122,28 @@ namespace bdr
         }
     }
 
-    GPUBuffer createBuffer(
-        ID3D11Device* pDevice,
-        const void* data,
-        const BufferCreationInfo& createInfo
-    )
+    GPUBuffer createBuffer(ID3D11Device* pDevice, const void* data, const BufferCreationInfo& createInfo);
+
+    inline void reset(GPUBuffer& gpuBuffer)
     {
-        const uint16_t usageFlags = createInfo.usage;
-        GPUBuffer buffer{};
-        buffer.numElements = createInfo.numElements;
-        buffer.usage = createInfo.usage;
-        buffer.format = createInfo.format;
-
-        ASSERT(createInfo.format != STRUCTURED || createInfo.elementSize != 0,
-            "Structured Buffer Creation must include element size!");
-        ASSERT(!(usageFlags & BufferUsage::Vertex & BufferUsage::Index),
-            "A buffer cannot be bound as both an index and vertex buffer");
-        
-uint32_t d3dBind = 0;
-        
-        if (usageFlags & BufferUsage::Vertex) {
-            d3dBind = D3D11_BIND_VERTEX_BUFFER;
+        if (gpuBuffer.buffer) {
+            gpuBuffer.buffer->Release();
+            gpuBuffer.buffer = nullptr;
         }
-        else if (usageFlags & BufferUsage::Index) {
-            d3dBind = D3D11_BIND_INDEX_BUFFER;
+        if (gpuBuffer.srv) {
+            gpuBuffer.srv->Release();
+            gpuBuffer.srv = nullptr;
+            gpuBuffer.srvType = BufferType::Default;
         }
-        if (usageFlags & BufferUsage::ShaderReadable) {
-            d3dBind |= D3D11_BIND_SHADER_RESOURCE;
+        if (gpuBuffer.uav) {
+            gpuBuffer.uav->Release();
+            gpuBuffer.uav = nullptr;
+            gpuBuffer.uavType = BufferType::Default;
         }
-        if (usageFlags & BufferUsage::ComputeWritable) {
-            d3dBind |= D3D11_BIND_UNORDERED_ACCESS;
-        }
-
-        D3D11_USAGE d3dUsage = D3D11_USAGE_DEFAULT;
-
-        if (usageFlags & BufferUsage::CpuWritable) {
-            ASSERT(!(usageFlags & BufferUsage::ComputeWritable), "Cannot write using both Compute and CPU");
-            d3dUsage = D3D11_USAGE_DYNAMIC;
-        }
-        // Create our buffer
-        uint32_t bufferSize = getByteSize(createInfo) * createInfo.numElements;
-        D3D11_BUFFER_DESC bufferDesc = CD3D11_BUFFER_DESC();
-        bufferDesc.ByteWidth = bufferSize;
-        bufferDesc.Usage = d3dUsage;
-        bufferDesc.BindFlags = d3dBind;
-        D3D11_SUBRESOURCE_DATA initData;
-        initData.pSysMem = data;
-        initData.SysMemPitch = 0;
-        initData.SysMemSlicePitch = 0;
-
-        D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc{};
-        if (usageFlags & BufferUsage::ComputeWritable) {
-            if (usageFlags & BufferUsage::Vertex) {
-                bufferDesc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS;
-                bufferDesc.BindFlags |= D3D11_BIND_UNORDERED_ACCESS;
-                uavDesc.Format = DXGI_FORMAT_R32_TYPELESS;
-                uavDesc.Buffer.FirstElement = 0;
-                uavDesc.Buffer.NumElements = bufferSize / 4u;
-                uavDesc.Buffer.Flags = D3D11_BUFFER_UAV_FLAG_RAW;
-                buffer.uavType = BufferType::ByteAddressed;
-            }
-            else {
-                ASSERT(
-                    !(createInfo.type == BufferType::Structured) || (createInfo.format == BufferFormat::STRUCTURED),
-                    "Structured buffers must have appropriate type and format"
-                );
-                uavDesc.Format = mapFormatToDXGI(createInfo.format);
-                uavDesc.Buffer = D3D11_BUFFER_UAV{ 0, createInfo.numElements };
-                buffer.uavType = createInfo.type;
-            }
-            uavDesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
-        }
-
-        D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc{};
-        if (usageFlags & BufferUsage::ShaderReadable) {
-            ASSERT(!(usageFlags & D3D11_BIND_VERTEX_BUFFER), "Cannot create SRV for vertex buffers!");
-
-            bufferDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-            srvDesc.Format = mapFormatToDXGI(createInfo.format);
-            srvDesc.Buffer.ElementOffset = 0;
-            srvDesc.Buffer.NumElements = createInfo.numElements;
-            srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
-            buffer.srvType = BufferType::Typed;
-        }
-
-        // Create the buffer with the device.
-        DX::ThrowIfFailed(pDevice->CreateBuffer(&bufferDesc, &initData, &buffer.buffer));
-
-        if (usageFlags & BufferUsage::ComputeWritable) {
-            DX::ThrowIfFailed(pDevice->CreateUnorderedAccessView(buffer.buffer, &uavDesc, &buffer.uav));
-        }
-        if (usageFlags & BufferUsage::ShaderReadable) {
-            DX::ThrowIfFailed(pDevice->CreateShaderResourceView(buffer.buffer, &srvDesc, &buffer.srv));
-        }
-
-        return buffer;
+        gpuBuffer.numElements = 0;
+        gpuBuffer.format = BufferFormat::INVALID;
+        gpuBuffer.usage = BufferUsage::Invalid;
     }
-
 }
 
 // Example usage:

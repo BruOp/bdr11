@@ -637,7 +637,7 @@ namespace bdr
             for (size_t i = 0; i < sceneData.inputModel->skins.size(); i++) {
                 const tinygltf::Skin& inputSkin = sceneData.inputModel->skins[i];
                 Skin skin = processSkin(sceneData, inputSkin);
-                JointBuffer jointBuffer = createJointBuffer(sceneData.pRenderer->getDevice(), skin);
+                GPUBuffer jointBuffer = createJointBuffer(sceneData.pRenderer->getDevice(), skin);
                 sceneData.pRenderer->jointBuffers.push_back(jointBuffer);
                 sceneData.pScene->skins.push_back(std::move(skin));
             }

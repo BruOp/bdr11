@@ -32,10 +32,10 @@ void renderScene(bdr::Renderer& renderer, bdr::Scene& scene, bdr::View& view)
             bdr::Mesh& mesh = renderer.meshes[registry.meshes[entityId]];
             ASSERT(mesh.preskinMeshIdx != UINT32_MAX, "Skinned meshes must have preskinned mesh");
             bdr::Mesh& preskin = renderer.meshes[mesh.preskinMeshIdx];
-            bdr::JointBuffer& jointBuffer = renderer.jointBuffers[registry.jointBuffer[entityId]];
+            bdr::GPUBuffer& jointBuffer = renderer.jointBuffers[registry.jointBuffer[entityId]];
             std::vector<Matrix> jointMatrices(skin.inverseBindMatrices.size());
             const Matrix invModel{ registry.globalMatrices[entityId].Invert() };
-            
+
             for (size_t joint = 0; joint < jointMatrices.size(); ++joint) {
                 uint32_t jointEntity = skin.jointEntities[joint];
                 jointMatrices[joint] = (skin.inverseBindMatrices[joint] * registry.globalMatrices[jointEntity] * invModel).Transpose();
@@ -56,9 +56,11 @@ void renderScene(bdr::Renderer& renderer, bdr::Scene& scene, bdr::View& view)
         }
     }
 
-    ID3D11UnorderedAccessView* nullUAVs[] = { nullptr, nullptr };
-    context->CSSetUnorderedAccessViews(0, 2, nullUAVs, nullptr);
-    
+    ID3D11UnorderedAccessView* nullUAVs[2] = { nullptr };
+    context->CSSetUnorderedAccessViews(0u, 2u, nullUAVs, nullptr);
+    ID3D11ShaderResourceView* nullSRVs[4] = { nullptr };
+    context->CSSetShaderResources(0u, 4u, nullSRVs);
+
     renderer.deviceResources->PIXEndEvent();
 
     renderer.deviceResources->PIXBeginEvent(L"Render Meshes");
@@ -96,10 +98,10 @@ void renderScene(bdr::Renderer& renderer, bdr::Scene& scene, bdr::View& view)
             context->DrawIndexed(mesh.numIndices, 0, 0);
         }
     }
-    ID3D11Buffer* nullVB = nullptr;
-    uint32_t nullStrides[]{ 0 };
-    uint32_t nullOffsets[]{ 0 };
-    context->IASetVertexBuffers(0, 1, &nullVB, nullStrides, nullOffsets);
+    ID3D11Buffer* nullVB[bdr::Mesh::maxAttrCount] = { nullptr };
+    uint32_t nullStrides[bdr::Mesh::maxAttrCount]{ 0 };
+    uint32_t nullOffsets[bdr::Mesh::maxAttrCount]{ 0 };
+    context->IASetVertexBuffers(0, bdr::Mesh::maxAttrCount, nullVB, nullStrides, nullOffsets);
     renderer.deviceResources->PIXEndEvent();
 }
 
@@ -141,7 +143,7 @@ void Game::Update(DX::StepTimer const& timer)
     m_view = Matrix::CreateLookAt(Vector3{ radius, 0.5f, radius }, Vector3::Zero, Vector3::UnitY);
 
     bdr::ECSRegistry& registry = m_scene.registry;
-    
+
     if (m_scene.animations.size() > 0 && m_scene.animations[0].playingState != bdr::Animation::Playing) {
         m_scene.animations[0].playingState = bdr::Animation::Playing;
         m_scene.animations[0].startTime = totalTime;

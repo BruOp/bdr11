@@ -94,6 +94,9 @@
     <ClCompile Include="src\AnimationSystem.cpp">
       <Filter>Systems</Filter>
     </ClCompile>
+    <ClCompile Include="src\GPUBuffer.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc" />
@@ -116,12 +119,6 @@
       <Filter>Shaders</Filter>
     </FxCompile>
     <FxCompile Include="src\Shaders\basic_vs.hlsl">
-      <Filter>Shaders</Filter>
-    </FxCompile>
-    <FxCompile Include="src\Shaders\skinned_basic_ps.hlsl">
-      <Filter>Shaders</Filter>
-    </FxCompile>
-    <FxCompile Include="src\Shaders\skinned_basic_vs.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
     <FxCompile Include="src\skinning.hlsl">

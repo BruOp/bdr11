@@ -22,11 +22,11 @@ ID3D11InputLayout* bdr::InputLayoutManager::createInputLayout(const InputLayoutD
         }
 
         char buf[16];
-        _itoa(details.vectorSize, buf, 10);
+        _itoa_s(details.vectorSize, buf, 10);
         elementsStr += buf;
 
         elementsStr += " a";
-        _itoa(i, buf, 10);
+        _itoa_s(i, buf, 10);
         elementsStr += buf;
 
         elementsStr += " : ";
