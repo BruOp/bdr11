@@ -1,18 +1,11 @@
 #pragma once
 #include "pch.h"
 
+#include "bdrMath.h"
 
 namespace bdr
 {
     class ECSRegistry;
-
-    enum TransformType : uint8_t
-    {
-        Rotation = 1,
-        Translation = 2,
-        Scale = 4,
-        // Weights not supported
-    };
 
     struct Animation
     {

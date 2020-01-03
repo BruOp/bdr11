@@ -65,6 +65,17 @@
     <ClInclude Include="src\GPUBuffer.h">
       <Filter>Graphics</Filter>
     </ClInclude>
+    <ClInclude Include="src\RingBuffer.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="src\RenderPass.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Camera.h" />
+    <ClInclude Include="src\bdrMath.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="src\View.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\DeviceResources.cpp">
@@ -97,6 +108,14 @@
     <ClCompile Include="src\GPUBuffer.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
+    <ClCompile Include="src\RenderPass.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Camera.cpp" />
+    <ClCompile Include="src\bdrMath.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="src\View.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc" />

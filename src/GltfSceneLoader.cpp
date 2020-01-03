@@ -80,7 +80,7 @@ namespace bdr
             case MeshAttributes::POSITION:
             case MeshAttributes::NORMAL:
                 return BufferFormat::FLOAT_3;
-            
+
             case MeshAttributes::TEXCOORD:
                 if (componentType == TINYGLTF_COMPONENT_TYPE_FLOAT) {
                     return BufferFormat::FLOAT_2;
@@ -91,10 +91,10 @@ namespace bdr
                 else if (componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT) {
                     return BufferFormat::UNORM16_2;
                 }
-            
+
             case MeshAttributes::TANGENT:
                 return BufferFormat::FLOAT_4;
-            
+
             case MeshAttributes::BLENDINDICES:
                 if (componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE) {
                     return BufferFormat::UINT8_4;
@@ -102,7 +102,7 @@ namespace bdr
                 else if (componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT) {
                     return BufferFormat::UINT16_4;
                 }
-            
+
             case MeshAttributes::BLENDWEIGHT: // WEIGHTS_0
                 if (componentType == TINYGLTF_COMPONENT_TYPE_FLOAT) {
                     return BufferFormat::FLOAT_4;
@@ -618,7 +618,7 @@ namespace bdr
 
                 if (node.meshId != -1) {
                     registry.meshes[entity] = sceneData.meshMap[getMeshMapKey(node.meshId, node.primitiveId)];
-                    registry.materials[entity] = sceneData.pRenderer->materials[0];
+                    registry.materials[entity] = 0;
                     registry.cmpMasks[entity] |= MESH | MATERIAL;
 
                     if (node.skinId != -1) {

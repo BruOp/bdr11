@@ -1,38 +1,18 @@
 #pragma once
 #include "pch.h"
-#include "DXHelpers.h"
 
+#include "DXHelpers.h"
+#include "ECSRegistry.h"
 
 namespace bdr
 {
-
-    struct DrawConstants
-    {
-        DirectX::SimpleMath::Matrix MVP;
-        DirectX::SimpleMath::Matrix invMVP;
-    };
-
-    struct GenericMaterialData
-    {
-        float data[64];
-
-        inline float& operator[](const size_t index)
-        {
-            return data[index];
-        }
-        inline const float& operator[](const size_t index) const
-        {
-            return data[index];
-        }
-    };
-
     struct Material
     {
         ID3D11VertexShader* vertexShader;
         ID3D11PixelShader* pixelShader;
         ConstantBuffer<DrawConstants> vertexCB;
         ConstantBuffer<GenericMaterialData> pixelCB;
-        
+
         void Material::reset();
     };
 
@@ -47,7 +27,7 @@ namespace bdr
         }
 
         uint32_t initMaterial(ID3D11Device* device, const std::wstring& vsFile, const std::wstring& psFile);
-        
+
         void reset()
         {
             for (auto& material : materials) {
