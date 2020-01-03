@@ -15,96 +15,6 @@ using namespace DirectX::SimpleMath;
 
 using Microsoft::WRL::ComPtr;
 
-void renderScene(bdr::Renderer& renderer, bdr::Scene& scene, bdr::View& view)
-{
-    const uint32_t offsets[6] = { 0, 0, 0, 0, 0, 0 };
-    bdr::ECSRegistry& registry = scene.registry;
-
-    ID3D11DeviceContext1* context = renderer.deviceResources->GetD3DDeviceContext();
-    renderer.deviceResources->PIXBeginEvent(L"Skinning");
-
-    for (size_t entityId = 0; entityId < registry.numEntities; ++entityId) {
-        const uint32_t cmpMask = registry.cmpMasks[entityId];
-
-        if (cmpMask & bdr::CmpMasks::SKIN) {
-            // Compute joint matrices
-            const bdr::Skin& skin = scene.skins[registry.skinIds[entityId]];
-            bdr::Mesh& mesh = renderer.meshes[registry.meshes[entityId]];
-            ASSERT(mesh.preskinMeshIdx != UINT32_MAX, "Skinned meshes must have preskinned mesh");
-            bdr::Mesh& preskin = renderer.meshes[mesh.preskinMeshIdx];
-            bdr::GPUBuffer& jointBuffer = renderer.jointBuffers[registry.jointBuffer[entityId]];
-            std::vector<Matrix> jointMatrices(skin.inverseBindMatrices.size());
-            const Matrix invModel{ registry.globalMatrices[entityId].Invert() };
-
-            for (size_t joint = 0; joint < jointMatrices.size(); ++joint) {
-                uint32_t jointEntity = skin.jointEntities[joint];
-                jointMatrices[joint] = (skin.inverseBindMatrices[joint] * registry.globalMatrices[jointEntity] * invModel).Transpose();
-            }
-
-            ASSERT(jointBuffer.buffer != nullptr);
-            D3D11_MAPPED_SUBRESOURCE mappedResource;
-            DX::ThrowIfFailed(context->Map(jointBuffer.buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource));
-            CopyMemory(mappedResource.pData, jointMatrices.data(), sizeof(Matrix) * jointMatrices.size());
-            context->Unmap(jointBuffer.buffer, 0);
-
-            context->CSSetShaderResources(0u, 1u, &jointBuffer.srv);
-            context->CSSetShaderResources(1u, 4u, preskin.srvs);
-            context->CSSetUnorderedAccessViews(0u, 2u, mesh.uavs, nullptr);
-            context->CSSetShader(renderer.computeShader.Get(), nullptr, 0);
-            uint32_t numDispatches = uint32_t(ceilf(float(mesh.numVertices) / 64.0f));
-            context->Dispatch(numDispatches, 1, 1);
-        }
-    }
-
-    ID3D11UnorderedAccessView* nullUAVs[2] = { nullptr };
-    context->CSSetUnorderedAccessViews(0u, 2u, nullUAVs, nullptr);
-    ID3D11ShaderResourceView* nullSRVs[4] = { nullptr };
-    context->CSSetShaderResources(0u, 4u, nullSRVs);
-
-    renderer.deviceResources->PIXEndEvent();
-
-    renderer.deviceResources->PIXBeginEvent(L"Render Meshes");
-
-    // TODO: Build Constant buffer data in batches
-    Matrix viewProjTransform = view.viewTransform * view.projection;
-
-    for (size_t entityId = 0; entityId < registry.numEntities; ++entityId) {
-        const uint32_t cmpMask = registry.cmpMasks[entityId];
-        const uint32_t requirements = bdr::CmpMasks::MESH | bdr::CmpMasks::MATERIAL;
-        if ((cmpMask & requirements) == requirements) {
-            bdr::DrawConstants& drawConstants = registry.drawConstants[entityId];
-            const bdr::Material& material = registry.materials[entityId];
-            const bdr::Mesh& mesh = renderer.meshes[registry.meshes[entityId]];
-
-            // Set IAInputLayout
-            context->IASetVertexBuffers(0, mesh.numPresentAttr, mesh.vertexBuffers, mesh.strides, offsets);
-            context->IASetIndexBuffer(mesh.indexBuffer, mesh.indexFormat, 0);
-            context->IASetInputLayout(renderer.inputLayoutManager[mesh.inputLayoutHandle]);
-
-            // Set shaders
-            context->VSSetShader(material.vertexShader, nullptr, 0);
-            context->PSSetShader(material.pixelShader, nullptr, 0);
-
-            // Set constant buffers
-            drawConstants.MVP = (registry.globalMatrices[entityId] * viewProjTransform).Transpose();
-            material.vertexCB.copyToGPU(context, drawConstants);
-
-            ID3D11Buffer* vsBuffers[] = { material.vertexCB };
-            context->VSSetConstantBuffers(0, 1, vsBuffers);
-
-            //ID3D11Buffer* psBuffers[] = { material.pixelCB };
-            //context->PSSetConstantBuffers(0, 1, psBuffers);
-            context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-            context->DrawIndexed(mesh.numIndices, 0, 0);
-        }
-    }
-    ID3D11Buffer* nullVB[bdr::Mesh::maxAttrCount] = { nullptr };
-    uint32_t nullStrides[bdr::Mesh::maxAttrCount]{ 0 };
-    uint32_t nullOffsets[bdr::Mesh::maxAttrCount]{ 0 };
-    context->IASetVertexBuffers(0, bdr::Mesh::maxAttrCount, nullVB, nullStrides, nullOffsets);
-    renderer.deviceResources->PIXEndEvent();
-}
-
 Game::Game() noexcept(false)
 {
     m_renderer.deviceResources->RegisterDeviceNotify(this);
@@ -140,7 +50,7 @@ void Game::Update(DX::StepTimer const& timer)
     float totalTime = float(timer.GetTotalSeconds());
 
     float radius = 2.0f;
-    m_view = Matrix::CreateLookAt(Vector3{ radius, 0.5f, radius }, Vector3::Zero, Vector3::UnitY);
+    m_camera.view = Matrix::CreateLookAt(Vector3{ radius, 0.5f, radius }, Vector3::Zero, Vector3::UnitY);
 
     bdr::ECSRegistry& registry = m_scene.registry;
 
@@ -153,6 +63,7 @@ void Game::Update(DX::StepTimer const& timer)
         updateAnimation(registry, animation, totalTime);
     }
     updateMatrices(registry);
+    copyDrawData(registry);
 }
 #pragma endregion
 
@@ -170,13 +81,12 @@ void Game::Render()
     m_renderer.deviceResources->PIXBeginEvent(L"Render");
     auto context = m_renderer.deviceResources->GetD3DDeviceContext();
 
-    // TODO: Add your rendering code here.
+    // TODO: Remove this and put it inside the passes.
     context->OMSetBlendState(m_states->Opaque(), nullptr, 0xFFFFFFFF);
     context->OMSetDepthStencilState(m_states->DepthDefault(), 0);
     context->RSSetState(m_rasterState.Get());
 
-    bdr::View view = { m_view, m_proj };
-    renderScene(m_renderer, m_scene, view);
+    m_renderGraph.run(&m_renderer);
 
     m_renderer.deviceResources->PIXEndEvent();
 
@@ -282,10 +192,16 @@ void Game::CreateDeviceDependentResources()
 // Allocate all memory resources that change on a window SizeChanged event.
 void Game::CreateWindowSizeDependentResources()
 {
-    m_view = Matrix::CreateLookAt(Vector3{ 2.0f, 2.0f, 2.0f }, Vector3::Zero, Vector3::UnitY);
+    m_camera.view = Matrix::CreateLookAt(Vector3{ 2.0f, 2.0f, 2.0f }, Vector3::Zero, Vector3::UnitY);
     float width = float(m_renderer.width);
     float height = float(m_renderer.height);
-    m_proj = Matrix::CreatePerspectiveFieldOfView(XM_PI / 4.0f, width / height, 0.1f, 100.f);
+    m_camera.projection = Matrix::CreatePerspectiveFieldOfView(XM_PI / 4.0f, width / height, 0.1f, 100.f);
+    bdr::View& baseView = m_renderGraph.createNewView();
+    baseView.name = "Basic Mesh View";
+    baseView.scene = &m_scene;
+    bdr::setViewCamera(baseView, &m_camera);
+    bdr::addBasicPass(m_renderGraph, &baseView);
+    bdr::addSkinningPass(m_renderGraph, &baseView);
 }
 
 void Game::OnDeviceLost()

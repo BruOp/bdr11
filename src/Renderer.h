@@ -7,15 +7,11 @@
 #include "InputLayoutManager.h"
 #include "Material.h"
 #include "GPUBuffer.h"
+#include "View.h"
+
 
 namespace bdr
 {
-    struct View
-    {
-        DirectX::SimpleMath::Matrix viewTransform;
-        DirectX::SimpleMath::Matrix projection;
-    };
-
     GPUBuffer createJointBuffer(ID3D11Device* device, const Skin& skin);
 
     class Renderer
@@ -72,6 +68,7 @@ namespace bdr
         {
             deviceResources->CreateDeviceResources();
             inputLayoutManager.init(deviceResources->GetD3DDevice());
+            viewCB.init(deviceResources->GetD3DDevice(), false);
         }
 
         inline void createWindowSizeDependentResources()
@@ -95,6 +92,11 @@ namespace bdr
             return deviceResources->GetD3DDevice();
         }
 
+        inline ID3D11DeviceContext1* getContext() const
+        {
+            return deviceResources->GetD3DDeviceContext();
+        }
+
         // Device resources.
         uint32_t width = 0;
         uint32_t height = 0;
@@ -102,9 +104,9 @@ namespace bdr
         Microsoft::WRL::ComPtr<ID3D11ComputeShader> computeShader = nullptr;
 
         InputLayoutManager inputLayoutManager;
-
         std::vector<Mesh> meshes;
         std::vector<GPUBuffer> jointBuffers;
         MaterialManager materials;
+        ConstantBuffer<ViewConstants> viewCB;
     };
 }

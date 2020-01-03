@@ -1,8 +1,8 @@
 #pragma once
 #include "pch.h"
 
+#include "bdrMath.h"
 #include "Animation.h"
-#include "Material.h"
 
 namespace bdr
 {
@@ -45,15 +45,26 @@ namespace bdr
         };
     };
 
-    struct Transform
+    struct DrawConstants
     {
-        DirectX::SimpleMath::Quaternion rotation;
-        DirectX::SimpleMath::Vector3 translation;
-        uint32_t mask;
-        DirectX::SimpleMath::Vector3 scale;
+        DirectX::SimpleMath::Matrix model;
+        DirectX::SimpleMath::Matrix invModel;
     };
 
-    DirectX::SimpleMath::Matrix getMatrixFromTransform(const Transform& transform);
+    struct GenericMaterialData
+    {
+        float data[64];
+
+        inline float& operator[](const size_t index)
+        {
+            return data[index];
+        }
+        inline const float& operator[](const size_t index) const
+        {
+            return data[index];
+        }
+    };
+
 
     // Used to retrieve the next "free" entity, one that has been allocated by unused.
     struct FreeEntityNode
@@ -89,7 +100,7 @@ namespace bdr
         ComponentArray<DirectX::SimpleMath::Matrix> localMatrices;
         ComponentArray<DirectX::SimpleMath::Matrix> globalMatrices;
         ComponentArray<FreeEntityNode> freeEntitiesNodes;
-        ComponentArray<Material> materials;
+        ComponentArray<uint32_t> materials;
         ComponentArray<GenericMaterialData> materialData;
         ComponentArray<DrawConstants> drawConstants;
 

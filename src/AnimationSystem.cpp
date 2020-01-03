@@ -104,4 +104,15 @@ namespace bdr
             }
         }
     }
+
+    void copyDrawData(ECSRegistry& registry)
+    {
+        for (size_t entity = 0; entity < registry.numEntities; entity++) {
+            const uint32_t cmpMask = registry.cmpMasks[entity];
+            if (cmpMask & CmpMasks::MESH) {
+                registry.drawConstants[entity].model = registry.globalMatrices[entity].Transpose();
+                registry.drawConstants[entity].model.Invert(registry.drawConstants[entity].invModel);
+            }
+        }
+    }
 }

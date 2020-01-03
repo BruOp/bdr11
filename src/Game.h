@@ -7,6 +7,9 @@
 #include "StepTimer.h"
 #include "Scene.h"
 #include "Renderer.h"
+#include "Camera.h"
+#include "View.h"
+#include "RenderPass.h"
 
 // A basic game implementation that creates a D3D11 device and
 // provides a game loop.
@@ -35,7 +38,7 @@ public:
     void OnWindowSizeChanged(int width, int height);
 
     // Properties
-    void GetDefaultSize( int& width, int& height ) const;
+    void GetDefaultSize(int& width, int& height) const;
 
 private:
 
@@ -55,6 +58,6 @@ private:
     bdr::Scene m_scene = {};
     bdr::Renderer m_renderer = {};
 
-    DirectX::SimpleMath::Matrix m_view = DirectX::SimpleMath::Matrix::Identity;
-    DirectX::SimpleMath::Matrix m_proj = DirectX::SimpleMath::Matrix::Identity;
+    bdr::Camera m_camera;
+    bdr::RenderGraph m_renderGraph;
 };

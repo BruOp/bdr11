@@ -10,7 +10,7 @@ namespace bdr
         static_assert(sizeof(T) % 16 == 0, "Constant Buffer data structs must be 16 byte aligned");
 
         //T data;
-        ID3D11Buffer* buffer;
+        ID3D11Buffer* buffer = nullptr;
         bool gpuWritable = false;
 
         void init(ID3D11Device* device, bool makeGpuWritable = false)

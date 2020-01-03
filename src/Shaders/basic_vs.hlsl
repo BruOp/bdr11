@@ -1,9 +1,14 @@
-cbuffer VS_CONSTANT_BUFFER : register(b0)
+cbuffer VIEW_CONSTANT_BUFFER : register(b0)
 {
-    matrix MVP;
-	matrix invMVP;
-	float4 extra1;
-	float4 extra2;
+    matrix view;
+    matrix proj;
+    matrix VP;
+}
+
+cbuffer DRAW_CONSTANTS_BUFFER : register(b1)
+{
+    matrix model;
+    matrix invModel;
 }
 
 struct VSInput
@@ -21,9 +26,9 @@ struct VSOutput
 VSOutput main(in VSInput input)
 {
     VSOutput output;
-    output.PositionCS = mul(float4(input.Position, 1.0f), MVP);
+    output.PositionCS = mul(mul(float4(input.Position, 1.0f), model), VP);
 
-    output.NormalWS = mul(float4(input.Normal, 1.0f), MVP).xyz;
+    output.NormalWS = mul(float4(input.Normal, 1.0f), invModel).xyz;
 
     return output;
 }
