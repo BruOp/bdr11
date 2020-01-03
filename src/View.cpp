@@ -4,20 +4,22 @@
 #include "Camera.h"
 #include "Renderer.h"
 
+
 namespace bdr
 {
-    void setViewCamera(View& view, const Camera* camera)
+    void View::setCamera(const Camera* camera)
     {
-        view.type = ViewType::Camera;
-        view.perspectiveProvider.camera = camera;
+        type = ViewType::Camera;
+        perspectiveProvider.camera = camera;
     }
 
     void setConstants(Renderer* renderer, const View& view)
     {
         ASSERT(view.type != ViewType::Unknown, "Cannot set constants for unknown view");
         auto* context = renderer->getContext();
+
         if (view.type == ViewType::Camera) {
-            const Camera* camera = view.perspectiveProvider.camera;
+            const Camera* camera = view.getCamera();
             ViewConstants viewConstants{
                 camera->view.Transpose(),
                 camera->projection.Transpose(),

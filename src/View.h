@@ -3,6 +3,7 @@
 
 namespace bdr
 {
+    class Renderer;
     class Scene;
     struct Camera;
 
@@ -20,14 +21,31 @@ namespace bdr
         DirectX::SimpleMath::Matrix VP;
     };
 
-    struct View
+    class View
     {
+    public:
         std::string name = "";
         Scene* scene = nullptr;
+        ViewType type = ViewType::Unknown;
+
+        inline Camera const* getCamera() const
+        {
+            if (type == ViewType::Camera) {
+                return perspectiveProvider.camera;
+            }
+            else {
+                return nullptr;
+            }
+        };
+
+        void setCamera(const Camera* camera);
+
+    private:
         union PerspectiveProvider
         {
             Camera const* camera;
         } perspectiveProvider = { nullptr };
-        ViewType type = ViewType::Unknown;
     };
+
+    void setConstants(Renderer* renderer, const View& view);
 }

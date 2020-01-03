@@ -12,9 +12,6 @@ namespace bdr
     struct Camera;
     class ILight;
 
-    void setViewCamera(View& view, const Camera*);
-    void setConstants(Renderer* renderer, const View& view);
-
     struct RenderPass
     {
         // TODO State

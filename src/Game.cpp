@@ -199,7 +199,7 @@ void Game::CreateWindowSizeDependentResources()
     bdr::View& baseView = m_renderGraph.createNewView();
     baseView.name = "Basic Mesh View";
     baseView.scene = &m_scene;
-    bdr::setViewCamera(baseView, &m_camera);
+    baseView.setCamera(&m_camera);
     bdr::addBasicPass(m_renderGraph, &baseView);
     bdr::addSkinningPass(m_renderGraph, &baseView);
 }
