@@ -22,14 +22,14 @@ namespace bdr
         ID3D11UnorderedAccessView* uavs[maxAttrCount] = { nullptr, nullptr, nullptr, nullptr, nullptr };
         ID3D11ShaderResourceView* srvs[maxAttrCount] = { nullptr, nullptr, nullptr, nullptr, nullptr };
         ID3D11Buffer* indexBuffer = nullptr;
-        DXGI_FORMAT indexFormat;
+        DXGI_FORMAT indexFormat = DXGI_FORMAT_UNKNOWN;
         uint32_t inputLayoutHandle = UINT32_MAX;
         uint32_t numIndices = 0;
         uint32_t numVertices = 0;
-        uint32_t strides[maxAttrCount];
+        uint32_t strides[maxAttrCount] = { 0 };
         uint32_t preskinMeshIdx = UINT32_MAX;
-        uint8_t presentAttributesMask;
-        uint8_t numPresentAttr;
+        uint8_t presentAttributesMask = 0;
+        uint8_t numPresentAttr = 0;
 
         void destroy()
         {

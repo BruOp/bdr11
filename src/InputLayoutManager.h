@@ -8,7 +8,7 @@ namespace bdr
 {
     struct InputLayoutDetail
     {
-        enum Type : uint8_t
+        enum class Type : uint8_t
         {
             FLOAT = 0,
             UINT,
@@ -16,7 +16,7 @@ namespace bdr
         };
 
         MeshAttributes attrMask = MeshAttributes::POSITION;
-        Type type = FLOAT;
+        Type type = Type::FLOAT;
         DXGI_FORMAT format = {};
         uint32_t vectorSize = 0;
         std::string semanticName = {};

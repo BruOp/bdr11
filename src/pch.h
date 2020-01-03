@@ -82,7 +82,7 @@ namespace DX
     class com_exception : public std::exception
     {
     public:
-        com_exception(HRESULT hr) : result(hr) {}
+        com_exception(HRESULT hr) : result(hr) { }
 
         virtual const char* what() const override
         {
@@ -98,8 +98,7 @@ namespace DX
     // Helper utility converts D3D API failures into exceptions.
     inline void ThrowIfFailed(HRESULT hr)
     {
-        if (FAILED(hr))
-        {
+        if (FAILED(hr)) {
             throw com_exception(hr);
         }
     }

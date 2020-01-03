@@ -77,7 +77,7 @@ namespace bdr
             constexpr uint32_t offsets[bdr::Mesh::maxAttrCount] = { 0 };
             const Scene& scene = *view.scene;
             const bdr::ECSRegistry& registry = scene.registry;
-            ASSERT(view.type & View::CameraType);
+            ASSERT(view.type == ViewType::Camera);
             ID3D11DeviceContext* context = renderer->getContext();
 
             setConstants(renderer, view);

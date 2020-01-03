@@ -6,6 +6,13 @@ namespace bdr
     class Scene;
     struct Camera;
 
+    enum class ViewType : uint32_t
+    {
+        Unknown = 0,
+        Camera,
+        Light
+    };
+
     struct ViewConstants
     {
         DirectX::SimpleMath::Matrix viewTransform;
@@ -15,19 +22,12 @@ namespace bdr
 
     struct View
     {
-        enum Type : uint32_t
-        {
-            Unknown = 0,
-            CameraType,
-            LightType
-        };
-
         std::string name = "";
         Scene* scene = nullptr;
         union PerspectiveProvider
         {
             Camera const* camera;
-        } perspectiveProvider;
-        Type type = Unknown;
+        } perspectiveProvider = { nullptr };
+        ViewType type = ViewType::Unknown;
     };
 }

@@ -4,7 +4,7 @@
 
 namespace bdr
 {
-    enum BufferFormat : uint8_t
+    enum class BufferFormat : uint8_t
     {
         UINT16 = 0,
         UINT32,
@@ -33,7 +33,7 @@ namespace bdr
 
     };
 
-    enum BufferType : uint8_t
+    enum class BufferType : uint8_t
     {
         Default = 0,
         Typed,
@@ -46,9 +46,9 @@ namespace bdr
     {
         uint32_t numElements = 0;
         uint8_t usage = 0;
-        uint8_t srvType = 0;
-        uint8_t uavType = 0;
-        uint8_t format = INVALID;
+        BufferType srvType = BufferType::Default;
+        BufferType uavType = BufferType::Default;
+        BufferFormat format = BufferFormat::INVALID;
         ID3D11Buffer* buffer = nullptr;
         ID3D11UnorderedAccessView* uav = nullptr;
         ID3D11ShaderResourceView* srv = nullptr;
@@ -66,29 +66,29 @@ namespace bdr
     inline DXGI_FORMAT mapFormatToDXGI(const BufferFormat bufferFormat)
     {
         switch (bufferFormat) {
-        case UINT16:
+        case BufferFormat::UINT16:
             return DXGI_FORMAT_R16_UINT;
-        case UINT32:
+        case BufferFormat::UINT32:
             return DXGI_FORMAT_R32_UINT;
-        case UNORM8_2:
+        case BufferFormat::UNORM8_2:
             return DXGI_FORMAT_R8G8_UNORM;
-        case UNORM16_2:
+        case BufferFormat::UNORM16_2:
             return DXGI_FORMAT_R16G16_UNORM;
-        case FLOAT_2:
+        case BufferFormat::FLOAT_2:
             return DXGI_FORMAT_R32G32_FLOAT;
-        case FLOAT_3:
+        case BufferFormat::FLOAT_3:
             return DXGI_FORMAT_R32G32B32_FLOAT;
-        case UINT8_4:
+        case BufferFormat::UINT8_4:
             return DXGI_FORMAT_R8G8B8A8_UINT;
-        case UNORM8_4:
+        case BufferFormat::UNORM8_4:
             return DXGI_FORMAT_R8G8B8A8_UNORM;
-        case UINT16_4:
+        case BufferFormat::UINT16_4:
             return DXGI_FORMAT_R16G16B16A16_UINT;
-        case UNORM16_4:
+        case BufferFormat::UNORM16_4:
             return DXGI_FORMAT_R16G16B16A16_UNORM;
-        case FLOAT_4:
+        case BufferFormat::FLOAT_4:
             return DXGI_FORMAT_R32G32B32A32_FLOAT;
-        case STRUCTURED:
+        case BufferFormat::STRUCTURED:
             return DXGI_FORMAT_UNKNOWN;
 
         default:
@@ -96,26 +96,26 @@ namespace bdr
         }
     }
 
-    inline uint64_t getByteSize(const BufferCreationInfo& createInfo)
+    inline uint32_t getByteSize(const BufferCreationInfo& createInfo)
     {
         switch (createInfo.format) {
-        case UINT16:
-        case UNORM8_2:
+        case BufferFormat::UINT16:
+        case BufferFormat::UNORM8_2:
             return 2u;
-        case UINT32:
-        case UNORM16_2:
-        case UINT8_4:
-        case UNORM8_4:
+        case BufferFormat::UINT32:
+        case BufferFormat::UNORM16_2:
+        case BufferFormat::UINT8_4:
+        case BufferFormat::UNORM8_4:
             return 4u;
-        case FLOAT_2:
-        case UINT16_4:
-        case UNORM16_4:
+        case BufferFormat::FLOAT_2:
+        case BufferFormat::UINT16_4:
+        case BufferFormat::UNORM16_4:
             return 8u;
-        case FLOAT_3:
+        case BufferFormat::FLOAT_3:
             return 12u;
-        case FLOAT_4:
+        case BufferFormat::FLOAT_4:
             return 16u;
-        case STRUCTURED:
+        case BufferFormat::STRUCTURED:
             return createInfo.elementSize;
         default:
             throw std::runtime_error("Invalid Format");
@@ -145,6 +145,3 @@ namespace bdr
         gpuBuffer.usage = BufferUsage::Invalid;
     }
 }
-
-// Example usage:
-// CreateIndexBuffer()

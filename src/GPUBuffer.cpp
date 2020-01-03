@@ -11,7 +11,7 @@ namespace bdr
         buffer.usage = createInfo.usage;
         buffer.format = createInfo.format;
 
-        ASSERT(createInfo.format != STRUCTURED || createInfo.elementSize != 0,
+        ASSERT(createInfo.format != BufferFormat::STRUCTURED || createInfo.elementSize != 0,
             "Structured Buffer Creation must include element size!");
         ASSERT(!(usageFlags & BufferUsage::Vertex & BufferUsage::Index),
             "A buffer cannot be bound as both an index and vertex buffer");

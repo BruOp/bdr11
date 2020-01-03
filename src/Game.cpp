@@ -54,8 +54,8 @@ void Game::Update(DX::StepTimer const& timer)
 
     bdr::ECSRegistry& registry = m_scene.registry;
 
-    if (m_scene.animations.size() > 0 && m_scene.animations[0].playingState != bdr::Animation::Playing) {
-        m_scene.animations[0].playingState = bdr::Animation::Playing;
+    if (m_scene.animations.size() > 0 && m_scene.animations[0].playingState != bdr::Animation::State::Playing) {
+        m_scene.animations[0].playingState = bdr::Animation::State::Playing;
         m_scene.animations[0].startTime = totalTime;
     }
 

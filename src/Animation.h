@@ -9,17 +9,17 @@ namespace bdr
 
     struct Animation
     {
-        enum State : uint8_t
+        enum class State : uint8_t
         {
             Off = 0u,
             Resetting,
             Playing,
         };
-        enum InterpolationType : uint8_t
+        enum class InterpolationType : uint8_t
         {
-            Linear = 1,
-            Step = 2,
-            CubicSpline = 4,
+            Linear = 0,
+            Step,
+            CubicSpline,
         };
 
         template<typename T>
