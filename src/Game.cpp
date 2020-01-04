@@ -34,7 +34,6 @@ void Game::Initialize(HWND window, int width, int height)
     m_keyboard = std::make_unique<Keyboard>();
     m_mouse = std::make_unique<Mouse>();
     m_mouse->SetWindow(window);
-    m_mouse->SetMode(Mouse::MODE_RELATIVE);
 }
 
 #pragma region Frame Update
@@ -206,6 +205,11 @@ void Game::CreateWindowSizeDependentResources()
     float width = float(m_renderer.width);
     float height = float(m_renderer.height);
     m_camera.projection = Matrix::CreatePerspectiveFieldOfView(XM_PI / 4.0f, width / height, 0.1f, 100.f);
+
+    m_cameraController.pitch = XM_PIDIV4;
+    m_cameraController.yaw = XM_PIDIV4;
+    m_cameraController.radius = 3.0f;
+    m_cameraController.setCamera(&m_camera);
 
     bdr::View& baseView = m_renderGraph.createNewView();
     baseView.name = "Basic Mesh View";

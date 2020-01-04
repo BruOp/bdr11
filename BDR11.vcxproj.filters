@@ -76,6 +76,9 @@
       <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="src\View.h" />
+    <ClInclude Include="src\ResourceManager.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\DeviceResources.cpp">

@@ -33,6 +33,7 @@ namespace bdr
         DirectX::SimpleMath::Vector3 origin;
     private:
         Camera* camera = nullptr;
+        DirectX::Mouse::ButtonStateTracker tracker;
     };
 }
 
