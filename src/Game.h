@@ -52,6 +52,8 @@ private:
 
     // Rendering loop timer.
     DX::StepTimer                           m_timer;
+    std::unique_ptr<DirectX::Keyboard> m_keyboard;
+    std::unique_ptr<DirectX::Mouse> m_mouse;
 
     Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_rasterState;
     std::unique_ptr<DirectX::CommonStates> m_states = nullptr;
@@ -59,5 +61,6 @@ private:
     bdr::Renderer m_renderer = {};
 
     bdr::Camera m_camera;
+    bdr::OrbitCameraController m_cameraController;
     bdr::RenderGraph m_renderGraph;
 };

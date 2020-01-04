@@ -38,6 +38,7 @@ namespace bdr
             for (GPUBuffer& jointBuffer : jointBuffers) {
                 bdr::reset(jointBuffer);
             }
+            viewCB.reset();
             inputLayoutManager.reset();
             materials.reset();
         }

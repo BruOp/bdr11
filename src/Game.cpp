@@ -30,6 +30,11 @@ void Game::Initialize(HWND window, int width, int height)
 
     m_renderer.createWindowSizeDependentResources();
     CreateWindowSizeDependentResources();
+
+    m_keyboard = std::make_unique<Keyboard>();
+    m_mouse = std::make_unique<Mouse>();
+    m_mouse->SetWindow(window);
+    m_mouse->SetMode(Mouse::MODE_RELATIVE);
 }
 
 #pragma region Frame Update
@@ -46,11 +51,15 @@ void Game::Tick()
 // Updates the world.
 void Game::Update(DX::StepTimer const& timer)
 {
-    //float frameTime = float(timer.GetElapsedSeconds());
+    const auto& kb = m_keyboard->GetState();
+    if (kb.Escape) {
+        ExitGame();
+    }
+
+    float frameTime = float(timer.GetElapsedSeconds());
     float totalTime = float(timer.GetTotalSeconds());
 
-    float radius = 2.0f;
-    m_camera.view = Matrix::CreateLookAt(Vector3{ radius, 0.5f, radius }, Vector3::Zero, Vector3::UnitY);
+    m_cameraController.update(kb, m_mouse->GetState(), frameTime);
 
     bdr::ECSRegistry& registry = m_scene.registry;
 
@@ -64,6 +73,8 @@ void Game::Update(DX::StepTimer const& timer)
     }
     updateMatrices(registry);
     copyDrawData(registry);
+
+    m_mouse->ResetScrollWheelValue();
 }
 #pragma endregion
 
@@ -192,14 +203,15 @@ void Game::CreateDeviceDependentResources()
 // Allocate all memory resources that change on a window SizeChanged event.
 void Game::CreateWindowSizeDependentResources()
 {
-    m_camera.view = Matrix::CreateLookAt(Vector3{ 2.0f, 2.0f, 2.0f }, Vector3::Zero, Vector3::UnitY);
     float width = float(m_renderer.width);
     float height = float(m_renderer.height);
     m_camera.projection = Matrix::CreatePerspectiveFieldOfView(XM_PI / 4.0f, width / height, 0.1f, 100.f);
+
     bdr::View& baseView = m_renderGraph.createNewView();
     baseView.name = "Basic Mesh View";
     baseView.scene = &m_scene;
     baseView.setCamera(&m_camera);
+
     bdr::addBasicPass(m_renderGraph, &baseView);
     bdr::addSkinningPass(m_renderGraph, &baseView);
 }
