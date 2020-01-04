@@ -26,6 +26,9 @@ namespace bdr
             reset();
         }
 
+        UNMOVABLE(MaterialManager);
+        UNCOPIABLE(MaterialManager);
+
         uint32_t initMaterial(ID3D11Device* device, const std::wstring& vsFile, const std::wstring& psFile);
 
         void reset()

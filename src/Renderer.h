@@ -8,7 +8,7 @@
 #include "Material.h"
 #include "GPUBuffer.h"
 #include "View.h"
-
+#include "ResourceManager.h"
 
 namespace bdr
 {
@@ -32,12 +32,6 @@ namespace bdr
 
         void reset()
         {
-            for (size_t i = 0; i < meshes.size(); i++) {
-                meshes[i].destroy();
-            }
-            for (GPUBuffer& jointBuffer : jointBuffers) {
-                bdr::reset(jointBuffer);
-            }
             viewCB.reset();
             inputLayoutManager.reset();
             materials.reset();
@@ -79,8 +73,7 @@ namespace bdr
 
         inline uint32_t getNewMesh()
         {
-            meshes.emplace_back();
-            return meshes.size() - 1;
+            return static_cast<uint32_t>(meshes.create());
         };
 
         inline uint32_t getInputLayout(const InputLayoutDetail details[], uint8_t numAttributes)
@@ -105,8 +98,8 @@ namespace bdr
         Microsoft::WRL::ComPtr<ID3D11ComputeShader> computeShader = nullptr;
 
         InputLayoutManager inputLayoutManager;
-        std::vector<Mesh> meshes;
-        std::vector<GPUBuffer> jointBuffers;
+        ResourceManager<Mesh> meshes;
+        ResourceManager<GPUBuffer> jointBuffers;
         MaterialManager materials;
         ConstantBuffer<ViewConstants> viewCB;
     };

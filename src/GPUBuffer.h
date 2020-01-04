@@ -52,6 +52,8 @@ namespace bdr
         ID3D11Buffer* buffer = nullptr;
         ID3D11UnorderedAccessView* uav = nullptr;
         ID3D11ShaderResourceView* srv = nullptr;
+
+        void reset();
     };
 
     struct BufferCreationInfo
@@ -124,24 +126,4 @@ namespace bdr
 
     GPUBuffer createBuffer(ID3D11Device* pDevice, const void* data, const BufferCreationInfo& createInfo);
 
-    inline void reset(GPUBuffer& gpuBuffer)
-    {
-        if (gpuBuffer.buffer) {
-            gpuBuffer.buffer->Release();
-            gpuBuffer.buffer = nullptr;
-        }
-        if (gpuBuffer.srv) {
-            gpuBuffer.srv->Release();
-            gpuBuffer.srv = nullptr;
-            gpuBuffer.srvType = BufferType::Default;
-        }
-        if (gpuBuffer.uav) {
-            gpuBuffer.uav->Release();
-            gpuBuffer.uav = nullptr;
-            gpuBuffer.uavType = BufferType::Default;
-        }
-        gpuBuffer.numElements = 0;
-        gpuBuffer.format = BufferFormat::INVALID;
-        gpuBuffer.usage = BufferUsage::Invalid;
-    }
 }

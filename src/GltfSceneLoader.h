@@ -6,6 +6,7 @@
 #include "Scene.h"
 #include "Renderer.h"
 
+
 namespace tinygltf
 {
     class Model;

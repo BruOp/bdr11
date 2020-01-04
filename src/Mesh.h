@@ -18,9 +18,9 @@ namespace bdr
         // No mesh will contain all 6 possible mesh attributes
         static constexpr size_t maxAttrCount = 5u;
 
-        ID3D11Buffer* vertexBuffers[maxAttrCount] = { nullptr, nullptr, nullptr, nullptr, nullptr };
-        ID3D11UnorderedAccessView* uavs[maxAttrCount] = { nullptr, nullptr, nullptr, nullptr, nullptr };
-        ID3D11ShaderResourceView* srvs[maxAttrCount] = { nullptr, nullptr, nullptr, nullptr, nullptr };
+        ID3D11Buffer* vertexBuffers[maxAttrCount] = { nullptr };
+        ID3D11UnorderedAccessView* uavs[maxAttrCount] = { nullptr };
+        ID3D11ShaderResourceView* srvs[maxAttrCount] = { nullptr };
         ID3D11Buffer* indexBuffer = nullptr;
         DXGI_FORMAT indexFormat = DXGI_FORMAT_UNKNOWN;
         uint32_t inputLayoutHandle = UINT32_MAX;
@@ -31,16 +31,19 @@ namespace bdr
         uint8_t presentAttributesMask = 0;
         uint8_t numPresentAttr = 0;
 
-        void destroy()
+        void reset()
         {
             for (auto srv : srvs) {
                 srv != nullptr && srv->Release();
+                srv = nullptr;
             }
             for (auto uav : uavs) {
                 uav != nullptr && uav->Release();
+                uav = nullptr;
             }
             for (auto buffer : vertexBuffers) {
                 buffer != nullptr && buffer->Release();
+                buffer = nullptr;
             }
             if (indexBuffer != nullptr) {
                 indexBuffer->Release();

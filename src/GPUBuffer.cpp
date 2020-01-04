@@ -99,4 +99,25 @@ namespace bdr
 
         return buffer;
     }
+
+    void GPUBuffer::reset()
+    {
+        if (buffer) {
+            buffer->Release();
+            buffer = nullptr;
+        }
+        if (srv) {
+            srv->Release();
+            srv = nullptr;
+            srvType = BufferType::Default;
+        }
+        if (uav) {
+            uav->Release();
+            uav = nullptr;
+            uavType = BufferType::Default;
+        }
+        numElements = 0;
+        format = BufferFormat::INVALID;
+        usage = BufferUsage::Invalid;
+    }
 }
