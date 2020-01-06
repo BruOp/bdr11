@@ -197,6 +197,7 @@
     <ClInclude Include="src\RingBuffer.h" />
     <ClInclude Include="src\Scene.h" />
     <ClInclude Include="src\StepTimer.h" />
+    <ClInclude Include="src\Texture.h" />
     <ClInclude Include="src\View.h" />
   </ItemGroup>
   <ItemGroup>
@@ -220,6 +221,7 @@
     <ClCompile Include="src\Material.cpp" />
     <ClCompile Include="src\RenderPass.cpp" />
     <ClCompile Include="src\Scene.cpp" />
+    <ClCompile Include="src\Texture.cpp" />
     <ClCompile Include="src\View.cpp" />
   </ItemGroup>
   <ItemGroup>

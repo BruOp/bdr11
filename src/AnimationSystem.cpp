@@ -111,7 +111,10 @@ namespace bdr
             const uint32_t cmpMask = registry.cmpMasks[entity];
             if (cmpMask & CmpMasks::MESH) {
                 registry.drawConstants[entity].model = registry.globalMatrices[entity].Transpose();
-                registry.drawConstants[entity].model.Invert(registry.drawConstants[entity].invModel);
+                registry.drawConstants[entity].invModel = registry.drawConstants[entity].model.Invert();
+                registry.drawConstants[entity].invModel._14 = 0;
+                registry.drawConstants[entity].invModel._24 = 0;
+                registry.drawConstants[entity].invModel._34 = 0;
             }
         }
     }

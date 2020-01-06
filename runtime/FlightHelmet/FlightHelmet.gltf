@@ -339,49 +339,49 @@
   ],
   "images": [
     {
-      "uri": "FlightHelmet_baseColor.png"
+      "uri": "FlightHelmet_baseColor.dds"
     },
     {
-      "uri": "FlightHelmet_occlusionRoughnessMetallic.png"
+      "uri": "FlightHelmet_occlusionRoughnessMetallic.dds"
     },
     {
-      "uri": "FlightHelmet_normal.png"
+      "uri": "FlightHelmet_normal.dds"
     },
     {
-      "uri": "FlightHelmet_baseColor1.png"
+      "uri": "FlightHelmet_baseColor1.dds"
     },
     {
-      "uri": "FlightHelmet_occlusionRoughnessMetallic1.png"
+      "uri": "FlightHelmet_occlusionRoughnessMetallic1.dds"
     },
     {
-      "uri": "FlightHelmet_normal1.png"
+      "uri": "FlightHelmet_normal1.dds"
     },
     {
-      "uri": "FlightHelmet_baseColor2.png"
+      "uri": "FlightHelmet_baseColor2.dds"
     },
     {
-      "uri": "FlightHelmet_occlusionRoughnessMetallic2.png"
+      "uri": "FlightHelmet_occlusionRoughnessMetallic2.dds"
     },
     {
-      "uri": "FlightHelmet_normal2.png"
+      "uri": "FlightHelmet_normal2.dds"
     },
     {
-      "uri": "FlightHelmet_baseColor3.png"
+      "uri": "FlightHelmet_baseColor3.dds"
     },
     {
-      "uri": "FlightHelmet_occlusionRoughnessMetallic3.png"
+      "uri": "FlightHelmet_occlusionRoughnessMetallic3.dds"
     },
     {
-      "uri": "FlightHelmet_normal3.png"
+      "uri": "FlightHelmet_normal3.dds"
     },
     {
-      "uri": "FlightHelmet_baseColor4.png"
+      "uri": "FlightHelmet_baseColor4.dds"
     },
     {
-      "uri": "FlightHelmet_occlusionRoughnessMetallic4.png"
+      "uri": "FlightHelmet_occlusionRoughnessMetallic4.dds"
     },
     {
-      "uri": "FlightHelmet_normal4.png"
+      "uri": "FlightHelmet_normal4.dds"
     }
   ],
   "meshes": [
@@ -599,6 +599,11 @@
         1.0,
         0.0,
         0.0
+      ],
+      "scale": [
+        10.0,
+        10.0,
+        10.0
       ],
       "name": "FlightHelmet"
     }

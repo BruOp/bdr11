@@ -470,6 +470,54 @@ namespace bdr
             }
         }
 
+        void processTextures(SceneData& sceneData)
+        {
+            const tinygltf::Model& inputModel = *sceneData.inputModel;
+            sceneData.textureMap.resize(inputModel.textures.size());
+            for (size_t i = 0; i < inputModel.textures.size(); i++) {
+                const tinygltf::Texture& texture = inputModel.textures[i];
+                const tinygltf::Image image = inputModel.images[texture.source];
+                TextureCreationInfo createInfo{};
+                createInfo.dims[0] = image.width;
+                createInfo.dims[1] = image.height;
+                createInfo.usage = BufferUsage::ShaderReadable;
+
+                uint32_t textureIdx = sceneData.pRenderer->createTextureFromFile(sceneData.fileFolder + image.uri, createInfo);
+                Texture& output = sceneData.pRenderer->textures[textureIdx];
+
+                D3D11_SAMPLER_DESC samplerDesc{};
+                samplerDesc.Filter = D3D11_FILTER_ANISOTROPIC;
+                samplerDesc.MaxAnisotropy = 16;
+                samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+                samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+                samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+                if (texture.sampler != -1) {
+                    const tinygltf::Sampler sampler = inputModel.samplers[texture.sampler];
+                    switch (sampler.wrapS) {
+                    case TINYGLTF_TEXTURE_WRAP_REPEAT:
+                        samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+                        break;
+                    case TINYGLTF_TEXTURE_WRAP_MIRRORED_REPEAT:
+                        samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_MIRROR;
+                        break;
+                    }
+                    
+                    switch (sampler.wrapT) {
+                    case TINYGLTF_TEXTURE_WRAP_REPEAT:
+                        samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+                        break;
+                    case TINYGLTF_TEXTURE_WRAP_MIRRORED_REPEAT:
+                        samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_MIRROR;
+                        break;
+                    }
+                }
+
+                DX::ThrowIfFailed(sceneData.pRenderer->getDevice()->CreateSamplerState(&samplerDesc, &output.sampler));
+
+                sceneData.textureMap[i] = textureIdx;
+            }
+        }
+
         Skin processSkin(SceneData& sceneData, const tinygltf::Skin& inputSkin)
         {
             Skin skin{
@@ -592,6 +640,8 @@ namespace bdr
                 }
             }
 
+            processTextures(sceneData);
+
             // Traverse Scene, producing list of entities to create
             const auto& rootNodes = gltfModel.scenes[gltfModel.defaultScene].nodes;
             for (int32_t rootNode : rootNodes) {
@@ -622,12 +672,21 @@ namespace bdr
                     registry.materials[entity] = 0;
                     registry.cmpMasks[entity] |= MESH | MATERIAL;
 
+                    TextureSet& textureSet = registry.textures[entity];
+                    const tinygltf::Mesh& mesh = gltfModel.meshes[node.meshId];
+                    const tinygltf::Primitive& primitive = mesh.primitives[node.primitiveId];
+                    const tinygltf::Material& material = gltfModel.materials[primitive.material];
+
+                    textureSet.textures[0] = sceneData.textureMap[material.values.at("baseColorTexture").TextureIndex()];
+                    textureSet.textures[1] = sceneData.textureMap[material.values.at("metallicRoughnessTexture").TextureIndex()];
+                    textureSet.textures[2] = sceneData.textureMap[material.additionalValues.at("normalTexture").TextureIndex()];
+                    textureSet.numTextures = 3;
+                    textureSet.textureFlags = TextureFlags::PBR_COMPATIBLE;
                     if (node.skinId != -1) {
                         registry.skinIds[entity] = node.skinId;
                         registry.cmpMasks[entity] |= SKIN;
                     }
                 }
-
 
                 registry.transforms[entity] = processTransform(sceneData.inputModel->nodes[node.index]);
                 registry.localMatrices[entity] = getMatrixFromTransform(registry.transforms[entity]);

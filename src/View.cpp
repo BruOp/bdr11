@@ -26,6 +26,7 @@ namespace bdr
             };
             // Since we've transposed the matrices
             viewConstants.VP = viewConstants.perspectiveTransform * viewConstants.viewTransform;
+            viewConstants.cameraPos = camera->view.Translation();
             renderer->viewCB.copyToGPU(context, viewConstants);
             context->VSSetConstantBuffers(0u, 1u, &renderer->viewCB.buffer);
         }

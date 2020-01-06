@@ -1,3 +1,4 @@
+
 #include "pch.h"
 
 #include "RenderPass.h"
@@ -74,9 +75,9 @@ namespace bdr
         //};
 
         pass.renderView = [](Renderer* renderer, const View& view) {
-            constexpr uint32_t offsets[bdr::Mesh::maxAttrCount] = { 0 };
+            constexpr uint32_t offsets[Mesh::maxAttrCount] = { 0 };
             const Scene& scene = *view.scene;
-            const bdr::ECSRegistry& registry = scene.registry;
+            const ECSRegistry& registry = scene.registry;
             ASSERT(view.type == ViewType::Camera);
             ID3D11DeviceContext* context = renderer->getContext();
 
@@ -84,11 +85,19 @@ namespace bdr
 
             for (size_t entityId = 0; entityId < registry.numEntities; ++entityId) {
                 const uint32_t cmpMask = registry.cmpMasks[entityId];
-                const uint32_t requirements = bdr::CmpMasks::MESH | bdr::CmpMasks::MATERIAL;
+                const uint32_t requirements = CmpMasks::MESH | CmpMasks::MATERIAL;
                 if ((cmpMask & requirements) == requirements) {
-                    const bdr::DrawConstants& drawConstants = registry.drawConstants[entityId];
-                    const bdr::Material& material = renderer->materials[registry.materials[entityId]];
-                    const bdr::Mesh& mesh = renderer->meshes[registry.meshes[entityId]];
+                    const DrawConstants& drawConstants = registry.drawConstants[entityId];
+                    const Material& material = renderer->materials[registry.materials[entityId]];
+                    const Mesh& mesh = renderer->meshes[registry.meshes[entityId]];
+                    const TextureSet& textureSet = registry.textures[entityId];
+
+                    ID3D11ShaderResourceView* srvs[_countof(textureSet.textures)] = { nullptr };
+                    ID3D11SamplerState* samplers[_countof(textureSet.textures)] = { nullptr };
+                    for (uint16_t i = 0; i < textureSet.numTextures; i++) {
+                        srvs[i] = renderer->textures[textureSet.textures[i]].srv;
+                        samplers[i] = renderer->textures[textureSet.textures[i]].sampler;
+                    }
 
                     // Set IAInputLayout
                     context->IASetVertexBuffers(0, mesh.numPresentAttr, mesh.vertexBuffers, mesh.strides, offsets);
@@ -105,15 +114,18 @@ namespace bdr
                     ID3D11Buffer* vsBuffers[] = { material.vertexCB };
                     context->VSSetConstantBuffers(1, 1, vsBuffers);
 
+                    context->PSSetShaderResources(0, textureSet.numTextures, srvs);
+                    context->PSSetSamplers(0, textureSet.numTextures, samplers);
+
                     context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
                     context->DrawIndexed(mesh.numIndices, 0, 0);
                 }
             }
         };
         pass.tearDown = [](Renderer* renderer) {
-            ID3D11Buffer* nullVB[bdr::Mesh::maxAttrCount] = { nullptr };
-            uint32_t nullStrides[bdr::Mesh::maxAttrCount]{ 0 };
-            uint32_t nullOffsets[bdr::Mesh::maxAttrCount]{ 0 };
+            ID3D11Buffer* nullVB[Mesh::maxAttrCount] = { nullptr };
+            uint32_t nullStrides[Mesh::maxAttrCount]{ 0 };
+            uint32_t nullOffsets[Mesh::maxAttrCount]{ 0 };
             renderer->getContext()->IASetVertexBuffers(0, 5, nullVB, nullStrides, nullOffsets);
         };
     }

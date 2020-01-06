@@ -43,7 +43,6 @@
 #include <DirectXColors.h>
 
 #include "CommonStates.h"
-#include "DDSTextureLoader.h"
 #include "DirectXHelpers.h"
 #include "Effects.h"
 #include "GamePad.h"

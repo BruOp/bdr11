@@ -79,6 +79,9 @@
     <ClInclude Include="src\ResourceManager.h">
       <Filter>Graphics</Filter>
     </ClInclude>
+    <ClInclude Include="src\Texture.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\DeviceResources.cpp">
@@ -119,6 +122,9 @@
       <Filter>Common</Filter>
     </ClCompile>
     <ClCompile Include="src\View.cpp" />
+    <ClCompile Include="src\Texture.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc" />

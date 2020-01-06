@@ -19,6 +19,8 @@ namespace bdr
         DirectX::SimpleMath::Matrix viewTransform;
         DirectX::SimpleMath::Matrix perspectiveTransform;
         DirectX::SimpleMath::Matrix VP;
+        DirectX::SimpleMath::Vector3 cameraPos;
+        float padding = 1.0f;
     };
 
     class View
