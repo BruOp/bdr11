@@ -19,7 +19,7 @@ namespace bdr
             D3D11_BUFFER_DESC desc;
             desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
             desc.MiscFlags = 0;
-            desc.ByteWidth = static_cast<uint32_t>(sizeof(T) + (16 - (sizeof(T) % 16)));
+            desc.ByteWidth = static_cast<uint32_t>(sizeof(T));
 
             if (gpuWritable) {
                 desc.Usage = D3D11_USAGE_DEFAULT;

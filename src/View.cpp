@@ -26,9 +26,10 @@ namespace bdr
             };
             // Since we've transposed the matrices
             viewConstants.VP = viewConstants.perspectiveTransform * viewConstants.viewTransform;
-            viewConstants.cameraPos = camera->view.Translation();
+            viewConstants.cameraPos = camera->invView.Translation();
             renderer->viewCB.copyToGPU(context, viewConstants);
             context->VSSetConstantBuffers(0u, 1u, &renderer->viewCB.buffer);
+            context->PSSetConstantBuffers(0u, 1u, &renderer->viewCB.buffer);
         }
         else if (view.type == ViewType::Light) {
             // TODO;

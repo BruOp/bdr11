@@ -487,7 +487,7 @@ namespace bdr
 
                 D3D11_SAMPLER_DESC samplerDesc{};
                 samplerDesc.Filter = D3D11_FILTER_ANISOTROPIC;
-                samplerDesc.MaxAnisotropy = 16;
+                samplerDesc.MaxAnisotropy = D3D11_DEFAULT_MAX_ANISOTROPY;
                 samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
                 samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
                 samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
@@ -501,7 +501,7 @@ namespace bdr
                         samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_MIRROR;
                         break;
                     }
-                    
+
                     switch (sampler.wrapT) {
                     case TINYGLTF_TEXTURE_WRAP_REPEAT:
                         samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;

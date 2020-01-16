@@ -23,7 +23,9 @@ Texture2D albedo : register(t0);
 Texture2D metallicRoughness : register(t1);
 Texture2D normalMap : register(t2);
 
-SamplerState samplerState : register(s0);
+SamplerState albedoSampler : register(s0);
+SamplerState pbrSampler : register(s1);
+SamplerState normalSampler : register(s2);
 
 float clampDot(float3 A, float3 B)
 {
@@ -81,15 +83,20 @@ struct PSInput
     float4 PositionCS : SV_Position;
     float3 PositionWS : POSITIONWS;
     float3 NormalWS : NORMALWS;
+    float3 TangentWS : TANGENTWS;
+    float3 BitangentWS : BITANGENTWS;
     float2 vUV : TEXCOORD;
 };
 
 float4 main(in PSInput input) : SV_Target0
 {
+    float3 normal = normalMap.Sample(normalSampler, input.vUV).xyz * 2.0 - 1.0;
+    // From the MikkTSpace docs! (check mikktspace.h)
+    normal = normalize(normal.x * input.TangentWS + normal.y * input.BitangentWS + normal.z * input.NormalWS);
     float3 viewDir = normalize(cameraPos - input.PositionWS);
 
-    float4 baseColor = albedo.Sample(samplerState, input.vUV);
-    float2 roughnessMetal = metallicRoughness.Sample(samplerState, input.vUV).yz;
+    float4 baseColor = albedo.Sample(albedoSampler, input.vUV);
+    float2 roughnessMetal = metallicRoughness.Sample(pbrSampler, input.vUV).yz;
     float roughness = max(roughnessMetal.x, MIN_ROUGHNESS);
     float metallic = roughnessMetal.y;
 
@@ -102,11 +109,11 @@ float4 main(in PSInput input) : SV_Target0
     lightDir = lightDir / lightDist;
 
     float attenuation = lightIntensity / (lightDist * lightDist);
-    float3 light = attenuation * lightColor * clampDot(input.NormalWS, lightDir);
+    float3 light = attenuation * lightColor * clampDot(normal, lightDir);
 
     float3 color = (
         diffuseColor(baseColor.rgb, metallic) +
-        PI * specular(lightDir, viewDir, input.NormalWS, baseColor.xyz, roughness, metallic)
+        PI * specular(lightDir, viewDir, normal, baseColor.xyz, roughness, metallic)
     ) * light;
     
     return float4(color, 1.0f);
