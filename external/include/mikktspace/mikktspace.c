@@ -28,7 +28,7 @@
 #include <float.h>
 #include <stdlib.h>
 
-#include "include/mikktspace/mikktspace.h"
+#include "mikktspace/mikktspace.h"
 
 #define TFALSE		0
 #define TTRUE		1
