@@ -17,6 +17,12 @@
     <Filter Include="Systems">
       <UniqueIdentifier>{b40362ed-875f-44d0-9daf-333459f002b2}</UniqueIdentifier>
     </Filter>
+    <Filter Include="External">
+      <UniqueIdentifier>{642ffde9-b341-4380-980d-5a194372eebb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="External\MikktSpace">
+      <UniqueIdentifier>{8b137491-8249-4c48-a766-2a7d8424dc85}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\DeviceResources.h">
@@ -82,6 +88,9 @@
     <ClInclude Include="src\Texture.h">
       <Filter>Graphics</Filter>
     </ClInclude>
+    <ClInclude Include="src\TangentCalculator.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\DeviceResources.cpp">
@@ -123,6 +132,12 @@
     </ClCompile>
     <ClCompile Include="src\View.cpp" />
     <ClCompile Include="src\Texture.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="external\include\mikktspace\mikktspace.c">
+      <Filter>External\MikktSpace</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Mesh.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
   </ItemGroup>

@@ -197,10 +197,15 @@
     <ClInclude Include="src\RingBuffer.h" />
     <ClInclude Include="src\Scene.h" />
     <ClInclude Include="src\StepTimer.h" />
+    <ClInclude Include="src\TangentCalculator.h" />
     <ClInclude Include="src\Texture.h" />
     <ClInclude Include="src\View.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="external\include\mikktspace\mikktspace.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="src\Animation.cpp" />
     <ClCompile Include="src\AnimationSystem.cpp" />
     <ClCompile Include="src\Camera.cpp" />
@@ -212,6 +217,7 @@
     <ClCompile Include="src\DeviceResources.cpp" />
     <ClCompile Include="src\Game.cpp" />
     <ClCompile Include="src\bdrMath.cpp" />
+    <ClCompile Include="src\Mesh.cpp" />
     <ClCompile Include="src\Model.cpp" />
     <ClCompile Include="src\pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>

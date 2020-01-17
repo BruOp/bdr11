@@ -58,10 +58,15 @@ namespace bdr
 
     struct BufferCreationInfo
     {
+        // The number of elements in the buffer
         uint32_t numElements = 0;
+        // elementSize is only used for structured buffers where the DXGI format is unknown
         uint32_t elementSize = 0;
+        // How the buffer is going to be used -- e.g. does the CPU need write access? Check BufferUsage
         uint8_t usage = BufferUsage::Invalid;
+        // The layout of each element -- eg Float_3 or UINT16
         BufferFormat format = BufferFormat::INVALID;
+        // Signals whether the buffer is structured, typed, byteAddress or just default (uses the format)
         BufferType type = BufferType::Default;
     };
 
@@ -119,6 +124,32 @@ namespace bdr
             return 16u;
         case BufferFormat::STRUCTURED:
             return createInfo.elementSize;
+        default:
+            throw std::runtime_error("Invalid Format");
+        }
+    }
+
+    inline uint32_t getByteSize(const BufferFormat& format)
+    {
+        switch (format) {
+        case BufferFormat::UINT16:
+        case BufferFormat::UNORM8_2:
+            return 2u;
+        case BufferFormat::UINT32:
+        case BufferFormat::UNORM16_2:
+        case BufferFormat::UINT8_4:
+        case BufferFormat::UNORM8_4:
+            return 4u;
+        case BufferFormat::FLOAT_2:
+        case BufferFormat::UINT16_4:
+        case BufferFormat::UNORM16_4:
+            return 8u;
+        case BufferFormat::FLOAT_3:
+            return 12u;
+        case BufferFormat::FLOAT_4:
+            return 16u;
+        case BufferFormat::STRUCTURED:
+            return 0u;
         default:
             throw std::runtime_error("Invalid Format");
         }

@@ -20,6 +20,7 @@ namespace bdr
             const Scene& scene = *view.scene;
             const ECSRegistry& registry = scene.registry;
             ID3D11DeviceContext* context = renderer->getContext();
+            constexpr uint8_t meshAttrRequirements = MeshAttributes::POSITION | MeshAttributes::NORMAL | MeshAttributes::BLENDWEIGHT | MeshAttributes::BLENDINDICES;
 
             for (size_t entityId = 0; entityId < registry.numEntities; ++entityId) {
                 const uint32_t cmpMask = registry.cmpMasks[entityId];
@@ -45,9 +46,14 @@ namespace bdr
                     CopyMemory(mappedResource.pData, jointMatrices.data(), sizeof(Matrix) * jointMatrices.size());
                     context->Unmap(jointBuffer.buffer, 0);
 
+                    ID3D11ShaderResourceView* srvs[4u] = { nullptr };
+                    collectBuffers(preskin, meshAttrRequirements, srvs);
+                    ID3D11UnorderedAccessView* uavs[2u] = { nullptr };
+                    collectBuffers(mesh, MeshAttributes::POSITION | MeshAttributes::NORMAL, uavs);
+
                     context->CSSetShaderResources(0u, 1u, &jointBuffer.srv);
-                    context->CSSetShaderResources(1u, 4u, preskin.srvs);
-                    context->CSSetUnorderedAccessViews(0u, 2u, mesh.uavs, nullptr);
+                    context->CSSetShaderResources(1u, 4u, srvs);
+                    context->CSSetUnorderedAccessViews(0u, 2u, uavs, nullptr);
                     context->CSSetShader(renderer->computeShader.Get(), nullptr, 0);
                     uint32_t numDispatches = uint32_t(ceil(float(mesh.numVertices) / 64.0f));
                     context->Dispatch(numDispatches, 1, 1);
@@ -70,9 +76,6 @@ namespace bdr
         RenderPass& pass = renderGraph.createNewPass();
         pass.name = L"Mesh Pass";
         pass.views.push_back(view);
-        // TODO: Build Constant buffer data in batches
-        //pass.setup = [](Renderer* renderer) {
-        //};
 
         pass.renderView = [](Renderer* renderer, const View& view) {
             constexpr uint32_t offsets[Mesh::maxAttrCount] = { 0 };
@@ -80,6 +83,7 @@ namespace bdr
             const ECSRegistry& registry = scene.registry;
             ASSERT(view.type == ViewType::Camera);
             ID3D11DeviceContext* context = renderer->getContext();
+            constexpr uint8_t meshAttrRequirements = MeshAttributes::POSITION | MeshAttributes::NORMAL | MeshAttributes::TANGENT | MeshAttributes::TEXCOORD;
 
             setConstants(renderer, view);
 
@@ -99,9 +103,12 @@ namespace bdr
                         samplers[i] = renderer->textures[textureSet.textures[i]].sampler;
                     }
 
+                    ID3D11Buffer* vbuffers[4u] = { nullptr };
+                    collectBuffers(mesh, meshAttrRequirements, vbuffers);
+
                     // Set IAInputLayout
-                    context->IASetVertexBuffers(0, mesh.numPresentAttr, mesh.vertexBuffers, mesh.strides, offsets);
-                    context->IASetIndexBuffer(mesh.indexBuffer, mesh.indexFormat, 0);
+                    context->IASetVertexBuffers(0, mesh.numPresentAttr, vbuffers, mesh.strides, offsets);
+                    context->IASetIndexBuffer(mesh.indexBuffer.buffer, mapFormatToDXGI(mesh.indexBuffer.format), 0);
                     context->IASetInputLayout(renderer->inputLayoutManager[mesh.inputLayoutHandle]);
 
                     // Set shaders

@@ -1,6 +1,8 @@
 #pragma once
 #include "pch.h"
 
+#include "GPUBuffer.h"
+
 namespace bdr
 {
     enum MeshAttributes : uint8_t
@@ -8,21 +10,17 @@ namespace bdr
         POSITION = (1 << 0),
         NORMAL = (1 << 1),
         TEXCOORD = (1 << 2),
-        TANGENT = (1 << 3),
-        BLENDINDICES = (1 << 4),
-        BLENDWEIGHT = (1 << 5),
+        BLENDINDICES = (1 << 3),
+        BLENDWEIGHT = (1 << 4),
+        TANGENT = (1 << 5),
     };
 
     struct Mesh
     {
         // No mesh will contain all 6 possible mesh attributes
-        static constexpr size_t maxAttrCount = 5u;
-
-        ID3D11Buffer* vertexBuffers[maxAttrCount] = { nullptr };
-        ID3D11UnorderedAccessView* uavs[maxAttrCount] = { nullptr };
-        ID3D11ShaderResourceView* srvs[maxAttrCount] = { nullptr };
-        ID3D11Buffer* indexBuffer = nullptr;
-        DXGI_FORMAT indexFormat = DXGI_FORMAT_UNKNOWN;
+        static constexpr size_t maxAttrCount = 6u;
+        GPUBuffer indexBuffer;
+        GPUBuffer vertexBuffers[maxAttrCount];
         uint32_t inputLayoutHandle = UINT32_MAX;
         uint32_t numIndices = 0;
         uint32_t numVertices = 0;
@@ -33,21 +31,18 @@ namespace bdr
 
         void reset()
         {
-            for (auto srv : srvs) {
-                srv != nullptr && srv->Release();
-                srv = nullptr;
+            for (auto& vertexBuffer : vertexBuffers) {
+                vertexBuffer.reset();
             }
-            for (auto uav : uavs) {
-                uav != nullptr && uav->Release();
-                uav = nullptr;
-            }
-            for (auto buffer : vertexBuffers) {
-                buffer != nullptr && buffer->Release();
-                buffer = nullptr;
-            }
-            if (indexBuffer != nullptr) {
-                indexBuffer->Release();
-            }
+            indexBuffer.reset();
+            numIndices = 0;
+            numVertices = 0;
         }
     };
+
+    void collectBuffers(const Mesh& mesh, const uint8_t attrsToSelect, ID3D11Buffer* outputBuffers[]);
+    void collectBuffers(const Mesh& mesh, const uint8_t attrsToSelect, ID3D11ShaderResourceView* outputSRVs[]);
+    void collectBuffers(const Mesh& mesh, const uint8_t attrsToSelect, ID3D11UnorderedAccessView* outputUAVs[]);
+
+
 }
