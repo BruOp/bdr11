@@ -216,8 +216,8 @@ void Game::CreateWindowSizeDependentResources()
     baseView.scene = &m_scene;
     baseView.setCamera(&m_camera);
 
-    bdr::addSkinningPass(m_renderGraph, &baseView);
     bdr::addBasicPass(m_renderGraph, &baseView);
+    bdr::addSkinningPass(m_renderGraph, &baseView);
 }
 
 void Game::OnDeviceLost()

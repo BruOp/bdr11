@@ -20,7 +20,12 @@ namespace bdr
             const Scene& scene = *view.scene;
             const ECSRegistry& registry = scene.registry;
             ID3D11DeviceContext* context = renderer->getContext();
-            constexpr uint8_t meshAttrRequirements = MeshAttributes::POSITION | MeshAttributes::NORMAL | MeshAttributes::BLENDWEIGHT | MeshAttributes::BLENDINDICES;
+            constexpr uint8_t meshAttrRequirements = 0u
+                | MeshAttributes::POSITION
+                | MeshAttributes::NORMAL
+                | MeshAttributes::BLENDWEIGHT
+                | MeshAttributes::BLENDINDICES
+                | MeshAttributes::TANGENT;
 
             for (size_t entityId = 0; entityId < registry.numEntities; ++entityId) {
                 const uint32_t cmpMask = registry.cmpMasks[entityId];
@@ -46,14 +51,14 @@ namespace bdr
                     CopyMemory(mappedResource.pData, jointMatrices.data(), sizeof(Matrix) * jointMatrices.size());
                     context->Unmap(jointBuffer.buffer, 0);
 
-                    ID3D11ShaderResourceView* srvs[4u] = { nullptr };
+                    ID3D11ShaderResourceView* srvs[5u] = { nullptr };
                     collectBuffers(preskin, meshAttrRequirements, srvs);
-                    ID3D11UnorderedAccessView* uavs[2u] = { nullptr };
-                    collectBuffers(mesh, MeshAttributes::POSITION | MeshAttributes::NORMAL, uavs);
+                    ID3D11UnorderedAccessView* uavs[3u] = { nullptr };
+                    collectBuffers(mesh, MeshAttributes::POSITION | MeshAttributes::NORMAL | MeshAttributes::TANGENT, uavs);
 
                     context->CSSetShaderResources(0u, 1u, &jointBuffer.srv);
-                    context->CSSetShaderResources(1u, 4u, srvs);
-                    context->CSSetUnorderedAccessViews(0u, 2u, uavs, nullptr);
+                    context->CSSetShaderResources(1u, _countof(srvs), srvs);
+                    context->CSSetUnorderedAccessViews(0u, _countof(uavs), uavs, nullptr);
                     context->CSSetShader(renderer->computeShader.Get(), nullptr, 0);
                     uint32_t numDispatches = uint32_t(ceil(float(mesh.numVertices) / 64.0f));
                     context->Dispatch(numDispatches, 1, 1);
@@ -64,10 +69,10 @@ namespace bdr
         pass.tearDown = [](Renderer* renderer) {
             ID3D11DeviceContext1* context = renderer->getContext();
 
-            ID3D11UnorderedAccessView* nullUAVs[2] = { nullptr };
-            context->CSSetUnorderedAccessViews(0u, 2u, nullUAVs, nullptr);
-            ID3D11ShaderResourceView* nullSRVs[4] = { nullptr };
-            context->CSSetShaderResources(0u, 4u, nullSRVs);
+            ID3D11UnorderedAccessView* nullUAVs[3] = { nullptr };
+            context->CSSetUnorderedAccessViews(0u, _countof(nullUAVs), nullUAVs, nullptr);
+            ID3D11ShaderResourceView* nullSRVs[5] = { nullptr };
+            context->CSSetShaderResources(0u, _countof(nullSRVs), nullSRVs);
         };
     }
 

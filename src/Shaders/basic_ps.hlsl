@@ -100,7 +100,7 @@ float4 main(in PSInput input) : SV_Target0
     float roughness = max(roughnessMetal.x, MIN_ROUGHNESS);
     float metallic = roughnessMetal.y;
 
-    const float3 lightPos = float3(10.0, 10.0, 0.0);
+    const float3 lightPos = float3(5.0, 10.0, 0.0);
     const float lightIntensity = 200.0f;
     const float3 lightColor = float3(1.0, 1.0, 1.0);
 
