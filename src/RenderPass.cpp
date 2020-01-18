@@ -24,8 +24,7 @@ namespace bdr
                 | MeshAttributes::POSITION
                 | MeshAttributes::NORMAL
                 | MeshAttributes::BLENDWEIGHT
-                | MeshAttributes::BLENDINDICES
-                | MeshAttributes::TANGENT;
+                | MeshAttributes::BLENDINDICES;
 
             for (size_t entityId = 0; entityId < registry.numEntities; ++entityId) {
                 const uint32_t cmpMask = registry.cmpMasks[entityId];
@@ -51,10 +50,10 @@ namespace bdr
                     CopyMemory(mappedResource.pData, jointMatrices.data(), sizeof(Matrix) * jointMatrices.size());
                     context->Unmap(jointBuffer.buffer, 0);
 
-                    ID3D11ShaderResourceView* srvs[5u] = { nullptr };
+                    ID3D11ShaderResourceView* srvs[4u] = { nullptr };
                     collectBuffers(preskin, meshAttrRequirements, srvs);
-                    ID3D11UnorderedAccessView* uavs[3u] = { nullptr };
-                    collectBuffers(mesh, MeshAttributes::POSITION | MeshAttributes::NORMAL | MeshAttributes::TANGENT, uavs);
+                    ID3D11UnorderedAccessView* uavs[2u] = { nullptr };
+                    collectBuffers(mesh, MeshAttributes::POSITION | MeshAttributes::NORMAL, uavs);
 
                     context->CSSetShaderResources(0u, 1u, &jointBuffer.srv);
                     context->CSSetShaderResources(1u, _countof(srvs), srvs);
@@ -69,9 +68,9 @@ namespace bdr
         pass.tearDown = [](Renderer* renderer) {
             ID3D11DeviceContext1* context = renderer->getContext();
 
-            ID3D11UnorderedAccessView* nullUAVs[3] = { nullptr };
+            ID3D11UnorderedAccessView* nullUAVs[2u] = { nullptr };
             context->CSSetUnorderedAccessViews(0u, _countof(nullUAVs), nullUAVs, nullptr);
-            ID3D11ShaderResourceView* nullSRVs[5] = { nullptr };
+            ID3D11ShaderResourceView* nullSRVs[4u] = { nullptr };
             context->CSSetShaderResources(0u, _countof(nullSRVs), nullSRVs);
         };
     }
@@ -88,7 +87,7 @@ namespace bdr
             const ECSRegistry& registry = scene.registry;
             ASSERT(view.type == ViewType::Camera);
             ID3D11DeviceContext* context = renderer->getContext();
-            constexpr uint8_t meshAttrRequirements = MeshAttributes::POSITION | MeshAttributes::NORMAL | MeshAttributes::TANGENT | MeshAttributes::TEXCOORD;
+            constexpr uint8_t meshAttrRequirements = MeshAttributes::POSITION | MeshAttributes::NORMAL | MeshAttributes::TEXCOORD;
 
             setConstants(renderer, view);
 
@@ -108,7 +107,7 @@ namespace bdr
                         samplers[i] = renderer->textures[textureSet.textures[i]].sampler;
                     }
 
-                    ID3D11Buffer* vbuffers[4u] = { nullptr };
+                    ID3D11Buffer* vbuffers[3u] = { nullptr };
                     collectBuffers(mesh, meshAttrRequirements, vbuffers);
 
                     // Set IAInputLayout

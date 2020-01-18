@@ -12,13 +12,12 @@ namespace bdr
         TEXCOORD = (1 << 2),
         BLENDINDICES = (1 << 3),
         BLENDWEIGHT = (1 << 4),
-        TANGENT = (1 << 5),
     };
 
     struct Mesh
     {
         // No mesh will contain all 6 possible mesh attributes
-        static constexpr size_t maxAttrCount = 6u;
+        static constexpr size_t maxAttrCount = 5u;
         GPUBuffer indexBuffer;
         GPUBuffer vertexBuffers[maxAttrCount];
         uint32_t inputLayoutHandle = UINT32_MAX;

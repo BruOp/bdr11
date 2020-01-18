@@ -27,6 +27,34 @@ SamplerState albedoSampler : register(s0);
 SamplerState pbrSampler : register(s1);
 SamplerState normalSampler : register(s2);
 
+float3x3 cotangent_frame(float3 N, float3 p, float2 uv)
+{
+    // get edge float­tors of the pix­el tri­an­gle
+    float3 dp1 = ddx(p);
+    float3 dp2 = -ddy(p);
+    float2 duv1 = ddx(uv);
+    float2 duv2 = -ddy(uv);
+
+    // solve the lin­ear sys­tem
+    float3 dp2perp = cross(dp2, N);
+    float3 dp1perp = cross(N, dp1);
+    float3 T = dp2perp * duv1.x + dp1perp * duv2.x;
+    float3 B = dp2perp * duv1.y + dp1perp * duv2.y;
+
+    // con­struct a scale-invari­ant frame 
+    float invmax = rsqrt(max(dot(T, T), dot(B, B)));
+    return float3x3(T * invmax, B * invmax, N);
+}
+
+float3 perturb_normal(float3 N, float3 V, float2 texcoord)
+{ // assume N, the interpolated vertex normal and
+    // V, the view vector (vertex to eye)
+    float3 map = (normalMap.Sample(normalSampler, texcoord).xyz - 0.5) * 2.0;
+    map.z = sqrt(1. - dot(map.xy, map.xy));
+    float3x3 TBN = cotangent_frame(N, -V, texcoord);
+    return normalize(mul(map, TBN));
+}
+
 float clampDot(float3 A, float3 B)
 {
     return clamp(dot(A, B), 0.0, 1.0f);
@@ -83,17 +111,13 @@ struct PSInput
     float4 PositionCS : SV_Position;
     float3 PositionWS : POSITIONWS;
     float3 NormalWS : NORMALWS;
-    float3 TangentWS : TANGENTWS;
-    float3 BitangentWS : BITANGENTWS;
     float2 vUV : TEXCOORD;
 };
 
 float4 main(in PSInput input) : SV_Target0
 {
-    float3 normal = normalMap.Sample(normalSampler, input.vUV).xyz * 2.0 - 1.0;
-    // From the MikkTSpace docs! (check mikktspace.h)
-    normal = normalize(normal.x * input.TangentWS + normal.y * input.BitangentWS + normal.z * input.NormalWS);
     float3 viewDir = normalize(cameraPos - input.PositionWS);
+    float3 normal = perturb_normal(input.NormalWS, viewDir, input.vUV);
 
     float4 baseColor = albedo.Sample(albedoSampler, input.vUV);
     float2 roughnessMetal = metallicRoughness.Sample(pbrSampler, input.vUV).yz;

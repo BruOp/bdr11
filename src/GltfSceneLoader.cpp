@@ -3,7 +3,6 @@
 
 #include "GltfSceneLoader.h"
 #include "GPUBuffer.h"
-#include "TangentCalculator.h"
 
 #define TINYGLTF_IMPLEMENTATION
 #define TINYGLTF_NO_STB_IMAGE
@@ -16,6 +15,25 @@ namespace bdr
 {
     namespace gltf
     {
+        struct MeshData
+        {
+            uint8_t const* p_indices = nullptr;
+            BufferFormat indexFormat = BufferFormat::INVALID;
+            // Different handle for each "stream" of vertex attributes
+            // 0 - Position
+            // 1 - Normal
+            // 2 - TexCoord0
+            // 3 - Weights
+            // 4 - BlendIndices
+            // 5 - Tangent
+            uint8_t* data[Mesh::maxAttrCount] = { nullptr };
+            BufferFormat bufferFormats[Mesh::maxAttrCount] = { BufferFormat::INVALID, BufferFormat::INVALID, BufferFormat::INVALID, BufferFormat::INVALID, BufferFormat::INVALID };
+            uint8_t presentAttributesMask = 0;
+            size_t strides[Mesh::maxAttrCount] = { 0 };
+            size_t numIndices = 0;
+            size_t numVertices = 0;
+        };
+
         const AttributeInfo ATTR_INFO[]{
             {
                 "POSITION",
@@ -47,21 +65,16 @@ namespace bdr
                 MeshAttributes::BLENDWEIGHT,
                 AttributeInfo::USED_FOR_SKINNING | AttributeInfo::PRESKIN_ONLY
             },
-            {
-                "TANGENT",
-                "TANGENT",
-                MeshAttributes::TANGENT,
-                AttributeInfo::USED_FOR_SKINNING
-            },
+
         };
 
         constexpr uint32_t TANGENT_IDX = 5;
 
         AttributeInfo genericAttrInfo[] = {
-            ATTR_INFO[0], ATTR_INFO[1], ATTR_INFO[2], ATTR_INFO[5],
+            ATTR_INFO[0], ATTR_INFO[1], ATTR_INFO[2],
         };
         AttributeInfo preskinAttrInfo[] = {
-            ATTR_INFO[0], ATTR_INFO[1], ATTR_INFO[3], ATTR_INFO[4], ATTR_INFO[5],
+            ATTR_INFO[0], ATTR_INFO[1], ATTR_INFO[3], ATTR_INFO[4]
         };
 
         bool loadImageDataCallback(
@@ -95,9 +108,6 @@ namespace bdr
                 else if (componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT) {
                     return BufferFormat::UNORM16_2;
                 }
-
-            case MeshAttributes::TANGENT:
-                return BufferFormat::FLOAT_4;
 
             case MeshAttributes::BLENDINDICES:
                 if (componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE) {
@@ -421,17 +431,6 @@ namespace bdr
                 meshData.strides[i] = getByteSize(accessor);
                 meshData.bufferFormats[i] = getFormat(attrInfo, accessor.componentType);
                 meshData.presentAttributesMask |= attrInfo.attrBit;
-            }
-
-            // Ensure we actually have tangent data
-            std::vector<float> tangentData{ };
-            if (!(meshData.presentAttributesMask & MeshAttributes::TANGENT)) {
-                tangentData.resize(meshData.numVertices * 4u);
-                meshData.data[TANGENT_IDX] = (uint8_t*)(tangentData.data());
-                meshData.strides[TANGENT_IDX] = 16u;
-                meshData.bufferFormats[TANGENT_IDX] = BufferFormat::FLOAT_4;
-                meshData.presentAttributesMask |= MeshAttributes::TANGENT;
-                MikktSpace::calcTangents(meshData);
             }
 
             const uint32_t meshIdx = sceneData.pRenderer->getNewMesh();
