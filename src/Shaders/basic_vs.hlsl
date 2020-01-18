@@ -34,7 +34,7 @@ VSOutput main(in VSInput input)
     output.PositionCS = mul(float4(output.PositionWS, 1.0f), VP);
     output.vUV = input.UV;
     
-    output.NormalWS = mul(float4(input.Normal, 1.0f), invModel).xyz;
+    output.NormalWS = normalize(mul(float4(input.Normal, 1.0f), invModel).xyz);
 
     return output;
 }

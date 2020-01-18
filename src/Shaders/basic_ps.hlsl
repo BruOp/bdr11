@@ -49,7 +49,7 @@ float3x3 cotangent_frame(float3 N, float3 p, float2 uv)
 float3 perturb_normal(float3 N, float3 V, float2 texcoord)
 { // assume N, the interpolated vertex normal and
     // V, the view vector (vertex to eye)
-    float3 map = (normalMap.Sample(normalSampler, texcoord).xyz - 0.5) * 2.0;
+    float3 map = normalMap.Sample(normalSampler, texcoord).xyz * 2.0 - 1.0;
     map.z = sqrt(1. - dot(map.xy, map.xy));
     float3x3 TBN = cotangent_frame(N, -V, texcoord);
     return normalize(mul(map, TBN));
