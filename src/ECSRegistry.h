@@ -71,7 +71,8 @@ namespace bdr
         NORMAL_MAP = (1 << 1),
         METALLIC_ROUGHNESS = (1 << 2),
         OCCLUSION = (1 << 3),
-
+        EMISSIVE = (1 << 4),
+        DISABLED = (1 << 15),
         PBR_COMPATIBLE = ALBEDO | NORMAL_MAP | METALLIC_ROUGHNESS
     };
 

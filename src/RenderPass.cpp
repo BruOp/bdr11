@@ -99,6 +99,7 @@ namespace bdr
                     const Material& material = renderer->materials[registry.materials[entityId]];
                     const Mesh& mesh = renderer->meshes[registry.meshes[entityId]];
                     const TextureSet& textureSet = registry.textures[entityId];
+                    const GenericMaterialData& materialData = registry.materialData[entityId];
 
                     ID3D11ShaderResourceView* srvs[_countof(textureSet.textures)] = { nullptr };
                     ID3D11SamplerState* samplers[_countof(textureSet.textures)] = { nullptr };
@@ -121,10 +122,12 @@ namespace bdr
 
                     // Set constant buffers
                     material.vertexCB.copyToGPU(context, drawConstants);
+                    material.pixelCB.copyToGPU(context, materialData);
 
                     ID3D11Buffer* vsBuffers[] = { material.vertexCB };
                     context->VSSetConstantBuffers(1, 1, vsBuffers);
 
+                    context->PSSetConstantBuffers(1, 1, &material.pixelCB.buffer);
                     context->PSSetShaderResources(0, textureSet.numTextures, srvs);
                     context->PSSetSamplers(0, textureSet.numTextures, samplers);
 

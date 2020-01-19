@@ -72,7 +72,7 @@ float4 main(SimpleVertex vi) : SV_Position \n\
         &blob,
         nullptr
     ));
-    
+
 
     uint32_t idx = getInputLayoutIdx(inputLayoutDetails, numDetails);
     DX::ThrowIfFailed(pDevice->CreateInputLayout(
@@ -82,6 +82,7 @@ float4 main(SimpleVertex vi) : SV_Position \n\
         blob->GetBufferSize(),
         &inputLayouts[idx]
     ));
+    blob->Release();
 
     return inputLayouts[idx];
 }

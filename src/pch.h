@@ -106,8 +106,19 @@ namespace DX
 
 namespace Utility
 {
-    inline void Print(const char* msg) { printf("%s", msg); }
-    inline void Print(const wchar_t* msg) { wprintf(L"%ws", msg); }
+    inline std::wstring CharToWString(const char* msg)
+    {
+        size_t len = strlen(msg);
+        std::wstring wc(len, L'#');
+        mbstowcs(&wc[0], msg, len);
+        return wc;
+    }
+
+    inline void Print(const char* msg)
+    {
+        OutputDebugString(CharToWString(msg).c_str());
+    }
+    inline void Print(const wchar_t* msg) { OutputDebugString(msg); }
 
     inline void Printf(const char* format, ...)
     {
@@ -130,17 +141,18 @@ namespace Utility
 #ifndef RELEASE
     inline void PrintSubMessage(const char* format, ...)
     {
-        Print("--> ");
-        char buffer[256];
+        Print(L"--> ");
+        wchar_t buffer[256];
         va_list ap;
         va_start(ap, format);
-        vsprintf_s(buffer, 256, format, ap);
+        std::wstring w_format{ CharToWString(format) };
+        vswprintf(buffer, 256, w_format.c_str(), ap);
         Print(buffer);
-        Print("\n");
+        Print(L"\n");
     }
     inline void PrintSubMessage(const wchar_t* format, ...)
     {
-        Print("--> ");
+        Print(L"--> ");
         wchar_t buffer[256];
         va_list ap;
         va_start(ap, format);

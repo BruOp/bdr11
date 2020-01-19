@@ -663,8 +663,9 @@ namespace bdr
             // Create entities
             sceneData.nodeToEntityMap.resize(sceneData.nodes.size());
             ECSRegistry& registry = sceneData.pScene->registry;
-            for (size_t i = 0; i < sceneData.traversedNodes.size(); i++) {
-                const SceneNode& node = sceneData.traversedNodes[i];
+            uint32_t N = sceneData.traversedNodes.size();
+            for (size_t nodeIdx = 0; nodeIdx < N; nodeIdx++) {
+                const SceneNode& node = sceneData.traversedNodes[nodeIdx];
                 uint32_t entity = getNewEntity(registry);
                 // Don't map submeshes
                 if (node.primitiveId < 1) {
@@ -678,19 +679,54 @@ namespace bdr
 
                 if (node.meshId != -1) {
                     registry.meshes[entity] = sceneData.meshMap[getMeshMapKey(node.meshId, node.primitiveId)];
-                    registry.materials[entity] = 0;
-                    registry.cmpMasks[entity] |= MESH | MATERIAL;
+                    registry.cmpMasks[entity] |= MESH;
 
                     TextureSet& textureSet = registry.textures[entity];
                     const tinygltf::Mesh& mesh = gltfModel.meshes[node.meshId];
                     const tinygltf::Primitive& primitive = mesh.primitives[node.primitiveId];
                     const tinygltf::Material& material = gltfModel.materials[primitive.material];
 
-                    textureSet.textures[0] = sceneData.textureMap[material.values.at("baseColorTexture").TextureIndex()];
-                    textureSet.textures[1] = sceneData.textureMap[material.values.at("metallicRoughnessTexture").TextureIndex()];
-                    textureSet.textures[2] = sceneData.textureMap[material.additionalValues.at("normalTexture").TextureIndex()];
-                    textureSet.numTextures = 3;
-                    textureSet.textureFlags = TextureFlags::PBR_COMPATIBLE;
+                    if (material.values.count("baseColorTexture")) {
+                        textureSet.textures[textureSet.numTextures++] = sceneData.textureMap[material.values.at("baseColorTexture").TextureIndex()];
+                        textureSet.textureFlags |= TextureFlags::ALBEDO;
+                    }
+                    if (material.values.count("metallicRoughnessTexture")) {
+                        textureSet.textures[textureSet.numTextures++] = sceneData.textureMap[material.values.at("metallicRoughnessTexture").TextureIndex()];
+                        textureSet.textureFlags |= TextureFlags::METALLIC_ROUGHNESS;
+                    }
+                    if (material.additionalValues.count("normalTexture")) {
+                        textureSet.textures[textureSet.numTextures++] = sceneData.textureMap[material.additionalValues.at("normalTexture").TextureIndex()];
+                        textureSet.textureFlags |= TextureFlags::NORMAL_MAP;
+                    }
+
+                    PBRConstants factors{};
+                    if (material.values.count("baseColorFactor")) {
+                        auto data = material.values.at("baseColorFactor").ColorFactor();
+                        for (size_t i = 0; i < 4u; i++) {
+                            factors.baseColorFactor[i] = float(data[i]);
+                        }
+                    }
+
+                    if (material.values.count("metallicFactor")) {
+                        factors.metallicFactor = float(material.values.at("metallicFactor").Factor());
+                    }
+
+                    if (material.values.count("roughnessFactor")) {
+                        factors.roughnessFactor = float(material.values.at("roughnessFactor").Factor());
+                    }
+
+                    if (material.additionalValues.count("emissiveFactor")) {
+                        auto data = material.additionalValues.at("emissiveFactor").ColorFactor();
+                        for (size_t i = 0; i < 3u; i++) { // Emissive values cannot have alpha
+                            factors.emissiveFactor[i] = float(data[i]);
+                        }
+                    }
+                    // Copy our material data
+                    memcpy(&registry.materialData[entity], &factors, sizeof(factors));
+
+                    registry.materials[entity] = getOrCreatePBRMaterial(sceneData.pRenderer->materials, textureSet.textureFlags);
+                    registry.cmpMasks[entity] |= MATERIAL;
+
                     if (node.skinId != -1) {
                         registry.skinIds[entity] = node.skinId;
                         registry.cmpMasks[entity] |= SKIN;
@@ -716,9 +752,7 @@ namespace bdr
                 const tinygltf::Animation& animation = sceneData.inputModel->animations[i];
                 sceneData.pScene->animations.push_back(processAnimation(sceneData, animation));
             }
-
             sceneData.inputModel = nullptr;
         }
-
     }
 }

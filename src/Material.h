@@ -6,8 +6,16 @@
 
 namespace bdr
 {
+    enum class MaterialType : uint16_t
+    {
+        INVALID = 0,
+        PBR = 1
+    };
+
     struct Material
     {
+        MaterialType type = MaterialType::INVALID;
+        uint16_t permutation = 0;
         ID3D11VertexShader* vertexShader;
         ID3D11PixelShader* pixelShader;
         ConstantBuffer<DrawConstants> vertexCB;
@@ -29,7 +37,15 @@ namespace bdr
         UNMOVABLE(MaterialManager);
         UNCOPIABLE(MaterialManager);
 
-        uint32_t initMaterial(ID3D11Device* device, const std::wstring& vsFile, const std::wstring& psFile);
+        inline void init(ID3D11Device* device)
+        {
+            this->pDevice = device;
+        }
+
+        uint32_t initMaterial(const std::wstring& vsFile, const std::wstring& psFile);
+        uint32_t initMaterial(ID3DBlob* vsBlob, ID3DBlob* psBlob);
+
+        uint32_t MaterialManager::getMaterial(const MaterialType type, const uint16_t permutation) const;
 
         void reset()
         {
@@ -48,7 +64,23 @@ namespace bdr
         }
 
     private:
+        ID3D11Device* pDevice;
         std::vector<Material> materials;
     };
+
+    struct PBRConstants
+    {
+        float baseColorFactor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+        float emissiveFactor[3] = { 0.0f, 0.0f, 0.0f };
+        float metallicFactor = 1.0f;
+        float roughnessFactor = 1.0f;
+        float alphaCutoff = 1.0f;
+        uint32_t alphaMode = 0;
+        float padding[53];
+    };
+    static_assert(sizeof(PBRConstants) == sizeof(GenericMaterialData), "PBR Constants must be the same size as GenericMaterialData");
+
+    // Get or create new PBR material based on permutation flags
+    uint32_t getOrCreatePBRMaterial(MaterialManager& materialManager, const uint16_t textureFlags);
 }
 
