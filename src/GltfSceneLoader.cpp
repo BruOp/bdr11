@@ -497,6 +497,9 @@ namespace bdr
                 D3D11_SAMPLER_DESC samplerDesc{};
                 samplerDesc.Filter = D3D11_FILTER_ANISOTROPIC;
                 samplerDesc.MaxAnisotropy = D3D11_DEFAULT_MAX_ANISOTROPY;
+                samplerDesc.MipLODBias = D3D11_DEFAULT_MIP_LOD_BIAS;
+                samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
+                samplerDesc.MinLOD = 0.0f;
                 samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
                 samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
                 samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
