@@ -194,7 +194,7 @@ void Game::CreateDeviceDependentResources()
 
     std::vector<uint8_t> blob = DX::ReadData(L"skinning.cso");
     DX::ThrowIfFailed(m_renderer.getDevice()->CreateComputeShader(blob.data(), blob.size(), nullptr, m_renderer.computeShader.ReleaseAndGetAddressOf()));
-    bdr::gltf::SceneData sceneData{ &m_scene, &m_renderer, "Sponza/", "Sponza.gltf" };
+    bdr::gltf::SceneData sceneData{ &m_scene, &m_renderer, "PollyV2/", "project_polly.gltf" };
     bdr::gltf::loadModel(sceneData);
 }
 

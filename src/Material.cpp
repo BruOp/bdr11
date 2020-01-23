@@ -96,6 +96,12 @@ namespace bdr
         if (textureFlags & TextureFlags::NORMAL_MAP) {
             macros[numMacros++] = D3D_SHADER_MACRO{ "NORMAL_MAPPING" };
         }
+        if (textureFlags & TextureFlags::OCCLUSION) {
+            macros[numMacros++] = D3D_SHADER_MACRO{ "OCCLUSION_MAP" };
+        }
+        if (textureFlags & TextureFlags::EMISSIVE) {
+            macros[numMacros++] = D3D_SHADER_MACRO{ "EMISSIVE_MAP" };
+        }
 
         ID3DBlob* error = nullptr;
         ID3DBlob* vsBlob = nullptr;

@@ -47,10 +47,12 @@ cbuffer MATERIAL_DATA : register(b1)
 Texture2D albedo : register(t0);
 Texture2D metallicRoughness : register(t1);
 Texture2D normalMap : register(t2);
+Texture2D emissiveMap : register(t3);
 
 SamplerState albedoSampler : register(s0);
 SamplerState pbrSampler : register(s1);
 SamplerState normalSampler : register(s2);
+SamplerState emissiveSampler : register(s3);
 
 //=================================================================================================
 // Input/Output structs
@@ -122,9 +124,8 @@ float D_GGX(float NoH, float roughness)
     return k * k * (1.0 / PI);
 }
 
-float3 F_Schlick(float VoH, float metallic, float3 baseColor)
+float3 F_Schlick(float VoH, float3 f0)
 {
-    float3 f0 = lerp(float3Splat(DIELECTRIC_SPECULAR), baseColor, metallic);
     float f = pow(1.0 - VoH, 5.0);
     return f + f0 * (1.0 - f);
 }
@@ -139,12 +140,12 @@ float V_SmithGGXCorrelated(float NoV, float NoL, float roughness)
     return 0.5 / (GGXV + GGXL);
 }
 
-float3 diffuseColor(float3 baseColor, float metallic)
+float3 calcDiffuse(float3 baseColor, float metallic)
 {
     return baseColor * (1.0 - DIELECTRIC_SPECULAR) * (1.0 - metallic);
 }
 
-float3 specular(float3 lightDir, float3 viewDir, float3 normal, float3 baseColor, float roughness, float metallic)
+float3 calcSpecular(float3 lightDir, float3 viewDir, float3 f0, float3 normal, float roughness)
 {
     float3 h = normalize(lightDir + viewDir);
     float NoV = clamp(dot(normal, viewDir), 1e-5, 1.0);
@@ -155,7 +156,7 @@ float3 specular(float3 lightDir, float3 viewDir, float3 normal, float3 baseColor
     // Needs to be a uniform
 
     float D = D_GGX(NoH, roughness);
-    float3 F = F_Schlick(VoH, metallic, baseColor);
+    float3 F = F_Schlick(VoH, f0);
     float V = V_SmithGGXCorrelated(NoV, NoL, roughness);
     return D * V * F;
 }
@@ -199,10 +200,15 @@ float4 PSMain(in PSInput input) : SV_Target0
     float4 baseColor = baseColorFactor;
 #endif
 	
+    float occlusion = 1.0f;
     float2 roughnessMetal = float2(roughnessFactor, metallicFactor);
 #ifdef METALLIC_ROUGHNESS_MAP
-	roughnessMetal *= metallicRoughness.Sample(pbrSampler, input.vUV).yz;
+	float3 occlusionRoughnessMetal = metallicRoughness.Sample(pbrSampler, input.vUV).rgb;
+    roughnessMetal *= occlusionRoughnessMetal.gb;
+#ifdef OCCLUSION_MAP
+    occlusion = occlusionRoughnessMetal.r;
 #endif
+#endif    
 	
     float roughness = max(roughnessMetal.x, MIN_ROUGHNESS);
     float metallic = roughnessMetal.y;
@@ -218,10 +224,14 @@ float4 PSMain(in PSInput input) : SV_Target0
     float attenuation = lightIntensity / (lightDist * lightDist);
     float3 light = attenuation * lightColor * clampDot(normal, lightDir);
 
-    float3 color = (
-        diffuseColor(baseColor.rgb, metallic) +
-        PI * specular(lightDir, viewDir, normal, baseColor.xyz, roughness, metallic)
-    ) * light;
+    float3 diffuseColor = calcDiffuse(baseColor.rgb, metallic);
+    float3 f0 = lerp(float3Splat(DIELECTRIC_SPECULAR), baseColor.rgb, metallic);
+    float3 specularColor = calcSpecular(lightDir, viewDir, f0, normal, roughness);
+    float3 color = occlusion * (diffuseColor + PI * specularColor) * light;
+
+#ifdef EMISSIVE_MAP
+    color += emissiveFactor * emissiveMap.Sample(emissiveSampler, input.vUV).rgb;
+#endif
     
     return float4(color, 1.0f);
 }

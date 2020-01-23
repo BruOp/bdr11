@@ -482,10 +482,22 @@ namespace bdr
         void processTextures(SceneData& sceneData)
         {
             const tinygltf::Model& inputModel = *sceneData.inputModel;
-            sceneData.textureMap.resize(inputModel.textures.size());
+            std::vector<bool> creationLog(inputModel.images.size(), false);
+            sceneData.textureMap.resize(inputModel.images.size());
+
+            // While we loop through the textures, we only process individual images once.
+            // We ignore the edge case where a GLTF file has different textures pointing to
+            // the same image source but uses different samplers.
             for (size_t i = 0; i < inputModel.textures.size(); i++) {
                 const tinygltf::Texture& texture = inputModel.textures[i];
                 const tinygltf::Image image = inputModel.images[texture.source];
+                const size_t outputTextureIdx = texture.source;
+
+                // Early abort if we've already store the output as a function of the texture source
+                if (creationLog[outputTextureIdx]) {
+                    continue;
+                }
+
                 TextureCreationInfo createInfo{};
                 createInfo.dims[0] = image.width;
                 createInfo.dims[1] = image.height;
@@ -525,8 +537,8 @@ namespace bdr
                 }
 
                 DX::ThrowIfFailed(sceneData.pRenderer->getDevice()->CreateSamplerState(&samplerDesc, &output.sampler));
-
-                sceneData.textureMap[i] = textureIdx;
+                creationLog[outputTextureIdx] = true;
+                sceneData.textureMap[outputTextureIdx] = textureIdx;
             }
         }
 
@@ -689,17 +701,52 @@ namespace bdr
                     const tinygltf::Primitive& primitive = mesh.primitives[node.primitiveId];
                     const tinygltf::Material& material = gltfModel.materials[primitive.material];
 
-                    if (material.values.count("baseColorTexture")) {
-                        textureSet.textures[textureSet.numTextures++] = sceneData.textureMap[material.values.at("baseColorTexture").TextureIndex()];
+                    auto valuesEnd = material.values.end();
+                    auto additionalValuesEnd = material.additionalValues.end();
+
+                    auto p_gltfTexture = material.values.find("baseColorTexture");
+                    if (p_gltfTexture != valuesEnd) {
+                        size_t textureIdx = p_gltfTexture->second.TextureIndex();
+                        size_t imgIdx = gltfModel.textures[textureIdx].source;
+                        textureSet.textures[textureSet.numTextures++] = sceneData.textureMap[imgIdx];
                         textureSet.textureFlags |= TextureFlags::ALBEDO;
                     }
-                    if (material.values.count("metallicRoughnessTexture")) {
-                        textureSet.textures[textureSet.numTextures++] = sceneData.textureMap[material.values.at("metallicRoughnessTexture").TextureIndex()];
+
+                    p_gltfTexture = material.values.find("metallicRoughnessTexture");
+                    if (p_gltfTexture != valuesEnd) {
+                        size_t textureIdx = p_gltfTexture->second.TextureIndex();
+                        size_t imgIdx = gltfModel.textures[textureIdx].source;
+                        textureSet.textures[textureSet.numTextures++] = sceneData.textureMap[imgIdx];
                         textureSet.textureFlags |= TextureFlags::METALLIC_ROUGHNESS;
+
+                        // We only allow occlusion maps to be the R channel of the metallicRoughness map
+                        p_gltfTexture = material.additionalValues.find("occlusionTexture");
+                        if (p_gltfTexture != additionalValuesEnd) {
+                            textureIdx = p_gltfTexture->second.TextureIndex();
+                            size_t occlusionImgIdx = gltfModel.textures[textureIdx].source;
+                            if (imgIdx == occlusionImgIdx) {
+                                textureSet.textureFlags |= TextureFlags::OCCLUSION;
+                            }
+                            else {
+                                Utility::Printf(L"Occlusion texutre at index %d is not using the same source as the metallic roughness texture", textureIdx);
+                            }
+                        }
                     }
-                    if (material.additionalValues.count("normalTexture")) {
-                        textureSet.textures[textureSet.numTextures++] = sceneData.textureMap[material.additionalValues.at("normalTexture").TextureIndex()];
+
+                    p_gltfTexture = material.additionalValues.find("normalTexture");
+                    if (p_gltfTexture != additionalValuesEnd) {
+                        size_t textureIdx = p_gltfTexture->second.TextureIndex();
+                        size_t imgIdx = gltfModel.textures[textureIdx].source;
+                        textureSet.textures[textureSet.numTextures++] = sceneData.textureMap[imgIdx];
                         textureSet.textureFlags |= TextureFlags::NORMAL_MAP;
+                    }
+
+                    p_gltfTexture = material.additionalValues.find("emissiveTexture");
+                    if (p_gltfTexture != additionalValuesEnd) {
+                        size_t textureIdx = p_gltfTexture->second.TextureIndex();
+                        size_t imgIdx = gltfModel.textures[textureIdx].source;
+                        textureSet.textures[textureSet.numTextures++] = sceneData.textureMap[imgIdx];
+                        textureSet.textureFlags |= TextureFlags::EMISSIVE;
                     }
 
                     PBRConstants factors{};
