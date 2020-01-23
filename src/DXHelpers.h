@@ -19,7 +19,7 @@ namespace bdr
             D3D11_BUFFER_DESC desc;
             desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
             desc.MiscFlags = 0;
-            desc.ByteWidth = static_cast<uint32_t>(sizeof(T) + (16 - (sizeof(T) % 16)));
+            desc.ByteWidth = static_cast<uint32_t>(sizeof(T));
 
             if (gpuWritable) {
                 desc.Usage = D3D11_USAGE_DEFAULT;
@@ -34,26 +34,6 @@ namespace bdr
             }
             DX::ThrowIfFailed(device->CreateBuffer(&desc, nullptr, &buffer));
         }
-
-        //inline void updateData(T& newData)
-        //{
-        //    data = newData;
-        //}
-
-        //inline void copyToGPU(ID3D11DeviceContext* deviceContext)
-        //{
-        //    ASSERT(buffer != nullptr);
-
-        //    if (gpuWritable) {
-        //        deviceContext->UpdateSubresource(buffer, 0, nullptr, &data, 0, 0);
-        //    }
-        //    else {
-        //        D3D11_MAPPED_SUBRESOURCE mappedResource;
-        //        DXCall(deviceContext->Map(buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource));
-        //        CopyMemory(mappedResource.pData, &data, sizeof(T));
-        //        deviceContext->Unmap(Buffer, 0);
-        //    }
-        //}
 
         inline void copyToGPU(ID3D11DeviceContext* deviceContext, const T& newData) const
         {

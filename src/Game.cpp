@@ -190,12 +190,11 @@ void Game::CreateDeviceDependentResources()
     };
     DX::ThrowIfFailed(device->CreateRasterizerState(&rastDesc, m_rasterState.ReleaseAndGetAddressOf()));
     m_states = std::make_unique<CommonStates>(device);
-
-    m_renderer.materials.initMaterial(m_renderer.getDevice(), L"basic_vs.cso", L"basic_ps.cso");
+    m_renderer.materials.init(m_renderer.getDevice());
 
     std::vector<uint8_t> blob = DX::ReadData(L"skinning.cso");
     DX::ThrowIfFailed(m_renderer.getDevice()->CreateComputeShader(blob.data(), blob.size(), nullptr, m_renderer.computeShader.ReleaseAndGetAddressOf()));
-    bdr::gltf::SceneData sceneData{ &m_scene, &m_renderer, "polly/", "project_polly.gltf" };
+    bdr::gltf::SceneData sceneData{ &m_scene, &m_renderer, "Sponza/", "Sponza.gltf" };
     bdr::gltf::loadModel(sceneData);
 }
 
@@ -216,8 +215,8 @@ void Game::CreateWindowSizeDependentResources()
     baseView.scene = &m_scene;
     baseView.setCamera(&m_camera);
 
-    bdr::addBasicPass(m_renderGraph, &baseView);
     bdr::addSkinningPass(m_renderGraph, &baseView);
+    bdr::addBasicPass(m_renderGraph, &baseView);
 }
 
 void Game::OnDeviceLost()

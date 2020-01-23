@@ -197,6 +197,7 @@
     <ClInclude Include="src\RingBuffer.h" />
     <ClInclude Include="src\Scene.h" />
     <ClInclude Include="src\StepTimer.h" />
+    <ClInclude Include="src\Texture.h" />
     <ClInclude Include="src\View.h" />
   </ItemGroup>
   <ItemGroup>
@@ -211,6 +212,7 @@
     <ClCompile Include="src\DeviceResources.cpp" />
     <ClCompile Include="src\Game.cpp" />
     <ClCompile Include="src\bdrMath.cpp" />
+    <ClCompile Include="src\Mesh.cpp" />
     <ClCompile Include="src\Model.cpp" />
     <ClCompile Include="src\pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
@@ -220,6 +222,7 @@
     <ClCompile Include="src\Material.cpp" />
     <ClCompile Include="src\RenderPass.cpp" />
     <ClCompile Include="src\Scene.cpp" />
+    <ClCompile Include="src\Texture.cpp" />
     <ClCompile Include="src\View.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -233,6 +236,13 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+    <FxCompile Include="src\Shaders\pbr_shader.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="src\Shaders\basic_ps.hlsl">

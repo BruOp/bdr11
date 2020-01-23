@@ -64,6 +64,12 @@ namespace bdr
             sinf(pitch) * sinf(yaw),
         };
         posOnSphere *= radius;
-        camera->view = Matrix::CreateLookAt(posOnSphere + origin, origin, Vector3::UnitY);
+        setCameraView(*camera, Matrix::CreateLookAt(posOnSphere + origin, origin, Vector3::UnitY));
+    }
+
+    void setCameraView(Camera& camera, const DirectX::SimpleMath::Matrix& view)
+    {
+        camera.view = view;
+        view.Invert(camera.invView);
     }
 }

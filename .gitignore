@@ -6,3 +6,4 @@ packages/
 
 *.APS
 *.pfx
+tools/texconv.exe

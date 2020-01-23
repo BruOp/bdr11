@@ -17,6 +17,9 @@
     <Filter Include="Systems">
       <UniqueIdentifier>{b40362ed-875f-44d0-9daf-333459f002b2}</UniqueIdentifier>
     </Filter>
+    <Filter Include="External">
+      <UniqueIdentifier>{642ffde9-b341-4380-980d-5a194372eebb}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\DeviceResources.h">
@@ -79,6 +82,9 @@
     <ClInclude Include="src\ResourceManager.h">
       <Filter>Graphics</Filter>
     </ClInclude>
+    <ClInclude Include="src\Texture.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\DeviceResources.cpp">
@@ -119,6 +125,12 @@
       <Filter>Common</Filter>
     </ClCompile>
     <ClCompile Include="src\View.cpp" />
+    <ClCompile Include="src\Texture.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Mesh.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc" />
@@ -144,6 +156,9 @@
       <Filter>Shaders</Filter>
     </FxCompile>
     <FxCompile Include="src\skinning.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="src\Shaders\pbr_shader.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
   </ItemGroup>

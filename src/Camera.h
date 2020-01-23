@@ -8,8 +8,11 @@ namespace bdr
     struct Camera
     {
         DirectX::SimpleMath::Matrix view;
+        DirectX::SimpleMath::Matrix invView;
         DirectX::SimpleMath::Matrix projection;
     };
+
+    void setCameraView(Camera& camera, const DirectX::SimpleMath::Matrix& view);
 
     class ICameraController
     {

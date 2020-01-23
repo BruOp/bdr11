@@ -7,6 +7,7 @@
 #include "InputLayoutManager.h"
 #include "Material.h"
 #include "GPUBuffer.h"
+#include "Texture.h"
 #include "View.h"
 #include "ResourceManager.h"
 
@@ -19,7 +20,7 @@ namespace bdr
     public:
         Renderer()
         {
-            deviceResources = std::make_unique<DX::DeviceResources>();
+            deviceResources = std::make_unique<DX::DeviceResources>(DXGI_FORMAT_B8G8R8A8_UNORM_SRGB);
         }
 
         ~Renderer()
@@ -47,7 +48,7 @@ namespace bdr
         inline RECT getOutputSize() const
         {
             return deviceResources->GetOutputSize();
-        }
+        };
 
         bool hasWindowSizeChanged(int newWidth, int newHeight)
         {
@@ -57,24 +58,31 @@ namespace bdr
                 height = uint32_t(newHeight);
             }
             return hasSizeChanged;
-        }
+        };
 
         inline void createDeviceResources()
         {
             deviceResources->CreateDeviceResources();
             inputLayoutManager.init(deviceResources->GetD3DDevice());
             viewCB.init(deviceResources->GetD3DDevice(), false);
-        }
+        };
 
         inline void createWindowSizeDependentResources()
         {
             deviceResources->CreateWindowSizeDependentResources();
-        }
+        };
 
         inline uint32_t getNewMesh()
         {
             return static_cast<uint32_t>(meshes.create());
         };
+
+        inline uint32_t createTextureFromFile(const std::string& filePath, const TextureCreationInfo& createInfo)
+        {
+            uint32_t idx = static_cast<uint32_t>(textures.create());
+            textures[idx] = Texture::createFromFile(deviceResources->GetD3DDevice(), filePath, createInfo);
+            return idx;
+        }
 
         inline uint32_t getInputLayout(const InputLayoutDetail details[], uint8_t numAttributes)
         {
@@ -100,6 +108,7 @@ namespace bdr
         InputLayoutManager inputLayoutManager;
         ResourceManager<Mesh> meshes;
         ResourceManager<GPUBuffer> jointBuffers;
+        ResourceManager<Texture> textures;
         MaterialManager materials;
         ConstantBuffer<ViewConstants> viewCB;
     };
