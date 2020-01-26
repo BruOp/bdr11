@@ -7,29 +7,34 @@
 #include "DeviceResources.h"
 #include "ECSRegistry.h"
 #include "Animation.h"
-
-
-namespace tinygltf
-{
-    struct Accessor;
-    struct Primitive;
-    struct Skin;
-    struct Animation;
-    class Model;
-}
+#include "Camera.h"
 
 namespace bdr
 {
     class Scene
     {
     public:
-        ECSRegistry registry;
-        std::vector<Skin> skins;
-        std::vector<Animation> animations;
-
-        void reset()
+        Scene() = default;
+        ~Scene()
         {
             registry.clearComponentData();
         }
+
+        UNCOPIABLE(Scene);
+        UNMOVABLE(Scene);
+
+        inline operator ECSRegistry& ()
+        {
+            return registry;
+        }
+
+        ECSRegistry registry;
+        std::vector<Skin> skins;
+        std::vector<Animation> animations;
+        std::vector<Camera> cameras;
     };
+
+    Camera& getCamera(Scene& scene, const uint32_t cameraId);
+
+    uint32_t createPerspectiveCamera(Scene& scene, float fov, float aspectRatio, float _near, float _far);
 }

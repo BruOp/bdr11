@@ -12,8 +12,6 @@ namespace bdr
         DirectX::SimpleMath::Matrix projection;
     };
 
-    void setCameraView(Camera& camera, const DirectX::SimpleMath::Matrix& view);
-
     class ICameraController
     {
     public:
@@ -38,5 +36,7 @@ namespace bdr
         Camera* camera = nullptr;
         DirectX::Mouse::ButtonStateTracker tracker;
     };
+
+    void setCameraView(Camera& camera, const DirectX::SimpleMath::Matrix& view);
 }
 

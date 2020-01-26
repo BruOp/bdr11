@@ -35,4 +35,18 @@ namespace bdr
             }
         }
     }
+
+    void addPositionAttribute(MeshCreationInfo& meshCreationInfo, const void* data, const BufferFormat format)
+    {
+        constexpr size_t POS_IDX = 0;
+        meshCreationInfo.data[POS_IDX] = (uint8_t*)(data);
+        meshCreationInfo.strides[POS_IDX] = getByteSize(format);
+    }
+
+    void addColorAttribute(MeshCreationInfo& meshCreationInfo, const void* data, const BufferFormat format)
+    {
+        constexpr size_t COLOR_IDX = 5;
+        meshCreationInfo.data[COLOR_IDX] = (uint8_t*)(data);
+        meshCreationInfo.strides[COLOR_IDX] = getByteSize(format);
+    }
 }

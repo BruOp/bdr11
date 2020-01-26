@@ -15,25 +15,6 @@ namespace bdr
 {
     namespace gltf
     {
-        struct MeshData
-        {
-            uint8_t const* p_indices = nullptr;
-            BufferFormat indexFormat = BufferFormat::INVALID;
-            // Different handle for each "stream" of vertex attributes
-            // 0 - Position
-            // 1 - Normal
-            // 2 - TexCoord0
-            // 3 - Weights
-            // 4 - BlendIndices
-            // 5 - Tangent
-            uint8_t* data[Mesh::maxAttrCount] = { nullptr };
-            BufferFormat bufferFormats[Mesh::maxAttrCount] = { BufferFormat::INVALID, BufferFormat::INVALID, BufferFormat::INVALID, BufferFormat::INVALID, BufferFormat::INVALID };
-            uint8_t presentAttributesMask = 0;
-            size_t strides[Mesh::maxAttrCount] = { 0 };
-            size_t numIndices = 0;
-            size_t numVertices = 0;
-        };
-
         const AttributeInfo ATTR_INFO[]{
             {
                 "POSITION",

@@ -16,9 +16,15 @@ namespace bdr
 
     struct Mesh
     {
-        // No mesh will contain all 6 possible mesh attributes
-        static constexpr size_t maxAttrCount = 5u;
+        static constexpr size_t maxAttrCount = 6u;
         GPUBuffer indexBuffer;
+        // Different handle for each "stream" of vertex attributes
+        // 0 - Position
+        // 1 - Normal
+        // 2 - TexCoord0
+        // 3 - Weights
+        // 4 - BlendIndices
+        // 5 - Color
         GPUBuffer vertexBuffers[maxAttrCount];
         uint32_t inputLayoutHandle = UINT32_MAX;
         uint32_t numIndices = 0;
@@ -39,9 +45,28 @@ namespace bdr
         }
     };
 
+    struct MeshCreationInfo
+    {
+        uint8_t const* indexData = nullptr;
+        BufferFormat indexFormat = BufferFormat::INVALID;
+        // 0 - Position
+        // 1 - Normal
+        // 2 - TexCoord0
+        // 3 - Weights
+        // 4 - BlendIndices
+        // 5 - Color
+        uint8_t* data[Mesh::maxAttrCount] = { nullptr };
+        BufferFormat bufferFormats[Mesh::maxAttrCount] = { BufferFormat::INVALID, BufferFormat::INVALID, BufferFormat::INVALID, BufferFormat::INVALID, BufferFormat::INVALID };
+        uint8_t presentAttributesMask = 0;
+        size_t strides[Mesh::maxAttrCount] = { 0 };
+        size_t numIndices = 0;
+        size_t numVertices = 0;
+    };
+
     void collectBuffers(const Mesh& mesh, const uint8_t attrsToSelect, ID3D11Buffer* outputBuffers[]);
     void collectBuffers(const Mesh& mesh, const uint8_t attrsToSelect, ID3D11ShaderResourceView* outputSRVs[]);
     void collectBuffers(const Mesh& mesh, const uint8_t attrsToSelect, ID3D11UnorderedAccessView* outputUAVs[]);
 
-
+    void addPositionAttribute(MeshCreationInfo& meshCreationInfo, const void* data, const BufferFormat format);
+    void addColorAttribute(MeshCreationInfo& meshCreationInfo, const void* data, const BufferFormat format);
 }

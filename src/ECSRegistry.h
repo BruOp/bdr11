@@ -91,6 +91,7 @@ namespace bdr
         FreeEntityNode* prev = nullptr;
     };
 
+
     class ECSRegistry
     {
     public:
@@ -147,7 +148,11 @@ namespace bdr
 
     void increaseRegistrySize(ECSRegistry& registry, uint32_t size = 1024);
 
-    uint32_t getNewEntity(ECSRegistry& registry);
+    uint32_t createEntity(ECSRegistry& registry);
+
+    void assignMesh(ECSRegistry& registry, const uint32_t entity, const uint32_t meshId);
+    void assignMaterial(ECSRegistry& registry, const uint32_t entity, const uint32_t materialId);
+    void assignTransform(ECSRegistry& registry, const uint32_t entity, const Transform& transform);
 
 }
 

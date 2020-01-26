@@ -29,7 +29,9 @@
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 
+#include <shellapi.h>
 #include <wrl/client.h>
+#include <wrl/wrappers/corewrappers.h>
 
 #include <d3d11_1.h>
 
@@ -101,6 +103,19 @@ namespace DX
             throw com_exception(hr);
         }
     }
+}
+
+namespace bdr
+{
+    enum class FNRes : uint32_t
+    {
+        SUCCESS = 0,
+        FAILURE = 1,
+    };
+
+    typedef uint32_t BDRid;
+    constexpr BDRid INVALID_HANDLE = UINT32_MAX;
+
 }
 
 

@@ -146,9 +146,6 @@
     </Manifest>
   </ItemGroup>
   <ItemGroup>
-    <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
     <FxCompile Include="src\Shaders\basic_ps.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
@@ -161,5 +158,8 @@
     <FxCompile Include="src\Shaders\pbr_shader.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
 </Project>

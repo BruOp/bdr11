@@ -15,6 +15,9 @@ namespace bdr
 {
     GPUBuffer createJointBuffer(ID3D11Device* device, const Skin& skin);
 
+    uint32_t createMesh(const MeshCreationInfo& meshCreationInfo);
+    uint32_t createBasicMaterial();
+
     class Renderer
     {
     public:
@@ -43,7 +46,7 @@ namespace bdr
             width = uint32_t(newWidth);
             height = uint32_t(newHeight);
             deviceResources->SetWindow(window, newWidth, newHeight);
-        }
+        };
 
         inline RECT getOutputSize() const
         {
@@ -72,17 +75,12 @@ namespace bdr
             deviceResources->CreateWindowSizeDependentResources();
         };
 
-        inline uint32_t getNewMesh()
-        {
-            return static_cast<uint32_t>(meshes.create());
-        };
-
         inline uint32_t createTextureFromFile(const std::string& filePath, const TextureCreationInfo& createInfo)
         {
             uint32_t idx = static_cast<uint32_t>(textures.create());
             textures[idx] = Texture::createFromFile(deviceResources->GetD3DDevice(), filePath, createInfo);
             return idx;
-        }
+        };
 
         inline uint32_t getInputLayout(const InputLayoutDetail details[], uint8_t numAttributes)
         {
@@ -92,12 +90,12 @@ namespace bdr
         inline ID3D11Device1* getDevice() const
         {
             return deviceResources->GetD3DDevice();
-        }
+        };
 
         inline ID3D11DeviceContext1* getContext() const
         {
             return deviceResources->GetD3DDeviceContext();
-        }
+        };
 
         // Device resources.
         uint32_t width = 0;
@@ -113,3 +111,9 @@ namespace bdr
         ConstantBuffer<ViewConstants> viewCB;
     };
 }
+
+extern bdr::Renderer g_renderer{};
+
+// Callbacks for window resize:
+void onWindowResize(int width, int height);
+void onWindowMove();

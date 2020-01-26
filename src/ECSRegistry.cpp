@@ -7,7 +7,7 @@
 using namespace DirectX::SimpleMath;
 
 namespace bdr
-{    
+{
     void initializeFreeList(ECSRegistry& registry)
     {
         ASSERT(registry.pFreeNode == nullptr, "Not sure why we're initializing a non empty free list!");
@@ -31,7 +31,7 @@ namespace bdr
 
         ASSERT(registry.pFreeNode != nullptr);
     }
-    
+
     void increaseRegistrySize(ECSRegistry& registry, uint32_t size)
     {
         uint32_t newSize = registry.numAllocatedEntities + size;
@@ -58,8 +58,8 @@ namespace bdr
         registry.numAllocatedEntities = newSize;
         initializeFreeList(registry);
     }
-    
-    uint32_t getNewEntity(ECSRegistry& registry)
+
+    uint32_t createEntity(ECSRegistry& registry)
     {
         if (registry.pFreeNode == nullptr) {
             // Need to allocate new entities
@@ -75,8 +75,26 @@ namespace bdr
         registry.parents[entity] = 0;
         registry.cmpMasks[entity] |= CmpMasks::ALLOCATED;
         return entity;
-    };
-    
+    }
+
+    void assignMesh(ECSRegistry& registry, const uint32_t entity, const uint32_t meshId)
+    {
+        registry.meshes[entity] = meshId;
+        registry.cmpMasks[entity] |= CmpMasks::MESH;
+    }
+
+    void assignMaterial(ECSRegistry& registry, const uint32_t entity, const uint32_t materialId)
+    {
+        registry.meshes[entity] = materialId;
+        registry.cmpMasks[entity] |= CmpMasks::MATERIAL;
+    }
+
+    void assignTransform(ECSRegistry& registry, const uint32_t entity, const Transform& transform)
+    {
+        registry.transforms[entity] = transform;
+        registry.cmpMasks[entity] = CmpMasks::TRANSFORM;
+    }
+
     void ECSRegistry::clearComponentData()
     {
         for (uint32_t i = 0; i < numComponents; ++i) {

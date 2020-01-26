@@ -9,7 +9,8 @@ namespace bdr
     enum class MaterialType : uint16_t
     {
         INVALID = 0,
-        PBR = 1
+        PBR = 1,
+        Basic = 2,
     };
 
     struct Material
