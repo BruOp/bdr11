@@ -138,6 +138,7 @@ namespace bdr
         uint32_t idx = materialManager.initMaterial(vsBlob, psBlob);
         Material& material = materialManager[idx];
         material.type = MaterialType::PBR;
+        material.attributeRequriements = MaterialAttributeRequirements[uint64_t(material.type)];
         material.permutation = textureFlags;
         return idx;
     }

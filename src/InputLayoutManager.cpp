@@ -94,7 +94,7 @@ struct SimpleVertex \n\
 }; \n\
 float4 main(SimpleVertex vi) : SV_Position \n\
 { \n\
-    return float4(vi.a0, 1.0); \n\
+    return float4(0.0, 0.0, 0.0, 1.0); \n\
 }\0";
 
         char shaderBuf[1024];
@@ -132,7 +132,7 @@ float4 main(SimpleVertex vi) : SV_Position \n\
             &error
         );
         if (error) {
-            Utility::Print((char*)error->GetBufferPointer());
+            ERROR((char*)error->GetBufferPointer());
         }
         DX::ThrowIfFailed(result);
 

@@ -3,20 +3,29 @@
 
 #include "DXHelpers.h"
 #include "ECSRegistry.h"
+#include "Mesh.h"
 
 namespace bdr
 {
-    enum class MaterialType : uint16_t
+    enum class MaterialType : uint8_t
     {
         INVALID = 0,
         PBR = 1,
         Basic = 2,
     };
 
+    // Attribute requirements indexed by Material Type
+    constexpr uint8_t MaterialAttributeRequirements[] = {
+        MeshAttribute::INVALID,
+        MeshAttribute::POSITION | MeshAttribute::NORMAL | MeshAttribute::TEXCOORD,
+        MeshAttribute::POSITION | MeshAttribute::COLOR,
+    };
+
     struct Material
     {
         MaterialType type = MaterialType::INVALID;
         uint16_t permutation = 0;
+        uint8_t attributeRequriements = 0;
         ID3D11VertexShader* vertexShader;
         ID3D11PixelShader* pixelShader;
         ConstantBuffer<DrawConstants> vertexCB;

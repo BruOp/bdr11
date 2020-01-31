@@ -29,7 +29,7 @@ namespace bdr
 
         mesh.numIndices = meshCreateInfo.numIndices;
         mesh.numVertices = meshCreateInfo.numVertices;
-        
+
         BufferCreationInfo indexCreateInfo{};
         indexCreateInfo.numElements = meshCreateInfo.numIndices;
         indexCreateInfo.usage = BufferUsage::Index;
@@ -50,6 +50,7 @@ namespace bdr
             }
 
             mesh.vertexBuffers[i] = createBuffer(device, meshCreateInfo.data[i], createInfo);
+            mesh.attributes[i] = meshCreateInfo.attributes[i];
             mesh.presentAttributesMask |= meshCreateInfo.attributes[i];
             mesh.strides[i] = meshCreateInfo.strides[i];
         }
@@ -115,6 +116,7 @@ namespace bdr
         uint32_t idx = renderer.materials.initMaterial(vsBlob, psBlob);
         Material& material = renderer.materials[idx];
         material.type = MaterialType::Basic;
+        material.attributeRequriements = MaterialAttributeRequirements[uint64_t(material.type)];
         material.permutation = 0;
         return idx;
     }

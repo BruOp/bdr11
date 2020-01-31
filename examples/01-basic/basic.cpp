@@ -66,8 +66,9 @@ class BasicExample : public bdr::BaseGame
         meshCreationInfo.indexData = (uint8_t*)cubeIndices;
         meshCreationInfo.indexFormat = BufferFormat::UINT16;
 
-        addAttribute(meshCreationInfo, cubePositions, BufferFormat::FLOAT_3, MeshAttribute::POSITION);
+        // Attributes can be added in any order
         addAttribute(meshCreationInfo, cubeColors, BufferFormat::UNORM8_4, MeshAttribute::COLOR);
+        addAttribute(meshCreationInfo, cubePositions, BufferFormat::FLOAT_3, MeshAttribute::POSITION);
 
         BDRid meshHandle = createMesh(renderer, meshCreationInfo);
         assignMesh(scene, entity, meshHandle);
