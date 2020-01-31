@@ -21,10 +21,10 @@ namespace bdr
             const ECSRegistry& registry = scene.registry;
             ID3D11DeviceContext* context = renderer->getContext();
             constexpr uint8_t meshAttrRequirements = 0u
-                | MeshAttributes::POSITION
-                | MeshAttributes::NORMAL
-                | MeshAttributes::BLENDWEIGHT
-                | MeshAttributes::BLENDINDICES;
+                | MeshAttribute::POSITION
+                | MeshAttribute::NORMAL
+                | MeshAttribute::BLENDWEIGHT
+                | MeshAttribute::BLENDINDICES;
 
             for (size_t entityId = 0; entityId < registry.numEntities; ++entityId) {
                 const uint32_t cmpMask = registry.cmpMasks[entityId];
@@ -53,7 +53,7 @@ namespace bdr
                     ID3D11ShaderResourceView* srvs[4u] = { nullptr };
                     collectBuffers(preskin, meshAttrRequirements, srvs);
                     ID3D11UnorderedAccessView* uavs[2u] = { nullptr };
-                    collectBuffers(mesh, MeshAttributes::POSITION | MeshAttributes::NORMAL, uavs);
+                    collectBuffers(mesh, MeshAttribute::POSITION | MeshAttribute::NORMAL, uavs);
 
                     context->CSSetShaderResources(0u, 1u, &jointBuffer.srv);
                     context->CSSetShaderResources(1u, _countof(srvs), srvs);
@@ -75,6 +75,7 @@ namespace bdr
         };
     }
 
+
     void addBasicPass(RenderGraph& renderGraph, View* view)
     {
         RenderPass& pass = renderGraph.createNewPass();
@@ -87,7 +88,74 @@ namespace bdr
             const ECSRegistry& registry = scene.registry;
             ASSERT(view.type == ViewType::Camera);
             ID3D11DeviceContext* context = renderer->getContext();
-            constexpr uint8_t meshAttrRequirements = MeshAttributes::POSITION | MeshAttributes::NORMAL | MeshAttributes::TEXCOORD;
+            constexpr uint8_t meshAttrRequirements = MeshAttribute::POSITION | MeshAttribute::COLOR;
+
+            setConstants(renderer, view);
+
+            for (size_t entityId = 0; entityId < registry.numEntities; ++entityId) {
+                const uint32_t cmpMask = registry.cmpMasks[entityId];
+                const uint32_t requirements = CmpMasks::MESH | CmpMasks::MATERIAL;
+                if ((cmpMask & requirements) == requirements) {
+                    const DrawConstants& drawConstants = registry.drawConstants[entityId];
+                    const Material& material = renderer->materials[registry.materials[entityId]];
+                    const Mesh& mesh = renderer->meshes[registry.meshes[entityId]];
+                    //const TextureSet& textureSet = registry.textures[entityId];
+                    //const GenericMaterialData& materialData = registry.materialData[entityId];
+
+                    /*ID3D11ShaderResourceView* srvs[_countof(textureSet.textures)] = { nullptr };
+                    ID3D11SamplerState* samplers[_countof(textureSet.textures)] = { nullptr };
+                    for (uint16_t i = 0; i < textureSet.numTextures; i++) {
+                        srvs[i] = renderer->textures[textureSet.textures[i]].srv;
+                        samplers[i] = renderer->textures[textureSet.textures[i]].sampler;
+                    }*/
+
+                    ID3D11Buffer* vbuffers[2] = { nullptr };
+                    collectBuffers(mesh, meshAttrRequirements, vbuffers);
+
+                    // Set IAInputLayout
+                    context->IASetVertexBuffers(0, mesh.numPresentAttr, vbuffers, mesh.strides, offsets);
+                    context->IASetIndexBuffer(mesh.indexBuffer.buffer, mapFormatToDXGI(mesh.indexBuffer.format), 0);
+                    context->IASetInputLayout(mesh.inputLayoutHandle);
+
+                    // Set shaders
+                    context->VSSetShader(material.vertexShader, nullptr, 0);
+                    context->PSSetShader(material.pixelShader, nullptr, 0);
+
+                    // Set constant buffers
+                    material.vertexCB.copyToGPU(context, drawConstants);
+
+                    context->VSSetConstantBuffers(1, 1, &material.vertexCB.buffer);
+
+                    //context->PSSetConstantBuffers(1, 1, &material.pixelCB.buffer);
+                    /*context->PSSetShaderResources(0, textureSet.numTextures, srvs);
+                    context->PSSetSamplers(0, textureSet.numTextures, samplers);*/
+
+                    context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+                    context->DrawIndexed(mesh.numIndices, 0, 0);
+                }
+            }
+        };
+        pass.tearDown = [](Renderer* renderer) {
+            ID3D11Buffer* nullVB[Mesh::maxAttrCount] = { nullptr };
+            uint32_t nullStrides[Mesh::maxAttrCount]{ 0 };
+            uint32_t nullOffsets[Mesh::maxAttrCount]{ 0 };
+            renderer->getContext()->IASetVertexBuffers(0, 5, nullVB, nullStrides, nullOffsets);
+        };
+    }
+
+    void addPBRPass(RenderGraph& renderGraph, View* view)
+    {
+        RenderPass& pass = renderGraph.createNewPass();
+        pass.name = L"Mesh Pass";
+        pass.views.push_back(view);
+
+        pass.renderView = [](Renderer* renderer, const View& view) {
+            constexpr uint32_t offsets[Mesh::maxAttrCount] = { 0 };
+            const Scene& scene = *view.scene;
+            const ECSRegistry& registry = scene.registry;
+            ASSERT(view.type == ViewType::Camera);
+            ID3D11DeviceContext* context = renderer->getContext();
+            constexpr uint8_t meshAttrRequirements = MeshAttribute::POSITION | MeshAttribute::NORMAL | MeshAttribute::TEXCOORD;
 
             setConstants(renderer, view);
 
@@ -114,7 +182,7 @@ namespace bdr
                     // Set IAInputLayout
                     context->IASetVertexBuffers(0, mesh.numPresentAttr, vbuffers, mesh.strides, offsets);
                     context->IASetIndexBuffer(mesh.indexBuffer.buffer, mapFormatToDXGI(mesh.indexBuffer.format), 0);
-                    context->IASetInputLayout(renderer->inputLayoutManager[mesh.inputLayoutHandle]);
+                    context->IASetInputLayout(mesh.inputLayoutHandle);
 
                     // Set shaders
                     context->VSSetShader(material.vertexShader, nullptr, 0);

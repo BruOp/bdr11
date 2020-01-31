@@ -3,12 +3,11 @@
 
 using namespace DirectX;
 
+extern void ExitGame();
+
 namespace bdr
 {
-    BaseGame::BaseGame()
-    {
-        g_renderer.deviceResources->RegisterDeviceNotify(this);
-    }
+    LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 
     int BaseGame::run()
     {
@@ -20,7 +19,7 @@ namespace bdr
                 DispatchMessage(&msg);
             }
             else {
-                tick();
+                update();
             }
         }
 
@@ -38,6 +37,8 @@ namespace bdr
     {
         OutputDebugString(L"Starting App!\n");
 
+        renderer.deviceResources->RegisterDeviceNotify(this);
+
         Microsoft::WRL::Wrappers::RoInitializeWrapper InitializeWinRT(RO_INIT_MULTITHREADED);
         ASSERT_SUCCEEDED(InitializeWinRT);
 
@@ -48,10 +49,29 @@ namespace bdr
         window.setUserData(this);
         RECT rc = window.getClientRect();
 
-        g_renderer.setWindow(window, rc.right - rc.left, rc.bottom - rc.top);
+        {
+            renderer.setWindow(window, rc.right - rc.left, rc.bottom - rc.top);
+            renderer.createDeviceResources();
+            renderer.createWindowSizeDependentResources();
+
+            ID3D11Device1* device = renderer.getDevice();
+
+            CD3D11_RASTERIZER_DESC rastDesc{
+                D3D11_FILL_SOLID, D3D11_CULL_BACK, TRUE,
+                D3D11_DEFAULT_DEPTH_BIAS,
+                D3D11_DEFAULT_DEPTH_BIAS_CLAMP,
+                D3D11_DEFAULT_SLOPE_SCALED_DEPTH_BIAS,
+                TRUE, FALSE, TRUE, FALSE,
+            };
+            DX::ThrowIfFailed(device->CreateRasterizerState(&rastDesc, rasterState.ReleaseAndGetAddressOf()));
+            states = std::make_unique<CommonStates>(device);
+            renderer.materials.init(renderer.getDevice());
+        }
+
+        keyboard = std::make_unique<Keyboard>();
+        mouse = std::make_unique<Mouse>();
+        mouse->SetWindow(window);
     }
-
-
 
     void BaseGame::processMessage(UINT message, WPARAM wParam, LPARAM lParam)
     {
@@ -59,11 +79,73 @@ namespace bdr
         Mouse::ProcessMessage(message, wParam, lParam);
     }
 
-    BDRid BaseGame::createScene()
+    void BaseGame::update()
     {
-        BDRid sceneIdx = sceneList.size();
-        sceneList.emplace_back();
-        return sceneIdx;
+        timer.Tick(
+            [&]() {
+                float frameTime = float(timer.GetElapsedSeconds());
+                float totalTime = float(timer.GetTotalSeconds());
+                tick(frameTime, totalTime);
+                render();
+            });
+    }
+
+#pragma region Frame Render
+    void BaseGame::render()
+    {
+        // Don't try to render anything before the first Update.
+        if (timer.GetFrameCount() == 0) {
+            return;
+        }
+
+        clear();
+
+        renderer.deviceResources->PIXBeginEvent(L"Render");
+        auto context = renderer.deviceResources->GetD3DDeviceContext();
+
+        // TODO: Remove this and put it inside the passes.
+        context->OMSetBlendState(states->Opaque(), nullptr, 0xFFFFFFFF);
+        context->OMSetDepthStencilState(states->DepthDefault(), 0);
+        context->RSSetState(rasterState.Get());
+
+        renderGraph.run(&renderer);
+
+        renderer.deviceResources->PIXEndEvent();
+
+        // Show the new frame.
+        renderer.deviceResources->Present();
+    }
+
+    // Helper method to clear the back buffers.
+    void BaseGame::clear()
+    {
+        renderer.deviceResources->PIXBeginEvent(L"Clear");
+
+        // Clear the views.
+        auto context = renderer.deviceResources->GetD3DDeviceContext();
+        auto renderTarget = renderer.deviceResources->GetRenderTargetView();
+        auto depthStencil = renderer.deviceResources->GetDepthStencilView();
+
+        context->ClearRenderTargetView(renderTarget, Colors::Black);
+        context->ClearDepthStencilView(depthStencil, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+        context->OMSetRenderTargets(1, &renderTarget, depthStencil);
+
+        // Set the viewport.
+        auto viewport = renderer.deviceResources->GetScreenViewport();
+        context->RSSetViewports(1, &viewport);
+
+        renderer.deviceResources->PIXEndEvent();
+    }
+#pragma endregion
+
+    void BaseGame::OnDeviceLost()
+    {
+        ASSERT(false, "TODO: Handle device loss and restoration");
+    }
+
+    void BaseGame::OnDeviceRestored()
+    {
+        ASSERT(false, "TODO: Handle device loss and restoration");
     }
 
     void BaseGame::onActivated() { };
@@ -88,7 +170,7 @@ namespace bdr
         switch (message) {
         case WM_PAINT:
             if (s_in_sizemove && game) {
-                game->tick();
+                game->update();
             }
             else {
                 hdc = BeginPaint(hWnd, &ps);
@@ -98,7 +180,7 @@ namespace bdr
 
         case WM_MOVE:
             if (game) {
-                onWindowMove();
+                onWindowMove(game->renderer);
             }
             break;
 
@@ -118,7 +200,7 @@ namespace bdr
                 s_in_suspend = false;
             }
             else if (!s_in_sizemove && game) {
-                onWindowResize(LOWORD(lParam), HIWORD(lParam));
+                onWindowResize(game->renderer, LOWORD(lParam), HIWORD(lParam));
             }
             break;
 
@@ -131,7 +213,7 @@ namespace bdr
             if (game) {
                 RECT rc;
                 GetClientRect(hWnd, &rc);
-                onWindowResize(rc.right - rc.left, rc.bottom - rc.top);
+                onWindowResize(game->renderer, rc.right - rc.left, rc.bottom - rc.top);
             }
             break;
 

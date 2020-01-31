@@ -1,17 +1,15 @@
 #include "pch.h"
 #include "Window.h"
 
-LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
-
 namespace bdr
 {
-    FNRes Window::initialize(_In_ HINSTANCE hInstance, _In_ WNDPROC WndProc, const int width, const int height)
+    FNRes Window::initialize(_In_ HINSTANCE hInstance, _In_ WNDPROC wndProc, const int width, const int height)
     {
         // Register class
         WNDCLASSEXW wcex = {};
         wcex.cbSize = sizeof(WNDCLASSEXW);
         wcex.style = CS_HREDRAW | CS_VREDRAW;
-        wcex.lpfnWndProc = WndProc;
+        wcex.lpfnWndProc = wndProc;
         wcex.hInstance = hInstance;
         wcex.hIcon = LoadIconW(hInstance, L"IDI_ICON");
         wcex.hCursor = LoadCursorW(nullptr, IDC_ARROW);
@@ -26,7 +24,7 @@ namespace bdr
 
         AdjustWindowRect(&rect, WS_OVERLAPPEDWINDOW, FALSE);
 
-        HWND hwnd = CreateWindowExW(0, L"bdrWindowClass", L"BDR Example", WS_OVERLAPPEDWINDOW,
+        hwnd = CreateWindowExW(0, L"bdrWindowClass", L"BDR Example", WS_OVERLAPPEDWINDOW,
             CW_USEDEFAULT, CW_USEDEFAULT, rect.right - rect.left, rect.bottom - rect.top, nullptr, nullptr, hInstance,
             nullptr);
         // TODO: Change to CreateWindowExW(WS_EX_TOPMOST, L"bdrWindowClass", L"bdr_v2", WS_POPUP,

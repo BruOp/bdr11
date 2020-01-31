@@ -22,9 +22,40 @@ namespace bdr
         return createBuffer(device, nullptr, createInfo);
     }
 
-    uint32_t createMesh(Renderer& renderer, const MeshCreationInfo& meshCreationInfo)
+    uint32_t createMesh(Renderer& renderer, const MeshCreationInfo& meshCreateInfo)
     {
-        return static_cast<uint32_t>(renderer.meshes.create());
+        uint32_t meshId = static_cast<uint32_t>(renderer.meshes.create());
+        Mesh& mesh = renderer.meshes[meshId];
+
+        mesh.numIndices = meshCreateInfo.numIndices;
+        mesh.numVertices = meshCreateInfo.numVertices;
+        
+        BufferCreationInfo indexCreateInfo{};
+        indexCreateInfo.numElements = meshCreateInfo.numIndices;
+        indexCreateInfo.usage = BufferUsage::Index;
+        indexCreateInfo.format = meshCreateInfo.indexFormat;
+
+        ID3D11Device* device = renderer.getDevice();
+        mesh.indexBuffer = createBuffer(device, meshCreateInfo.indexData, indexCreateInfo);
+
+        for (size_t i = 0; i < meshCreateInfo.numAttributes; ++i) {
+            BufferCreationInfo createInfo{};
+            createInfo.numElements = meshCreateInfo.numVertices;
+            createInfo.usage = meshCreateInfo.bufferUsages[i];
+            createInfo.format = meshCreateInfo.bufferFormats[i];
+            createInfo.type = BufferType::Default;
+
+            if (createInfo.usage == BufferUsage::Unused) {
+                continue;
+            }
+
+            mesh.vertexBuffers[i] = createBuffer(device, meshCreateInfo.data[i], createInfo);
+            mesh.presentAttributesMask |= meshCreateInfo.attributes[i];
+            mesh.strides[i] = meshCreateInfo.strides[i];
+        }
+        mesh.numPresentAttr = meshCreateInfo.numAttributes;
+        mesh.inputLayoutHandle = renderer.inputLayoutManager.getOrCreateInputLayout(meshCreateInfo);
+        return meshId;
     }
 
     uint32_t getOrCreateBasicMaterial(Renderer& renderer)
@@ -45,7 +76,7 @@ namespace bdr
             }
         }
         else {
-            ERROR("Could not open material file");
+            HALT("Could not open material file");
         }
         shaderFile.close();
 
@@ -89,13 +120,13 @@ namespace bdr
     }
 }
 
-void onWindowResize(int width, int height)
+void onWindowResize(bdr::Renderer& renderer, int width, int height)
 {
     renderer.hasWindowSizeChanged(width, height);
 }
 
-void onWindowMove()
+void onWindowMove(bdr::Renderer& renderer)
 {
-    auto r = renderer.getOutputSize();
+    RECT r = renderer.getOutputSize();
     renderer.hasWindowSizeChanged(r.right, r.bottom);
 }

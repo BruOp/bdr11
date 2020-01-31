@@ -17,30 +17,30 @@ workspace "bdr11"
   configurations {"Debug", "Release"}
   platforms {"x64"}
   startproject "bdr11_lib"
-  cppdialect "C++17"
+  cppdialect "C++14"
   premake.vstudio.toolset = "v142"
+  location "../.build/"
+
+  nuget {
+    "directxtk_desktop_2015:2019.12.17.1"
+  }
 
   filter { "configurations:Debug" }
     symbols "On"
   filter { "configurations:Release" }
-    optimize "On"
-    -- Reset the filter for other settings
+  optimize "On"
+  -- Reset the filter for other settings
   filter { }
 
-  defines { "_WIN64" }
-  targetdir (path.join(BUILD_DIR, "x64" .. _ACTION, "bin"))
-  objdir (path.join(BUILD_DIR, "x64" .. _ACTION, "obj"))
-  libdirs {
-    path.join(_libDir, "lib/win64_" .. _ACTION),
-  }
+  targetdir ("../.build/Bin/%{prj.name}/%{cfg.longname}")
+	objdir ("../.build/Obj/%{prj.name}/%{cfg.longname}")
 
   floatingpoint "fast"
 
   defines {
     "WIN32",
     "_WIN32",
-    "_HAS_ITERATOR_DEBUGGING=0",
-    "_ITERATOR_DEBUG_LEVEL=0",
+    "_WIN64",
     "_SCL_SECURE=0",
     "_SECURE_SCL=0",
     "_SCL_SECURE_NO_WARNINGS",
@@ -65,10 +65,6 @@ BDR_SRC_DIR = path.join(BDR_DIR, "src")
 project("bdr_lib")
   uuid(os.uuid("bdr_lib"))
   kind "StaticLib"
-
-  nuget {
-    "directxtk_desktop_2015:2019.12.17.1"
-  }
 
   files {
     path.join(BDR_SRC_DIR, "Shaders/**.hlsl"),
@@ -103,6 +99,7 @@ project("bdr_lib")
     "oleaut32",
     "odbc32",
     "odbccp32",
+    "runtimeobject",
     "D3DCompiler"
   }
 

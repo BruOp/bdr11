@@ -19,31 +19,31 @@ namespace bdr
             {
                 "POSITION",
                 "SV_Position",
-                MeshAttributes::POSITION,
+                MeshAttribute::POSITION,
                 AttributeInfo::REQUIRED | AttributeInfo::USED_FOR_SKINNING
             },
             {
                 "NORMAL",
                 "NORMAL",
-                MeshAttributes::NORMAL,
+                MeshAttribute::NORMAL,
                 AttributeInfo::REQUIRED | AttributeInfo::USED_FOR_SKINNING
             },
             {
                 "TEXCOORD_0",
                 "TEXCOORD",
-                MeshAttributes::TEXCOORD,
+                MeshAttribute::TEXCOORD,
                 AttributeInfo::REQUIRED
             },
             {
                 "JOINTS_0",
                 "BLENDINDICES",
-                MeshAttributes::BLENDINDICES,
+                MeshAttribute::BLENDINDICES,
                 AttributeInfo::USED_FOR_SKINNING | AttributeInfo::PRESKIN_ONLY
             },
             {
                 "WEIGHTS_0",
                 "BLENDWEIGHT",
-                MeshAttributes::BLENDWEIGHT,
+                MeshAttribute::BLENDWEIGHT,
                 AttributeInfo::USED_FOR_SKINNING | AttributeInfo::PRESKIN_ONLY
             },
 
@@ -75,11 +75,11 @@ namespace bdr
         BufferFormat getFormat(const AttributeInfo& attrInfo, int32_t componentType)
         {
             switch (attrInfo.attrBit) {
-            case MeshAttributes::POSITION:
-            case MeshAttributes::NORMAL:
+            case MeshAttribute::POSITION:
+            case MeshAttribute::NORMAL:
                 return BufferFormat::FLOAT_3;
 
-            case MeshAttributes::TEXCOORD:
+            case MeshAttribute::TEXCOORD:
                 if (componentType == TINYGLTF_COMPONENT_TYPE_FLOAT) {
                     return BufferFormat::FLOAT_2;
                 }
@@ -90,7 +90,7 @@ namespace bdr
                     return BufferFormat::UNORM16_2;
                 }
 
-            case MeshAttributes::BLENDINDICES:
+            case MeshAttribute::BLENDINDICES:
                 if (componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE) {
                     return BufferFormat::UINT8_4;
                 }
@@ -98,7 +98,7 @@ namespace bdr
                     return BufferFormat::UINT16_4;
                 }
 
-            case MeshAttributes::BLENDWEIGHT: // WEIGHTS_0
+            case MeshAttribute::BLENDWEIGHT: // WEIGHTS_0
                 if (componentType == TINYGLTF_COMPONENT_TYPE_FLOAT) {
                     return BufferFormat::FLOAT_4;
                 }
@@ -178,39 +178,6 @@ namespace bdr
             memcpy(dst.data(), &buffer.data.at(accessor.byteOffset + bufferView.byteOffset), accessor.count * getByteSize(accessor));
         }
 
-
-        InputLayoutDetail getInputLayoutDetails(const tinygltf::Accessor& accessor, const AttributeInfo& attrInfo)
-        {
-            // TODO refactor to use new GPUBuffer formats and info
-            InputLayoutDetail detail{};
-            detail.attrMask = attrInfo.attrBit;
-            detail.format = getDXFormat(attrInfo, accessor.componentType);
-            detail.semanticName = attrInfo.semanticName;
-            detail.vectorSize = getPerElementCount(accessor);
-
-            switch (accessor.componentType) {
-            case TINYGLTF_COMPONENT_TYPE_BYTE:
-            case TINYGLTF_COMPONENT_TYPE_SHORT:
-            case TINYGLTF_COMPONENT_TYPE_INT:
-                detail.type = InputLayoutDetail::Type::INT;
-                break;
-            case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE:
-            case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT:
-            case TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT:
-                if (attrInfo.attrBit & MeshAttributes::BLENDINDICES) {
-                    detail.type = InputLayoutDetail::Type::UINT;
-                }
-                else {
-                    detail.type = InputLayoutDetail::Type::FLOAT;
-                }
-                break;
-            default:
-                detail.type = InputLayoutDetail::Type::FLOAT;
-            }
-
-            return detail;
-        };
-
         Transform processTransform(const tinygltf::Node& inputNode)
         {
             Transform transform{};
@@ -282,7 +249,7 @@ namespace bdr
             }
         }
 
-        void processMeshData(SceneData& sceneData, Mesh& mesh, MeshData& meshData, const uint8_t usage, const bool isPreskin = false)
+        void processMeshCreationInfo(SceneData& sceneData, Mesh& mesh, MeshCreationInfo& meshData, const uint8_t usage, const bool isPreskin = false)
         {
             uint8_t numPresentAttr = 0;
             for (size_t i = 0; i < _countof(ATTR_INFO); ++i) {
@@ -316,34 +283,10 @@ namespace bdr
             mesh.numPresentAttr = numPresentAttr;
         }
 
-        uint32_t getInputLayout(SceneData& sceneData, const tinygltf::Primitive& inputPrimitive, const AttributeInfo attrInfos[], const size_t attrInfoCount)
-        {
-            InputLayoutDetail details[Mesh::maxAttrCount] = {};
-            for (size_t i = 0; i < attrInfoCount; ++i) {
-                const AttributeInfo& attrInfo = attrInfos[i];
-                const std::string& attrName = attrInfo.name;
-
-                if (inputPrimitive.attributes.count(attrName) == 0) {
-                    if (attrInfo.flags & AttributeInfo::REQUIRED) {
-                        throw std::runtime_error("Cannot handle meshes without " + attrName);
-                    }
-                    else {
-                        continue;
-                    }
-                }
-
-                int accessorIndex = inputPrimitive.attributes.at(attrName);
-                const tinygltf::Accessor& accessor = sceneData.inputModel->accessors[accessorIndex];
-
-                details[i] = getInputLayoutDetails(accessor, attrInfo);
-            }
-            return sceneData.pRenderer->getInputLayout(details, attrInfoCount);
-        }
-
         uint32_t processPrimitive(SceneData& sceneData, const tinygltf::Primitive& inputPrimitive)
         {
             const tinygltf::Model& inputModel = *sceneData.inputModel;
-            MeshData meshData;
+            MeshCreationInfo meshData;
 
             // Index buffer
             const tinygltf::Accessor& indexAccessor = inputModel.accessors[inputPrimitive.indices];
@@ -355,7 +298,7 @@ namespace bdr
                 const tinygltf::BufferView& bufferView = inputModel.bufferViews[indexAccessor.bufferView];
                 const tinygltf::Buffer& buffer = inputModel.buffers[bufferView.buffer];
                 size_t offset = indexAccessor.byteOffset + bufferView.byteOffset;
-                meshData.p_indices = &buffer.data.at(offset);
+                meshData.indexData = &buffer.data.at(offset);
                 if (indexAccessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE) {
                     meshData.indexFormat = BufferFormat::UINT16;
 
@@ -366,10 +309,10 @@ namespace bdr
                         size_t elementOffset = indexAccessor.byteOffset + bufferView.byteOffset + i;
                         indices[i] = uint16_t(buffer.data.at(elementOffset));
                     }
-                    meshData.p_indices = (uint8_t*)(indices.data());
+                    meshData.indexData = (uint8_t*)(indices.data());
                 }
                 else {
-                    meshData.p_indices = &buffer.data.at(offset);
+                    meshData.indexData = &buffer.data.at(offset);
                     if (indexAccessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT) {
                         meshData.indexFormat = BufferFormat::UINT16;
                     }
@@ -384,6 +327,8 @@ namespace bdr
 
             bool isSkinned = inputPrimitive.attributes.count("JOINTS_0") > 0 && inputPrimitive.attributes.count("WEIGHTS_0") > 0;
 
+            uint8_t preskinUsage[Mesh::maxAttrCount] = { BufferUsage::Unused };
+            size_t attrIdx = 0;
             for (size_t i = 0; i < _countof(ATTR_INFO); ++i) {
                 const AttributeInfo& attrInfo = ATTR_INFO[i];
                 const std::string& attrName = attrInfo.name;
@@ -404,43 +349,40 @@ namespace bdr
                 const size_t offset = accessor.byteOffset + bufferView.byteOffset;
                 ASSERT(bufferView.byteStride == 0, "Cannot handle byte strides for our vertex attributes");
 
-                if (attrInfo.attrBit & MeshAttributes::POSITION) {
+                if (attrInfo.attrBit & MeshAttribute::POSITION) {
                     meshData.numVertices = accessor.count;
                 }
 
-                meshData.data[i] = (uint8_t*)(&buffer.data.at(accessor.byteOffset + bufferView.byteOffset));
-                meshData.strides[i] = getByteSize(accessor);
-                meshData.bufferFormats[i] = getFormat(attrInfo, accessor.componentType);
+                meshData.data[attrIdx] = (uint8_t*)(&buffer.data.at(accessor.byteOffset + bufferView.byteOffset));
+                meshData.bufferFormats[attrIdx] = getFormat(attrInfo, accessor.componentType);
+                meshData.attributes[attrIdx] = attrInfo.attrBit;
+                meshData.strides[attrIdx] = getByteSize(accessor);
+
+                if (attrInfo.flags & AttributeInfo::PRESKIN_ONLY) {
+                    meshData.bufferUsages[attrIdx] = BufferUsage::Unused;
+                    preskinUsage[attrIdx] = BufferUsage::ShaderReadable;
+                }
+                else if (isSkinned && (attrInfo.flags & AttributeInfo::USED_FOR_SKINNING)) {
+                    // If it's used for skinning, then create views for it.
+                    meshData.bufferUsages[attrIdx] = BufferUsage::Vertex | BufferUsage::ComputeWritable;
+                    preskinUsage[attrIdx] = BufferUsage::ShaderReadable;
+                }
+                else {
+                    meshData.bufferUsages[attrIdx] = BufferUsage::Vertex;
+                }
                 meshData.presentAttributesMask |= attrInfo.attrBit;
+                ++attrIdx;
             }
 
-            const uint32_t meshIdx = sceneData.pRenderer->getNewMesh();
-            Mesh& mesh = sceneData.pRenderer->meshes[meshIdx];
-            mesh.numIndices = meshData.numIndices;
-            mesh.numVertices = meshData.numVertices;
-
-            BufferCreationInfo indexCreateInfo{};
-            indexCreateInfo.numElements = meshData.numIndices;
-            indexCreateInfo.usage = BufferUsage::Index;
-            indexCreateInfo.format = meshData.indexFormat;
-
-            GPUBuffer gpuBuffer;
-            gpuBuffer = createBuffer(sceneData.pRenderer->getDevice(), meshData.p_indices, indexCreateInfo);
-            mesh.indexBuffer = gpuBuffer;
-            uint8_t usage = BufferUsage::Vertex | (isSkinned ? BufferUsage::ComputeWritable : 0);
-            processMeshData(sceneData, mesh, meshData, usage, false);
-
-            mesh.inputLayoutHandle = getInputLayout(sceneData, inputPrimitive, genericAttrInfo, mesh.numPresentAttr);
+            const uint32_t meshId = createMesh(*sceneData.pRenderer, meshData);
 
             if (isSkinned) {
-                const uint32_t preskinIdx = sceneData.pRenderer->getNewMesh();
-                Mesh& preskinMesh = sceneData.pRenderer->meshes[preskinIdx];
-                usage = BufferUsage::ShaderReadable;
-                processMeshData(sceneData, preskinMesh, meshData, usage, true);
-
-                sceneData.pRenderer->meshes[meshIdx].preskinMeshIdx = preskinIdx;
+                memcpy(meshData.bufferUsages, preskinUsage, sizeof(preskinUsage[0]) * _countof(preskinUsage));
+                const uint32_t preskinIdx = createMesh(*sceneData.pRenderer, meshData);
+                sceneData.pRenderer->meshes[meshId].preskinMeshIdx = preskinIdx;
             }
-            return meshIdx;
+
+            return meshId;
         }
 
         void processMeshes(SceneData& sceneData)
@@ -662,7 +604,7 @@ namespace bdr
             uint32_t N = sceneData.traversedNodes.size();
             for (size_t nodeIdx = 0; nodeIdx < N; nodeIdx++) {
                 const SceneNode& node = sceneData.traversedNodes[nodeIdx];
-                uint32_t entity = getNewEntity(registry);
+                uint32_t entity = createEntity(registry);
                 // Don't map submeshes
                 if (node.primitiveId < 1) {
                     sceneData.nodeToEntityMap[node.index] = entity;

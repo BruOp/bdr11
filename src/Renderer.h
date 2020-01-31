@@ -15,8 +15,8 @@ namespace bdr
 {
     GPUBuffer createJointBuffer(ID3D11Device* device, const Skin& skin);
 
-    uint32_t createMesh(const MeshCreationInfo& meshCreationInfo);
-    uint32_t createBasicMaterial();
+    uint32_t createMesh(Renderer& renderer, const MeshCreationInfo& meshCreationInfo);
+    uint32_t getOrCreateBasicMaterial(Renderer& renderer);
 
     class Renderer
     {
@@ -82,11 +82,6 @@ namespace bdr
             return idx;
         };
 
-        inline uint32_t getInputLayout(const InputLayoutDetail details[], uint8_t numAttributes)
-        {
-            return inputLayoutManager.getOrCreateInputLayout(details, numAttributes);
-        };
-
         inline ID3D11Device1* getDevice() const
         {
             return deviceResources->GetD3DDevice();
@@ -112,8 +107,6 @@ namespace bdr
     };
 }
 
-extern bdr::Renderer g_renderer{};
-
 // Callbacks for window resize:
-void onWindowResize(int width, int height);
-void onWindowMove();
+void onWindowResize(bdr::Renderer& renderer, int width, int height);
+void onWindowMove(bdr::Renderer& renderer);

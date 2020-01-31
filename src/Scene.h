@@ -17,11 +17,20 @@ namespace bdr
         Scene() = default;
         ~Scene()
         {
-            registry.clearComponentData();
+            reset();
         }
+
 
         UNCOPIABLE(Scene);
         UNMOVABLE(Scene);
+
+        inline void reset()
+        {
+            registry.clearComponentData();
+            skins = std::vector<Skin>();
+            animations = std::vector<Animation>();
+            cameras = std::vector<Camera>();
+        }
 
         inline operator ECSRegistry& ()
         {

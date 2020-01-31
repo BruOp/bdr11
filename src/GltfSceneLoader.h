@@ -28,7 +28,7 @@ namespace bdr
 
             std::string name;
             std::string semanticName;
-            MeshAttributes attrBit;
+            MeshAttribute attrBit;
             uint8_t flags;
         };
 

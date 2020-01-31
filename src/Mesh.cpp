@@ -7,10 +7,8 @@ namespace bdr
     {
         ASSERT((mesh.presentAttributesMask & attrsToSelect) == attrsToSelect, "Mesh does not have requested attributes");
         size_t counter = 0;
-        for (size_t i = 0; i < mesh.maxAttrCount; i++) {
-            if (attrsToSelect & (1 << i)) {
-                outputBuffers[counter++] = mesh.vertexBuffers[i].buffer;
-            }
+        for (size_t i = 0; i < mesh.numPresentAttr; i++) {
+            outputBuffers[counter++] = mesh.vertexBuffers[i].buffer;
         }
     }
 
@@ -36,17 +34,15 @@ namespace bdr
         }
     }
 
-    void addPositionAttribute(MeshCreationInfo& meshCreationInfo, const void* data, const BufferFormat format)
+    void addAttribute(MeshCreationInfo& meshCreationInfo, const void* data, const BufferFormat format, const MeshAttribute attrFlag)
     {
-        constexpr size_t POS_IDX = 0;
-        meshCreationInfo.data[POS_IDX] = (uint8_t*)(data);
-        meshCreationInfo.strides[POS_IDX] = getByteSize(format);
-    }
-
-    void addColorAttribute(MeshCreationInfo& meshCreationInfo, const void* data, const BufferFormat format)
-    {
-        constexpr size_t COLOR_IDX = 5;
-        meshCreationInfo.data[COLOR_IDX] = (uint8_t*)(data);
-        meshCreationInfo.strides[COLOR_IDX] = getByteSize(format);
+        size_t attrIdx = meshCreationInfo.numAttributes;
+        meshCreationInfo.data[attrIdx] = (uint8_t*)(data);
+        meshCreationInfo.bufferFormats[attrIdx] = format;
+        meshCreationInfo.attributes[attrIdx] = attrFlag;
+        meshCreationInfo.bufferUsages[attrIdx] = BufferUsage::Vertex;
+        meshCreationInfo.strides[attrIdx] = getByteSize(format);
+        meshCreationInfo.presentAttributesMask |= attrFlag;
+        ++meshCreationInfo.numAttributes;
     }
 }

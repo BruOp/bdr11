@@ -118,6 +118,6 @@ namespace bdr
         }
         numElements = 0;
         format = BufferFormat::INVALID;
-        usage = BufferUsage::Invalid;
+        usage = BufferUsage::Unused;
     }
 }

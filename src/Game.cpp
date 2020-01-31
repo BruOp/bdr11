@@ -223,7 +223,6 @@ void Game::OnDeviceLost()
 {
     m_rasterState.Reset();
     m_states.reset();
-    m_scene.reset();
     m_renderer.reset();
 }
 

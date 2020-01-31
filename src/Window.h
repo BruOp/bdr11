@@ -1,9 +1,10 @@
 #pragma once
 #include "pch.h"
-#include "entry.h"
 
 namespace bdr
 {
+    class BaseGame;
+
     class Window
     {
     public:

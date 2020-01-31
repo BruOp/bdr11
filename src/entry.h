@@ -1,7 +1,7 @@
 #pragma once
 #include "pch.h"
 
-#include "Window.h"
+#include "./Window.h"
 #include "StepTimer.h"
 #include "Scene.h"
 #include "Renderer.h"
@@ -23,8 +23,6 @@ namespace bdr
     {
     public:
 
-        BaseGame() noexcept(false);
-
         int run();
         virtual void shutdown();
 
@@ -33,11 +31,14 @@ namespace bdr
         virtual void setup() = 0;
 
         // Basic game loop
-        virtual void tick() = 0;
+        virtual void update();
+        virtual void tick(const float frameTime, const float totalTime) = 0;
+        virtual void render();
+        virtual void clear();
 
         // IDeviceNotify
-        virtual void OnDeviceLost() override = 0;
-        virtual void OnDeviceRestored() override = 0;
+        virtual void OnDeviceLost() override;
+        virtual void OnDeviceRestored() override;
 
         // Messages
         virtual void onActivated();
@@ -46,29 +47,30 @@ namespace bdr
         virtual void onResuming();
         void processMessage(UINT message, WPARAM wParam, LPARAM lParam);
 
-        BDRid createScene();
-        inline Scene& getScene(BDRid sceneId)
-        {
-            sceneList[sceneId];
-        };
 
-        AppConfig appConfig;
-    protected:
-
-        virtual void update(DX::StepTimer const& timer);
-        virtual void render();
+        //virtual void render();
 
         // Rendering loop timer.
-        DX::StepTimer m_timer;
-        std::unique_ptr<DirectX::Keyboard> m_keyboard;
-        std::unique_ptr<DirectX::Mouse> m_mouse;
+        AppConfig appConfig;
+        DX::StepTimer timer;
+        std::unique_ptr<DirectX::Keyboard> keyboard;
+        std::unique_ptr<DirectX::Mouse> mouse;
+        Microsoft::WRL::ComPtr<ID3D11RasterizerState> rasterState;
+        std::unique_ptr<DirectX::CommonStates> states = nullptr;
 
-        std::vector<Scene> sceneList;
+        Scene scene;
         Renderer renderer;
         RenderGraph renderGraph;
-        Window window;
+        Window window = Window{};
     };
 }
 
-// Exit helper
-void ExitGame();
+// Taken from BGFX
+#ifndef ENTRY_IMPLEMENT_MAIN
+#define ENTRY_IMPLEMENT_MAIN(_app)  \
+int main()                      \
+{                               \
+		_app app{};             \
+		return app.run();       \
+};
+#endif

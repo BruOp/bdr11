@@ -6,7 +6,8 @@ namespace bdr
 {
     enum class BufferFormat : uint8_t
     {
-        UINT16 = 0,
+        INVALID = 0,
+        UINT16,
         UINT32,
         UNORM8_2,
         UNORM16_2,
@@ -19,12 +20,11 @@ namespace bdr
         FLOAT_4,
 
         STRUCTURED,
-        INVALID = UINT8_MAX
     };
 
     enum BufferUsage : uint8_t
     {
-        Invalid = 0,
+        Unused = 0,
         Vertex = (1 << 0),
         Index = (1 << 1),
         ShaderReadable = (1 << 2),
@@ -63,7 +63,7 @@ namespace bdr
         // elementSize is only used for structured buffers where the DXGI format is unknown
         uint32_t elementSize = 0;
         // How the buffer is going to be used -- e.g. does the CPU need write access? Check BufferUsage
-        uint8_t usage = BufferUsage::Invalid;
+        uint8_t usage = BufferUsage::Unused;
         // The layout of each element -- eg Float_3 or UINT16
         BufferFormat format = BufferFormat::INVALID;
         // Signals whether the buffer is structured, typed, byteAddress or just default (uses the format)
@@ -99,7 +99,7 @@ namespace bdr
             return DXGI_FORMAT_UNKNOWN;
 
         default:
-            throw std::runtime_error("Invalid Format");
+            HALT("Invalid Format");
         }
     }
 

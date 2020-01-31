@@ -30,7 +30,7 @@
 #include <Windows.h>
 
 #include <shellapi.h>
-#include <wrl/client.h>
+#include <wrl.h>
 #include <wrl/wrappers/corewrappers.h>
 
 #include <d3d11_1.h>

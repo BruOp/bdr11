@@ -1,8 +1,11 @@
 #include "pch.h"
+
 #include "entry.h"
 #include "Mesh.h"
+#include "AnimationSystem.h"
 
 using namespace bdr;
+using namespace DirectX;
 using namespace DirectX::SimpleMath;
 
 constexpr float cubePositions[] = {
@@ -28,23 +31,23 @@ constexpr uint32_t cubeColors[] = {
 };
 
 constexpr uint16_t cubeIndices[] = {
-    0, 1, 2,
-    0, 2, 3,
-    2, 1, 5,
-    1, 6, 5,
-    0, 3, 4,
-    0, 4, 7,
-    0, 7, 1,
-    1, 7, 6,
-    3, 2, 4,
-    2, 5, 4,
-    4, 5, 7,
-    5, 6, 7
+    2, 1, 0,
+    3, 2, 0,
+    5, 1, 2,
+    5, 6, 1,
+    4, 3, 0,
+    7, 4, 0,
+    1, 7, 0,
+    6, 7, 1,
+    4, 2, 3,
+    4, 5, 2,
+    7, 5, 4,
+    7, 6, 5
 };
 
-class BasicExample : public BaseGame
+class BasicExample : public bdr::BaseGame
 {
-    virtual void setup()
+    virtual void setup() override
     {
         AppConfig appConfig{
             1280,
@@ -52,31 +55,28 @@ class BasicExample : public BaseGame
         };
         initialize(appConfig);
 
-        sceneId = createScene();
-        Scene& scene = getScene(sceneId);
-
-        Entity entity = createEntity(scene);
+        entity = createEntity(scene);
         Transform transform{};
         //transform.rotation = Quaternion::FromAxisAngle();
         assignTransform(scene, entity, transform);
 
-        constexpr size_t numVerts = _countof(cubePositions);
-        constexpr size_t numIndices = _countof(cubeIndices);
         MeshCreationInfo meshCreationInfo;
+        meshCreationInfo.numVertices = _countof(cubePositions);
+        meshCreationInfo.numIndices = _countof(cubeIndices);
         meshCreationInfo.indexData = (uint8_t*)cubeIndices;
         meshCreationInfo.indexFormat = BufferFormat::UINT16;
-        addPositionAttribute(meshCreationInfo, cubePositions, BufferFormat::FLOAT_3);
-        addColorAttribute(meshCreationInfo, cubeColors, BufferFormat::UINT32);
 
-        BDRid meshHandle = createMesh(meshCreationInfo);
+        addAttribute(meshCreationInfo, cubePositions, BufferFormat::FLOAT_3, MeshAttribute::POSITION);
+        addAttribute(meshCreationInfo, cubeColors, BufferFormat::UNORM8_4, MeshAttribute::COLOR);
+
+        BDRid meshHandle = createMesh(renderer, meshCreationInfo);
         assignMesh(scene, entity, meshHandle);
 
-        BDRid materialId = createBasicMaterial();
+        BDRid materialId = getOrCreateBasicMaterial(renderer);
         assignMaterial(scene, entity, materialId);
 
-        // TODO: Remove reference to g_renderer;
-        float width = float(g_renderer.width);
-        float height = float(g_renderer.height);
+        float width = float(renderer.width);
+        float height = float(renderer.height);
         BDRid cameraId = createPerspectiveCamera(scene, XM_PI / 4.0f, width / height, 0.1f, 100.0f);
         Camera& camera = getCamera(scene, cameraId);
 
@@ -85,33 +85,33 @@ class BasicExample : public BaseGame
         cameraController.radius = 3.0f;
         cameraController.setCamera(&camera);
 
-        View view{};
+        bdr::View& view = renderGraph.createNewView();
         view.name = "Mesh View";
         view.scene = &scene;
         view.setCamera(&camera);
         // Enable mesh pass
-        addBasicPass(renderGraph, view);
+        addBasicPass(renderGraph, &view);
     }
 
-    virtual void tick(const float frameTime, const float totalTime)
+    virtual void tick(const float frameTime, const float totalTime) override
     {
-        Scene& scene = getScene(sceneId);
         // We want to be able to rotate the cube every tick
         Transform& transform = scene.registry.transforms[entity];
         // Will need to figure this out
-        transform.rotation = Quaternion::CreateFromAxisAngle(sin(totalTime));
-
-        update(scene);
+        transform.rotation = Quaternion::CreateFromYawPitchRoll(sinf(totalTime), 0.0f, 0.0f);
+        cameraController.update(keyboard->GetState(), mouse->GetState(), frameTime);
+        updateMatrices(scene.registry);
+        copyDrawData(scene.registry);
         //prepare(scene);
-        render();
     }
 
 private:
     typedef uint32_t Entity;
     typedef uint32_t BDRid;
 
-    Entity entity;
-    BDRid sceneId = UINT32_MAX;
+    Entity entity = UINT32_MAX;
 
     OrbitCameraController cameraController;
 };
+
+ENTRY_IMPLEMENT_MAIN(BasicExample);
