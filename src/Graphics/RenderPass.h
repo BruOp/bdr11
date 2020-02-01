@@ -2,7 +2,7 @@
 #include "pch.h"
 
 #include "DXHelpers.h"
-#include "View.h"
+#include "Game/View.h"
 
 
 namespace bdr

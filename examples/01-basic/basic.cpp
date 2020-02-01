@@ -1,8 +1,8 @@
 #include "pch.h"
 
 #include "entry.h"
-#include "Mesh.h"
-#include "AnimationSystem.h"
+#include "Graphics/Mesh.h"
+#include "Game/AnimationSystem.h"
 
 using namespace bdr;
 using namespace DirectX;

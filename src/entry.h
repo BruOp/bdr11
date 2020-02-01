@@ -1,13 +1,13 @@
 #pragma once
 #include "pch.h"
 
-#include "./Window.h"
+#include "./Core/Window.h"
 #include "StepTimer.h"
-#include "Scene.h"
-#include "Renderer.h"
-#include "Camera.h"
-#include "View.h"
-#include "RenderPass.h"
+#include "Game/Scene.h"
+#include "Game/Camera.h"
+#include "Game/View.h"
+#include "Graphics/Renderer.h"
+#include "Graphics/RenderPass.h"
 
 namespace bdr
 {

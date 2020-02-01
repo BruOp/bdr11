@@ -2,9 +2,8 @@
 #include "pch.h"
 #include <unordered_map>
 
-#include "Mesh.h"
 #include "Scene.h"
-#include "Renderer.h"
+#include "Graphics/Renderer.h"
 
 
 namespace tinygltf

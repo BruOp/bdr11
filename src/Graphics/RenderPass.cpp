@@ -2,8 +2,8 @@
 #include "pch.h"
 
 #include "RenderPass.h"
-#include "Camera.h"
-#include "Scene.h"
+#include "Game/Camera.h"
+#include "Game/Scene.h"
 #include "Renderer.h"
 
 using namespace DirectX::SimpleMath;
@@ -88,12 +88,12 @@ namespace bdr
             const ECSRegistry& registry = scene.registry;
             ASSERT(view.type == ViewType::Camera);
             ID3D11DeviceContext* context = renderer->getContext();
+            const uint32_t requirements = CmpMasks::MESH | CmpMasks::MATERIAL;
 
             setConstants(renderer, view);
 
             for (size_t entityId = 0; entityId < registry.numEntities; ++entityId) {
                 const uint32_t cmpMask = registry.cmpMasks[entityId];
-                const uint32_t requirements = CmpMasks::MESH | CmpMasks::MATERIAL;
                 if ((cmpMask & requirements) == requirements) {
                     const DrawConstants& drawConstants = registry.drawConstants[entityId];
                     const Material& material = renderer->materials[registry.materials[entityId]];

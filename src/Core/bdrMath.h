@@ -4,7 +4,7 @@
 
 namespace bdr
 {
-enum TransformType : uint8_t
+    enum TransformType : uint8_t
     {
         Rotation = 1,
         Translation = 2,

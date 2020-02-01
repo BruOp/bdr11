@@ -1,10 +1,9 @@
 #pragma once
-#include "pch.h"
+#include "../pch.h"
 
 #include <vector>
 #include <array>
 
-#include "DeviceResources.h"
 #include "ECSRegistry.h"
 #include "Animation.h"
 #include "Camera.h"
@@ -19,7 +18,6 @@ namespace bdr
         {
             reset();
         }
-
 
         UNCOPIABLE(Scene);
         UNMOVABLE(Scene);

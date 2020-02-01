@@ -1,7 +1,7 @@
 #pragma once
 #include "pch.h"
 
-#include "bdrMath.h"
+#include "Core/bdrMath.h"
 #include "Animation.h"
 
 namespace bdr
@@ -14,6 +14,7 @@ namespace bdr
         MESH = (1 << 3),
         TRANSFORM = (1 << 4),
         MATERIAL = (1 << 5),
+        TEXTURED = (1 << 6),
     };
 
     template<typename T>

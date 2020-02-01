@@ -2,7 +2,6 @@
 #include "pch.h"
 
 #include "GltfSceneLoader.h"
-#include "GPUBuffer.h"
 
 #define TINYGLTF_IMPLEMENTATION
 #define TINYGLTF_NO_STB_IMAGE

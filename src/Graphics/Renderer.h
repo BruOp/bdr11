@@ -1,14 +1,13 @@
 #pragma once
 #include "pch.h"
 
-#include "Animation.h"
 #include "DeviceResources.h"
 #include "Mesh.h"
 #include "InputLayoutManager.h"
 #include "Material.h"
 #include "GPUBuffer.h"
 #include "Texture.h"
-#include "View.h"
+#include "Game/View.h"
 #include "ResourceManager.h"
 
 namespace bdr

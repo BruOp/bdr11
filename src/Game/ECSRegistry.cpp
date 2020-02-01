@@ -1,7 +1,7 @@
 #include "pch.h"
 
 #include "ECSRegistry.h"
-#include "bdrMemory.h"
+#include "Core/bdrMemory.h"
 
 
 using namespace DirectX::SimpleMath;

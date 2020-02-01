@@ -77,6 +77,7 @@ project("bdr_lib")
   filter {}
 
   includedirs {
+    BDR_SRC_DIR,
     EXTERNAL_DIR,
   }
 

@@ -2,7 +2,7 @@
 #include "pch.h"
 
 #include "DXHelpers.h"
-#include "ECSRegistry.h"
+#include "Game/ECSRegistry.h"
 #include "Mesh.h"
 
 namespace bdr
