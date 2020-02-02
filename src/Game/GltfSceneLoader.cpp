@@ -266,7 +266,7 @@ namespace bdr
 
                 if (!(attrInfo.flags & AttributeInfo::USED_FOR_SKINNING)) {
                     // If it's not used for skinning, then don't create views for it.
-                    createInfo.usage = usage & ~(BufferUsage::ShaderReadable | BufferUsage::ComputeWritable);
+                    createInfo.usage = usage & ~(BufferUsage::SHADER_READABLE | BufferUsage::COMPUTE_WRITABLE);
                 }
                 else {
                     createInfo.usage = usage;
@@ -326,7 +326,7 @@ namespace bdr
 
             bool isSkinned = inputPrimitive.attributes.count("JOINTS_0") > 0 && inputPrimitive.attributes.count("WEIGHTS_0") > 0;
 
-            uint8_t preskinUsage[Mesh::maxAttrCount] = { BufferUsage::Unused };
+            uint8_t preskinUsage[Mesh::maxAttrCount] = { BufferUsage::UNUSED };
             size_t attrIdx = 0;
             for (size_t i = 0; i < _countof(ATTR_INFO); ++i) {
                 const AttributeInfo& attrInfo = ATTR_INFO[i];
@@ -358,16 +358,16 @@ namespace bdr
                 meshData.strides[attrIdx] = getByteSize(accessor);
 
                 if (attrInfo.flags & AttributeInfo::PRESKIN_ONLY) {
-                    meshData.bufferUsages[attrIdx] = BufferUsage::Unused;
-                    preskinUsage[attrIdx] = BufferUsage::ShaderReadable;
+                    meshData.bufferUsages[attrIdx] = BufferUsage::UNUSED;
+                    preskinUsage[attrIdx] = BufferUsage::SHADER_READABLE;
                 }
                 else if (isSkinned && (attrInfo.flags & AttributeInfo::USED_FOR_SKINNING)) {
                     // If it's used for skinning, then create views for it.
-                    meshData.bufferUsages[attrIdx] = BufferUsage::Vertex | BufferUsage::ComputeWritable;
-                    preskinUsage[attrIdx] = BufferUsage::ShaderReadable;
+                    meshData.bufferUsages[attrIdx] = BufferUsage::VERTEX | BufferUsage::COMPUTE_WRITABLE;
+                    preskinUsage[attrIdx] = BufferUsage::SHADER_READABLE;
                 }
                 else {
-                    meshData.bufferUsages[attrIdx] = BufferUsage::Vertex;
+                    meshData.bufferUsages[attrIdx] = BufferUsage::VERTEX;
                 }
                 meshData.presentAttributesMask |= attrInfo.attrBit;
                 ++attrIdx;
@@ -423,7 +423,7 @@ namespace bdr
                 TextureCreationInfo createInfo{};
                 createInfo.dims[0] = image.width;
                 createInfo.dims[1] = image.height;
-                createInfo.usage = BufferUsage::ShaderReadable;
+                createInfo.usage = BufferUsage::SHADER_READABLE;
 
                 uint32_t textureIdx = sceneData.pRenderer->createTextureFromFile(sceneData.fileFolder + image.uri, createInfo);
                 Texture& output = sceneData.pRenderer->textures[textureIdx];
@@ -714,7 +714,11 @@ namespace bdr
             for (size_t i = 0; i < sceneData.inputModel->skins.size(); i++) {
                 const tinygltf::Skin& inputSkin = sceneData.inputModel->skins[i];
                 Skin skin = processSkin(sceneData, inputSkin);
-                GPUBuffer jointBuffer{ createJointBuffer(sceneData.pRenderer->getDevice(), skin) };
+                GPUBuffer jointBuffer{ createStructuredBuffer(
+                    sceneData.pRenderer->getDevice(),
+                    sizeof(skin.inverseBindMatrices[0]),
+                    skin.inverseBindMatrices.size()
+                ) };
                 sceneData.pRenderer->jointBuffers.add(jointBuffer);
                 sceneData.pScene->skins.push_back(std::move(skin));
             }

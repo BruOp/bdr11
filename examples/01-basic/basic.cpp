@@ -92,6 +92,7 @@ class BasicExample : public bdr::BaseGame
         view.setCamera(&camera);
         // Enable mesh pass
         addBasicPass(renderGraph, &view);
+        renderGraph.init(&renderer);
     }
 
     virtual void tick(const float frameTime, const float totalTime) override

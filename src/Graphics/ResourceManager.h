@@ -12,7 +12,7 @@ namespace bdr
         ~ResourceManager()
         {
             for (T& resource : resources) {
-                resource.reset();
+                bdr::reset(resource);
             }
         }
 

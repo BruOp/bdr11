@@ -8,17 +8,16 @@
 #include "d3dcompiler.h"
 
 
-
 namespace bdr
 {
-    GPUBuffer bdr::createJointBuffer(ID3D11Device* device, const Skin& skin)
+    GPUBuffer createStructuredBuffer(ID3D11Device* device, const uint32_t elementSize, const uint32_t numElements)
     {
         BufferCreationInfo createInfo = {};
-        createInfo.elementSize = sizeof(DirectX::SimpleMath::Matrix);
+        createInfo.elementSize = elementSize;
         createInfo.format = BufferFormat::STRUCTURED;
-        createInfo.numElements = skin.inverseBindMatrices.size();
+        createInfo.numElements = numElements;
         createInfo.type = BufferType::Structured;
-        createInfo.usage = BufferUsage::ShaderReadable | BufferUsage::CpuWritable;
+        createInfo.usage = BufferUsage::SHADER_READABLE | BufferUsage::CPU_WRITABLE;
         return createBuffer(device, nullptr, createInfo);
     }
 
@@ -32,7 +31,7 @@ namespace bdr
 
         BufferCreationInfo indexCreateInfo{};
         indexCreateInfo.numElements = meshCreateInfo.numIndices;
-        indexCreateInfo.usage = BufferUsage::Index;
+        indexCreateInfo.usage = BufferUsage::INDEX;
         indexCreateInfo.format = meshCreateInfo.indexFormat;
 
         ID3D11Device* device = renderer.getDevice();
@@ -45,7 +44,7 @@ namespace bdr
             createInfo.format = meshCreateInfo.bufferFormats[i];
             createInfo.type = BufferType::Default;
 
-            if (createInfo.usage == BufferUsage::Unused) {
+            if (createInfo.usage == BufferUsage::UNUSED) {
                 continue;
             }
 

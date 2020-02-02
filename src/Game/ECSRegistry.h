@@ -66,17 +66,6 @@ namespace bdr
         }
     };
 
-    enum TextureFlags : uint16_t
-    {
-        ALBEDO = (1 << 0),
-        NORMAL_MAP = (1 << 1),
-        METALLIC_ROUGHNESS = (1 << 2),
-        OCCLUSION = (1 << 3),
-        EMISSIVE = (1 << 4),
-        DISABLED = (1 << 15),
-        PBR_COMPATIBLE = ALBEDO | NORMAL_MAP | METALLIC_ROUGHNESS
-    };
-
     struct TextureSet
     {
         uint32_t textures[4] = { UINT32_MAX, UINT32_MAX, UINT32_MAX, UINT32_MAX };

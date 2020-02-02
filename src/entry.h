@@ -22,6 +22,7 @@ namespace bdr
     class BaseGame : public DX::IDeviceNotify
     {
     public:
+        BaseGame() = default;
 
         int run();
         virtual void shutdown();

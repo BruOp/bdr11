@@ -7,17 +7,17 @@
 
 namespace bdr
 {
-    void Material::reset()
+    void reset(Material& material)
     {
-        vertexCB.reset();
-        pixelCB.reset();
-        if (vertexShader) {
-            vertexShader->Release();
-            vertexShader = nullptr;
+        /*material.vertexCB.reset();
+        material.pixelCB.reset();*/
+        if (material.vertexShader) {
+            material.vertexShader->Release();
+            material.vertexShader = nullptr;
         }
-        if (pixelShader) {
-            pixelShader->Release();
-            pixelShader = nullptr;
+        if (material.pixelShader) {
+            material.pixelShader->Release();
+            material.pixelShader = nullptr;
         }
     }
 
@@ -31,8 +31,8 @@ namespace bdr
         DX::ThrowIfFailed(pDevice->CreateVertexShader(vsBlob.data(), vsBlob.size(), nullptr, &material.vertexShader));
         DX::ThrowIfFailed(pDevice->CreatePixelShader(psBlob.data(), psBlob.size(), nullptr, &material.pixelShader));
 
-        material.vertexCB.init(pDevice, false);
-        material.pixelCB.init(pDevice, false);
+        /*material.vertexCB.init(pDevice, false);
+        material.pixelCB.init(pDevice, false);*/
 
         materials.push_back(material);
         return materials.size() - 1;
@@ -44,8 +44,8 @@ namespace bdr
         DX::ThrowIfFailed(pDevice->CreateVertexShader(vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), nullptr, &material.vertexShader));
         DX::ThrowIfFailed(pDevice->CreatePixelShader(psBlob->GetBufferPointer(), psBlob->GetBufferSize(), nullptr, &material.pixelShader));
 
-        material.vertexCB.init(pDevice, false);
-        material.pixelCB.init(pDevice, false);
+        /*material.vertexCB.init(pDevice, false);
+        material.pixelCB.init(pDevice, false);*/
 
         materials.push_back(material);
         return materials.size() - 1;

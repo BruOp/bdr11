@@ -21,6 +21,7 @@ namespace bdr
         std::function<void(Renderer * renderer)> render;
         std::function<void(Renderer * renderer, const View & view)> renderView;
         std::function<void(Renderer * renderer)> tearDown;
+        std::function<void()> destroy;
         std::wstring name = L"";
         std::vector<View*> views;
 
@@ -30,7 +31,14 @@ namespace bdr
     class RenderGraph
     {
     public:
+        RenderGraph() = default;
+        ~RenderGraph();
+
+        UNCOPIABLE(RenderGraph);
+        UNMOVABLE(RenderGraph);
+
         void run(Renderer* renderer) const;
+        void init(Renderer* renderer);
 
         RenderPass& createNewPass()
         {

@@ -2,17 +2,16 @@
 #include "pch.h"
 
 #include "DeviceResources.h"
-#include "Mesh.h"
+#include "Resources.h"
 #include "InputLayoutManager.h"
 #include "Material.h"
-#include "GPUBuffer.h"
 #include "Texture.h"
 #include "Game/View.h"
 #include "ResourceManager.h"
 
 namespace bdr
 {
-    GPUBuffer createJointBuffer(ID3D11Device* device, const Skin& skin);
+    GPUBuffer createStructuredBuffer(ID3D11Device* device, const uint32_t elementSize, const uint32_t numElements);
 
     uint32_t createMesh(Renderer& renderer, const MeshCreationInfo& meshCreationInfo);
     uint32_t getOrCreateBasicMaterial(Renderer& renderer);
@@ -77,7 +76,7 @@ namespace bdr
         inline uint32_t createTextureFromFile(const std::string& filePath, const TextureCreationInfo& createInfo)
         {
             uint32_t idx = static_cast<uint32_t>(textures.create());
-            textures[idx] = Texture::createFromFile(deviceResources->GetD3DDevice(), filePath, createInfo);
+            textures[idx] = createFromFile(deviceResources->GetD3DDevice(), filePath, createInfo);
             return idx;
         };
 
@@ -101,6 +100,7 @@ namespace bdr
         ResourceManager<Mesh> meshes;
         ResourceManager<GPUBuffer> jointBuffers;
         ResourceManager<Texture> textures;
+        ResourceManager<GPUBuffer> constantBuffers;
         MaterialManager materials;
         ConstantBuffer<ViewConstants> viewCB;
     };

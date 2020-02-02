@@ -29,7 +29,7 @@ namespace bdr
         uint64_t formats = 0;
         uint8_t bufferNumber = 0;
         for (size_t i = 0; i < meshCreationInfo.numAttributes; ++i) {
-            if (meshCreationInfo.bufferUsages[i] == BufferUsage::Unused) {
+            if (meshCreationInfo.bufferUsages[i] == BufferUsage::UNUSED) {
                 continue;
             }
             attrMask |= meshCreationInfo.attributes[i];
@@ -45,7 +45,7 @@ namespace bdr
         uint8_t bufferNumber = 0;
         std::string elementsStr{};
         for (size_t i = 0; i < meshCreationInfo.numAttributes; ++i) {
-            if (meshCreationInfo.bufferUsages[i] == BufferUsage::Unused) {
+            if (meshCreationInfo.bufferUsages[i] == BufferUsage::UNUSED) {
                 continue;
             }
             // Noticed that all the floating point formats I allow are powers of two.
@@ -104,7 +104,7 @@ float4 main(SimpleVertex vi) : SV_Position \n\
         bufferNumber = 0;
         D3D11_INPUT_ELEMENT_DESC descs[Mesh::maxAttrCount]{};
         for (uint32_t i = 0; i < meshCreationInfo.numAttributes; i++) {
-            if (meshCreationInfo.bufferUsages[i] == BufferUsage::Unused) {
+            if (meshCreationInfo.bufferUsages[i] == BufferUsage::UNUSED) {
                 continue;
             }
             semanticNames[bufferNumber] = getSemanticName(meshCreationInfo.attributes[i]);

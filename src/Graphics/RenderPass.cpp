@@ -81,8 +81,20 @@ namespace bdr
         RenderPass& pass = renderGraph.createNewPass();
         pass.name = L"Mesh Pass";
         pass.views.push_back(view);
+        //GPUBuffer vertexCB{};
+        static ConstantBuffer<DrawConstants> vertexCB{};
 
-        pass.renderView = [](Renderer* renderer, const View& view) {
+        pass.setup = [&](Renderer* renderer) {
+            /*    BufferCreationInfo bufferCreateInfo{};
+                bufferCreateInfo.format = BufferFormat::FLOAT_4;
+                bufferCreateInfo.numElements = 16;
+                bufferCreateInfo.type = BufferType::Default;
+                bufferCreateInfo.usage = BufferUsage::Constant;
+                vertexCB = createBuffer(renderer->getDevice(), nullptr, bufferCreateInfo);*/
+            vertexCB.init(renderer->getDevice(), false);
+        };
+
+        pass.renderView = [&](Renderer* renderer, const View& view) {
             constexpr uint32_t offsets[Mesh::maxAttrCount] = { 0 };
             const Scene& scene = *view.scene;
             const ECSRegistry& registry = scene.registry;
@@ -112,9 +124,9 @@ namespace bdr
                     context->PSSetShader(material.pixelShader, nullptr, 0);
 
                     // Set constant buffers
-                    material.vertexCB.copyToGPU(context, drawConstants);
+                    vertexCB.copyToGPU(context, drawConstants);
 
-                    context->VSSetConstantBuffers(1, 1, &material.vertexCB.buffer);
+                    context->VSSetConstantBuffers(1, 1, &vertexCB.buffer);
                     context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
                     context->DrawIndexed(mesh.numIndices, 0, 0);
                 }
@@ -125,6 +137,9 @@ namespace bdr
             uint32_t nullStrides[Mesh::maxAttrCount]{ 0 };
             uint32_t nullOffsets[Mesh::maxAttrCount]{ 0 };
             renderer->getContext()->IASetVertexBuffers(0, 5, nullVB, nullStrides, nullOffsets);
+        };
+        pass.destroy = [&]() {
+            vertexCB.reset();
         };
     }
 
@@ -174,13 +189,13 @@ namespace bdr
                     context->PSSetShader(material.pixelShader, nullptr, 0);
 
                     // Set constant buffers
-                    material.vertexCB.copyToGPU(context, drawConstants);
-                    material.pixelCB.copyToGPU(context, materialData);
+                    /*material.vertexCB.copyToGPU(context, drawConstants);
+                    material.pixelCB.copyToGPU(context, materialData);*/
 
-                    ID3D11Buffer* vsBuffers[] = { material.vertexCB };
-                    context->VSSetConstantBuffers(1, 1, vsBuffers);
+                    //ID3D11Buffer* vsBuffers[] = { material.vertexCB };
+                    //context->VSSetConstantBuffers(1, 1, vsBuffers);
 
-                    context->PSSetConstantBuffers(1, 1, &material.pixelCB.buffer);
+                    /*context->PSSetConstantBuffers(1, 1, &material.pixelCB.buffer);*/
                     context->PSSetShaderResources(0, textureSet.numTextures, srvs);
                     context->PSSetSamplers(0, textureSet.numTextures, samplers);
 
@@ -197,14 +212,19 @@ namespace bdr
         };
     }
 
+    RenderGraph::~RenderGraph()
+    {
+        for (const RenderPass& renderPass : renderPasses) {
+            if (renderPass.destroy) {
+                renderPass.destroy();
+            }
+        }
+    }
+
     void RenderGraph::run(Renderer* renderer) const
     {
         for (const RenderPass& renderPass : renderPasses) {
             renderer->deviceResources->PIXBeginEvent(renderPass.name.c_str());
-
-            if (renderPass.setup) {
-                renderPass.setup(renderer);
-            }
 
             if (renderPass.views.size() > 0) {
                 for (const View* view : renderPass.views) {
@@ -219,6 +239,16 @@ namespace bdr
                 renderPass.tearDown(renderer);
             }
             renderer->deviceResources->PIXEndEvent();
+        }
+    }
+
+    void RenderGraph::init(Renderer* renderer)
+    {
+        for (const RenderPass& renderPass : renderPasses) {
+
+            if (renderPass.setup) {
+                renderPass.setup(renderer);
+            }
         }
     }
 }

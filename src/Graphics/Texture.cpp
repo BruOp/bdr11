@@ -6,29 +6,43 @@ using namespace DirectX;
 
 namespace bdr
 {
-    void Texture::reset()
-    { }
+    void reset(Texture& texture)
+    {
+        if (texture.texture) {
+            texture.texture->Release();
+        }
+        if (texture.uav) {
+            texture.uav->Release();
+        }
+        if (texture.srv) {
+            texture.srv->Release();
+        }
+        if (texture.sampler) {
+            texture.sampler->Release();
+        }
+        texture = Texture{};
+    }
 
 
-    Texture Texture::createFromFile(ID3D11Device* pDevice, const std::string& fileName, const TextureCreationInfo& createInfo)
+    Texture createFromFile(ID3D11Device* pDevice, const std::string& fileName, const TextureCreationInfo& createInfo)
     {
         BufferUsage usage = static_cast<BufferUsage>(createInfo.usage);
         uint32_t d3dBindFlags = 0;
         uint32_t cpuAccess = 0;
         D3D11_USAGE d3dUsage = D3D11_USAGE_IMMUTABLE;
-        if (usage & BufferUsage::CpuWritable) {
-            ASSERT(!(usage & BufferUsage::ComputeWritable), "Cannot write using both Compute and CPU");
+        if (usage & BufferUsage::CPU_WRITABLE) {
+            ASSERT(!(usage & BufferUsage::COMPUTE_WRITABLE), "Cannot write using both Compute and CPU");
             d3dUsage = D3D11_USAGE_DYNAMIC;
             cpuAccess = D3D11_CPU_ACCESS_WRITE;
         }
-        else if (usage & BufferUsage::ComputeWritable) {
+        else if (usage & BufferUsage::COMPUTE_WRITABLE) {
             d3dUsage = D3D11_USAGE_DEFAULT;
         }
 
-        if (usage & BufferUsage::ShaderReadable) {
+        if (usage & BufferUsage::SHADER_READABLE) {
             d3dBindFlags |= D3D11_BIND_SHADER_RESOURCE;
         }
-        if (usage & BufferUsage::ComputeWritable) {
+        if (usage & BufferUsage::COMPUTE_WRITABLE) {
             d3dBindFlags |= D3D11_BIND_UNORDERED_ACCESS;
         }
 

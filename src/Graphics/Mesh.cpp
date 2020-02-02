@@ -3,7 +3,6 @@
 
 namespace bdr
 {
-    // 
     size_t getAttributeOrder(MeshAttribute attrBit)
     {
         if (attrBit & bdr::POSITION) {
@@ -25,6 +24,16 @@ namespace bdr
             return 5;
         }
         HALT("Invalid Attribute");
+    }
+
+    void reset(Mesh& mesh)
+    {
+        for (auto& vertexBuffer : mesh.vertexBuffers) {
+            reset(vertexBuffer);
+        }
+        reset(mesh.indexBuffer);
+        mesh.numIndices = 0;
+        mesh.numVertices = 0;
     }
 
     void collectBuffers(const Mesh& mesh, const uint8_t attrsToSelect, ID3D11Buffer* outputBuffers[])
@@ -95,7 +104,7 @@ namespace bdr
         meshCreationInfo.data[attrIdx] = (uint8_t*)(data);
         meshCreationInfo.bufferFormats[attrIdx] = format;
         meshCreationInfo.attributes[attrIdx] = attrFlag;
-        meshCreationInfo.bufferUsages[attrIdx] = BufferUsage::Vertex;
+        meshCreationInfo.bufferUsages[attrIdx] = BufferUsage::VERTEX;
         meshCreationInfo.strides[attrIdx] = getByteSize(format);
         meshCreationInfo.presentAttributesMask |= attrFlag;
         ++meshCreationInfo.numAttributes;
