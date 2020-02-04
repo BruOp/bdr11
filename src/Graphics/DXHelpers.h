@@ -3,6 +3,7 @@
 
 namespace bdr
 {
+    // TODO: Either move this to resources or abandon it...
     template<typename T>
     class ConstantBuffer
     {

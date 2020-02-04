@@ -1,5 +1,7 @@
 #pragma once
 #include "pch.h"
+#include "Graphics/DXHelpers.h"
+
 
 namespace bdr
 {
@@ -29,6 +31,7 @@ namespace bdr
         std::string name = "";
         Scene* scene = nullptr;
         ViewType type = ViewType::Unknown;
+        ConstantBuffer<ViewConstants> viewCB;
 
         inline Camera const* getCamera() const
         {
@@ -47,6 +50,8 @@ namespace bdr
         {
             Camera const* camera;
         } perspectiveProvider = { nullptr };
+
+
     };
 
     void setConstants(Renderer* renderer, const View& view);

@@ -4,12 +4,12 @@
 #include "RenderPass.h"
 #include "Game/Camera.h"
 #include "Game/Scene.h"
-#include "Renderer.h"
+#include "Graphics/Renderer.h"
 
 
 namespace bdr
 {
-    void addSkinningPass(RenderGraph& renderGraph, View* view)
+    void addSkinningPass(RenderSystem& renderGraph, View* view)
     {
         RenderPass& pass = renderGraph.createNewPass();
         pass.name = L"Skinning Pass";
@@ -75,7 +75,7 @@ namespace bdr
     }
 
 
-    void addBasicPass(RenderGraph& renderGraph, View* view)
+    void addBasicPass(RenderSystem& renderGraph, View* view)
     {
         RenderPass& pass = renderGraph.createNewPass();
         pass.name = L"Mesh Pass";
@@ -142,7 +142,7 @@ namespace bdr
         };
     }
 
-    void addPBRPass(RenderGraph& renderGraph, View* view)
+    void addPBRPass(RenderSystem& renderGraph, View* view)
     {
         RenderPass& pass = renderGraph.createNewPass();
         pass.name = L"Mesh Pass";
@@ -211,16 +211,19 @@ namespace bdr
         };
     }
 
-    RenderGraph::~RenderGraph()
+    RenderSystem::~RenderSystem()
     {
-        for (const RenderPass& renderPass : renderPasses) {
+        for (RenderPass& renderPass : renderPasses) {
             if (renderPass.destroy) {
                 renderPass.destroy();
             }
         }
+        for (View& view : views) {
+            view.viewCB.reset();
+        }
     }
 
-    void RenderGraph::run(Renderer* renderer) const
+    void RenderSystem::run(Renderer* renderer) const
     {
         for (const RenderPass& renderPass : renderPasses) {
             renderer->deviceResources->PIXBeginEvent(renderPass.name.c_str());
@@ -241,13 +244,16 @@ namespace bdr
         }
     }
 
-    void RenderGraph::init(Renderer* renderer)
+    void RenderSystem::init(Renderer* renderer)
     {
+        ID3D11Device* device = renderer->getDevice();
         for (const RenderPass& renderPass : renderPasses) {
-
             if (renderPass.setup) {
                 renderPass.setup(renderer);
             }
+        }
+        for (View& view : views) {
+            view.viewCB.init(device);
         }
     }
 }

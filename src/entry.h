@@ -5,9 +5,9 @@
 #include "StepTimer.h"
 #include "Game/Scene.h"
 #include "Game/Camera.h"
-#include "Game/View.h"
 #include "Graphics/Renderer.h"
-#include "Graphics/RenderPass.h"
+#include "RenderSystems/View.h"
+#include "RenderSystems/RenderPass.h"
 
 namespace bdr
 {
@@ -63,7 +63,7 @@ namespace bdr
 
         Scene scene;
         Renderer renderer;
-        RenderGraph renderGraph;
+        RenderSystem renderGraph;
         Window window = Window{};
     };
 }

@@ -6,16 +6,10 @@
 #include "InputLayoutManager.h"
 #include "Material.h"
 #include "Texture.h"
-#include "Game/View.h"
 #include "ResourceManager.h"
 
 namespace bdr
 {
-    GPUBuffer createStructuredBuffer(ID3D11Device* device, const uint32_t elementSize, const uint32_t numElements);
-
-    uint32_t createMesh(Renderer& renderer, const MeshCreationInfo& meshCreationInfo);
-    uint32_t getOrCreateBasicMaterial(Renderer& renderer);
-
     class Renderer
     {
     public:
@@ -34,7 +28,6 @@ namespace bdr
 
         void reset()
         {
-            viewCB.reset();
             inputLayoutManager.reset();
             materials.reset();
         }
@@ -65,7 +58,6 @@ namespace bdr
         {
             deviceResources->CreateDeviceResources();
             inputLayoutManager.init(deviceResources->GetD3DDevice());
-            viewCB.init(deviceResources->GetD3DDevice(), false);
         };
 
         inline void createWindowSizeDependentResources()
@@ -102,8 +94,13 @@ namespace bdr
         ResourceManager<Texture> textures;
         ResourceManager<GPUBuffer> constantBuffers;
         MaterialManager materials;
-        ConstantBuffer<ViewConstants> viewCB;
     };
+
+    GPUBuffer createStructuredBuffer(ID3D11Device* device, const uint32_t elementSize, const uint32_t numElements);
+
+    uint32_t createMesh(Renderer& renderer, const MeshCreationInfo& meshCreationInfo);
+    uint32_t getOrCreateBasicMaterial(Renderer& renderer);
+
 }
 
 // Callbacks for window resize:

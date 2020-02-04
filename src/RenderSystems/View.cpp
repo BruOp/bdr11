@@ -1,7 +1,7 @@
 #include "pch.h"
 
 #include "View.h"
-#include "Camera.h"
+#include "Game/Camera.h"
 #include "Graphics/Renderer.h"
 
 
@@ -27,9 +27,9 @@ namespace bdr
             // Since we've transposed the matrices
             viewConstants.VP = viewConstants.perspectiveTransform * viewConstants.viewTransform;
             viewConstants.cameraPos = math::getTranslation(camera->invView);
-            renderer->viewCB.copyToGPU(context, viewConstants);
-            context->VSSetConstantBuffers(0u, 1u, &renderer->viewCB.buffer);
-            context->PSSetConstantBuffers(0u, 1u, &renderer->viewCB.buffer);
+            view.viewCB.copyToGPU(context, viewConstants);
+            context->VSSetConstantBuffers(0u, 1u, &view.viewCB.buffer);
+            context->PSSetConstantBuffers(0u, 1u, &view.viewCB.buffer);
         }
         else if (view.type == ViewType::Light) {
             // TODO;

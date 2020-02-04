@@ -1,9 +1,9 @@
 #pragma once
 #include "pch.h"
 
-#include "DXHelpers.h"
-#include "Game/View.h"
 #include <functional>
+
+#include "View.h"
 
 
 namespace bdr
@@ -29,14 +29,14 @@ namespace bdr
     };
 
     // Note: not a real frame/render graph just yet
-    class RenderGraph
+    class RenderSystem
     {
     public:
-        RenderGraph() = default;
-        ~RenderGraph();
+        RenderSystem() = default;
+        ~RenderSystem();
 
-        UNCOPIABLE(RenderGraph);
-        UNMOVABLE(RenderGraph);
+        UNCOPIABLE(RenderSystem);
+        UNMOVABLE(RenderSystem);
 
         void run(Renderer* renderer) const;
         void init(Renderer* renderer);
@@ -60,7 +60,7 @@ namespace bdr
         std::vector<RenderPass> renderPasses;
     };
 
-    void addSkinningPass(RenderGraph& renderGraph, View* view);
-    void addBasicPass(RenderGraph& renderGraph, View* view);
+    void addSkinningPass(RenderSystem& renderGraph, View* view);
+    void addBasicPass(RenderSystem& renderGraph, View* view);
 }
 
