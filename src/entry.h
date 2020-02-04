@@ -59,6 +59,8 @@ namespace bdr
         Microsoft::WRL::ComPtr<ID3D11RasterizerState> rasterState;
         std::unique_ptr<DirectX::CommonStates> states = nullptr;
 
+        ID3D11DepthStencilState* depthState;
+
         Scene scene;
         Renderer renderer;
         RenderGraph renderGraph;

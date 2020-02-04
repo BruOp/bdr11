@@ -21,7 +21,7 @@ namespace bdr
             return glm::column(transform, 3);
         }
 
-        glm::mat4 perspective(const float fov, const float aspectRatio, const float _near, const float _far);
+        glm::mat4 perspective(const float fov, const float width, const float height, const float _near, const float _far);
     }
 
     enum TransformType : uint8_t

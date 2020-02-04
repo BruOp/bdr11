@@ -65,6 +65,12 @@ namespace bdr
             };
             DX::ThrowIfFailed(device->CreateRasterizerState(&rastDesc, rasterState.ReleaseAndGetAddressOf()));
             states = std::make_unique<CommonStates>(device);
+            CD3D11_DEFAULT def;
+            CD3D11_DEPTH_STENCIL_DESC depthDesc = CD3D11_DEPTH_STENCIL_DESC(def);
+            depthDesc.DepthFunc = D3D11_COMPARISON_GREATER;
+
+            device->CreateDepthStencilState(&depthDesc, &depthState);
+
             renderer.materials.init(renderer.getDevice());
         }
 
@@ -105,7 +111,7 @@ namespace bdr
 
         // TODO: Remove this and put it inside the passes.
         context->OMSetBlendState(states->Opaque(), nullptr, 0xFFFFFFFF);
-        context->OMSetDepthStencilState(states->DepthDefault(), 0);
+        context->OMSetDepthStencilState(depthState, 0);
         context->RSSetState(rasterState.Get());
 
         renderGraph.run(&renderer);
@@ -127,7 +133,7 @@ namespace bdr
         auto depthStencil = renderer.deviceResources->GetDepthStencilView();
 
         context->ClearRenderTargetView(renderTarget, Colors::Black);
-        context->ClearDepthStencilView(depthStencil, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+        context->ClearDepthStencilView(depthStencil, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 0.0f, 0);
         context->OMSetRenderTargets(1, &renderTarget, depthStencil);
 
         // Set the viewport.

@@ -43,5 +43,5 @@ namespace bdr
 
     Camera& getCamera(Scene& scene, const uint32_t cameraId);
 
-    uint32_t createPerspectiveCamera(Scene& scene, float fov, float aspectRatio, float _near, float _far);
+    uint32_t createPerspectiveCamera(Scene& scene, float fov, float width, float height, float _near, float _far);
 }

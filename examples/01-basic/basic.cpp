@@ -76,7 +76,7 @@ class BasicExample : public bdr::BaseGame
 
         float width = float(renderer.width);
         float height = float(renderer.height);
-        BDRid cameraId = createPerspectiveCamera(scene, XM_PI / 4.0f, width / height, 0.1f, 100.0f);
+        BDRid cameraId = createPerspectiveCamera(scene, XM_PI / 4.0f, width, height, 0.1f, 100.0f);
         Camera& camera = getCamera(scene, cameraId);
 
         cameraController.pitch = XM_PIDIV4;
