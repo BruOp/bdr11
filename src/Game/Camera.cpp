@@ -3,7 +3,6 @@
 
 
 using namespace DirectX;
-using namespace DirectX::SimpleMath;
 
 using ButtonState = DirectX::Mouse::ButtonStateTracker::ButtonState;
 
@@ -38,9 +37,9 @@ namespace bdr
                 pitch += deltaTime * pitchSensitivity * mouseState.y;
             }
             if (mouseState.rightButton) {
-                Vector3 right = camera->view.Transpose().Right();
+                glm::vec3 right = math::getRight(camera->view);
                 origin += deltaTime * mouseState.x * right;
-                origin += deltaTime * mouseState.y * right.Cross(Vector3::Up);
+                origin += deltaTime * mouseState.y * glm::cross(right, math::up);
             }
         }
 
@@ -50,26 +49,26 @@ namespace bdr
         radius = std::max(radius, radiusLimit);
 
         constexpr float pitchLimit = 0.1f;
-        pitch = std::min(std::max(pitch, pitchLimit), XM_PI - pitchLimit);
-        if (yaw > XM_PI) {
-            yaw -= XM_2PI;
+        pitch = std::min(std::max(pitch, pitchLimit), math::PI - pitchLimit);
+        if (yaw > math::PI) {
+            yaw -= math::TWO_PI;
         }
-        else if (yaw < -XM_PI) {
-            yaw += XM_2PI;
+        else if (yaw < -math::PI) {
+            yaw += math::TWO_PI;
         }
 
-        Vector3 posOnSphere = {
+        glm::vec3 posOnSphere = {
             sinf(pitch) * cosf(yaw),
             cosf(pitch),
             sinf(pitch) * sinf(yaw),
         };
         posOnSphere *= radius;
-        setCameraView(*camera, Matrix::CreateLookAt(posOnSphere + origin, origin, Vector3::UnitY));
+        setCameraView(*camera, glm::lookAt(posOnSphere + origin, origin, math::up));
     }
 
-    void setCameraView(Camera& camera, const DirectX::SimpleMath::Matrix& view)
+    void setCameraView(Camera& camera, const glm::mat4& view)
     {
         camera.view = view;
-        view.Invert(camera.invView);
+        camera.invView = glm::inverse(camera.view);
     }
 }

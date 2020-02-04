@@ -6,7 +6,6 @@
 #include "Game/Scene.h"
 #include "Renderer.h"
 
-using namespace DirectX::SimpleMath;
 
 namespace bdr
 {
@@ -36,18 +35,18 @@ namespace bdr
                     ASSERT(mesh.preskinMeshIdx != UINT32_MAX, "Skinned meshes must have preskinned mesh");
                     Mesh& preskin = renderer->meshes[mesh.preskinMeshIdx];
                     GPUBuffer& jointBuffer = renderer->jointBuffers[registry.jointBuffer[entityId]];
-                    std::vector<Matrix> jointMatrices(skin.inverseBindMatrices.size());
-                    const Matrix invModel{ registry.globalMatrices[entityId].Invert() };
+                    std::vector<glm::mat4> jointMatrices(skin.inverseBindMatrices.size());
+                    const glm::mat4 invModel{ glm::inverse(registry.globalMatrices[entityId]) };
 
                     for (size_t joint = 0; joint < jointMatrices.size(); ++joint) {
                         uint32_t jointEntity = skin.jointEntities[joint];
-                        jointMatrices[joint] = (skin.inverseBindMatrices[joint] * registry.globalMatrices[jointEntity] * invModel).Transpose();
+                        jointMatrices[joint] = skin.inverseBindMatrices[joint] * registry.globalMatrices[jointEntity] * invModel;
                     }
 
                     ASSERT(jointBuffer.buffer != nullptr);
                     D3D11_MAPPED_SUBRESOURCE mappedResource;
                     DX::ThrowIfFailed(context->Map(jointBuffer.buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource));
-                    CopyMemory(mappedResource.pData, jointMatrices.data(), sizeof(Matrix) * jointMatrices.size());
+                    CopyMemory(mappedResource.pData, jointMatrices.data(), sizeof(glm::mat4) * jointMatrices.size());
                     context->Unmap(jointBuffer.buffer, 0);
 
                     ID3D11ShaderResourceView* srvs[4u] = { nullptr };

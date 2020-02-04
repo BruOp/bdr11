@@ -46,7 +46,7 @@ struct PSInput
 VSOutput VSMain(in VSInput input)
 {
     VSOutput output;
-    output.PositionCS = mul(mul(float4(input.Position, 1.0f), model), VP);
+    output.PositionCS = mul(VP, mul(model, float4(input.Position, 1.0f)));
 
     output.Color = input.Color;
     return output;

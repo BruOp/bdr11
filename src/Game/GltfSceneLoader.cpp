@@ -9,7 +9,6 @@
 #include "tinygltf/tiny_gltf.h"
 
 
-using namespace DirectX::SimpleMath;
 namespace bdr
 {
     namespace gltf
@@ -181,7 +180,7 @@ namespace bdr
         {
             Transform transform{};
             if (inputNode.scale.size() == 3) {
-                transform.scale = Vector3{
+                transform.scale = glm::vec3{
                     static_cast<float>(inputNode.scale[0]),
                     static_cast<float>(inputNode.scale[1]),
                     static_cast<float>(inputNode.scale[2]),
@@ -190,7 +189,7 @@ namespace bdr
             }
 
             if (inputNode.rotation.size() == 4) {
-                transform.rotation = Quaternion{
+                transform.rotation = glm::quat{
                     static_cast<float>(inputNode.rotation[0]),
                     static_cast<float>(inputNode.rotation[1]),
                     static_cast<float>(inputNode.rotation[2]),
@@ -200,7 +199,7 @@ namespace bdr
             }
 
             if (inputNode.translation.size() == 3) {
-                transform.translation = Vector3{
+                transform.translation = glm::vec3{
                     static_cast<float>(inputNode.translation[0]),
                     static_cast<float>(inputNode.translation[1]),
                     static_cast<float>(inputNode.translation[2]),
@@ -468,7 +467,7 @@ namespace bdr
         {
             Skin skin{
                 std::vector<uint32_t>(inputSkin.joints.size()),
-                std::vector<Matrix>(inputSkin.joints.size()),
+                std::vector<glm::mat4>(inputSkin.joints.size()),
             };
 
             for (size_t i = 0; i < skin.jointEntities.size(); ++i) {
@@ -521,15 +520,15 @@ namespace bdr
                 const tinygltf::AnimationSampler& inputSampler = animation.samplers[inputChannel.sampler];
 
                 if (inputChannel.target_path.compare("scale") == 0) {
-                    auto channel{ processChannel<Animation::ScaleChannel, Vector3>(sceneData, inputChannel, inputSampler) };
+                    auto channel{ processChannel<Animation::ScaleChannel, glm::vec3>(sceneData, inputChannel, inputSampler) };
                     addScaleChannel(output, std::move(channel));
                 }
                 else if (inputChannel.target_path.compare("rotation") == 0) {
-                    auto channel{ processChannel<Animation::RotationChannel, Vector4>(sceneData, inputChannel, inputSampler) };
+                    auto channel{ processChannel<Animation::RotationChannel, glm::quat>(sceneData, inputChannel, inputSampler) };
                     addRotationChannel(output, std::move(channel));
                 }
                 else if (inputChannel.target_path.compare("translation") == 0) {
-                    auto channel{ processChannel<Animation::TranslationChannel, Vector3>(sceneData, inputChannel, inputSampler) };
+                    auto channel{ processChannel<Animation::TranslationChannel, glm::vec3>(sceneData, inputChannel, inputSampler) };
                     addTranslationChannel(output, std::move(channel));
                 }
                 else {

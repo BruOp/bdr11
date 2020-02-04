@@ -21,12 +21,12 @@ namespace bdr
         if (view.type == ViewType::Camera) {
             const Camera* camera = view.getCamera();
             ViewConstants viewConstants{
-                camera->view.Transpose(),
-                camera->projection.Transpose(),
+                camera->view,
+                camera->projection,
             };
             // Since we've transposed the matrices
             viewConstants.VP = viewConstants.perspectiveTransform * viewConstants.viewTransform;
-            viewConstants.cameraPos = camera->invView.Translation();
+            viewConstants.cameraPos = math::getTranslation(camera->invView);
             renderer->viewCB.copyToGPU(context, viewConstants);
             context->VSSetConstantBuffers(0u, 1u, &renderer->viewCB.buffer);
             context->PSSetConstantBuffers(0u, 1u, &renderer->viewCB.buffer);

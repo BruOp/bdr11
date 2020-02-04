@@ -23,7 +23,9 @@ namespace bdr
         else if (attrBit & bdr::COLOR) {
             return 5;
         }
-        HALT("Invalid Attribute");
+        else {
+            HALT("Invalid Attribute");
+        }
     }
 
     void reset(Mesh& mesh)

@@ -7,9 +7,9 @@ namespace bdr
 {
     struct Camera
     {
-        DirectX::SimpleMath::Matrix view;
-        DirectX::SimpleMath::Matrix invView;
-        DirectX::SimpleMath::Matrix projection;
+        glm::mat4 view;
+        glm::mat4 invView;
+        glm::mat4 projection;
     };
 
     class ICameraController
@@ -28,15 +28,15 @@ namespace bdr
         float yawSensitivity = 0.75f;
         float pitchSensitivity = 0.5f;
         float zoomSensitivity = 0.1f;
-        float pitch = DirectX::XM_PIDIV2;
-        float yaw = DirectX::XM_PIDIV2;
+        float pitch = math::HALF_PI;
+        float yaw = math::HALF_PI;
         float radius = 1.0f;
-        DirectX::SimpleMath::Vector3 origin;
+        glm::vec3 origin;
     private:
         Camera* camera = nullptr;
         DirectX::Mouse::ButtonStateTracker tracker;
     };
 
-    void setCameraView(Camera& camera, const DirectX::SimpleMath::Matrix& view);
+    void setCameraView(Camera& camera, const glm::mat4& view);
 }
 

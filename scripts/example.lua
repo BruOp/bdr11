@@ -21,6 +21,7 @@ function exampleProject(...)
     debugdir(RUNTIME_DIR)
 
     includedirs {
+      EXTERNAL_DIR,
       path.join(BDR_DIR, "src"),
     }
 

@@ -48,8 +48,8 @@ namespace bdr
 
     struct DrawConstants
     {
-        DirectX::SimpleMath::Matrix model;
-        DirectX::SimpleMath::Matrix invModel;
+        glm::mat4 model;
+        glm::mat4 invModel;
     };
 
     struct GenericMaterialData
@@ -105,8 +105,8 @@ namespace bdr
         ComponentArray<uint32_t> preskinMeshes;
         ComponentArray<uint32_t> jointBuffer;
         ComponentArray<Transform> transforms;
-        ComponentArray<DirectX::SimpleMath::Matrix> localMatrices;
-        ComponentArray<DirectX::SimpleMath::Matrix> globalMatrices;
+        ComponentArray<glm::mat4> localMatrices;
+        ComponentArray<glm::mat4> globalMatrices;
         ComponentArray<FreeEntityNode> freeEntitiesNodes;
         ComponentArray<uint32_t> materials;
         ComponentArray<GenericMaterialData> materialData;

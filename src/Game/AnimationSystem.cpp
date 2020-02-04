@@ -1,8 +1,6 @@
 #include "pch.h"
 #include "AnimationSystem.h"
 
-using namespace DirectX::SimpleMath;
-
 namespace bdr
 {
     struct InterpolationInfo
@@ -54,9 +52,9 @@ namespace bdr
             InterpolationInfo info = calcInterpolationInfo(channel, animationTime);
 
             Transform& transform = registry.transforms[channel.targetEntity];
-            const Quaternion& previous = channel.output[info.previousIdx];
-            const Quaternion& next = channel.output[info.nextIdx];
-            transform.rotation = Quaternion::Slerp(previous, next, info.t);
+            const glm::quat& previous = channel.output[info.previousIdx];
+            const glm::quat& next = channel.output[info.nextIdx];
+            transform.rotation = glm::slerp(previous, next, info.t);
         }
 
         for (auto& channel : animation.translationChannels) {
@@ -66,9 +64,9 @@ namespace bdr
             InterpolationInfo info = calcInterpolationInfo(channel, animationTime);
 
             Transform& transform = registry.transforms[channel.targetEntity];
-            const Vector3& previous = channel.output[info.previousIdx];
-            const Vector3& next = channel.output[info.nextIdx];
-            transform.translation = Vector3::Lerp(previous, next, info.t);
+            const glm::vec3& previous = channel.output[info.previousIdx];
+            const glm::vec3& next = channel.output[info.nextIdx];
+            transform.translation = glm::mix(previous, next, info.t);
         }
 
         for (auto& channel : animation.scaleChannels) {
@@ -78,9 +76,9 @@ namespace bdr
             InterpolationInfo info = calcInterpolationInfo(channel, animationTime);
 
             Transform& transform = registry.transforms[channel.targetEntity];
-            const Vector3& previous = channel.output[info.previousIdx];
-            const Vector3& next = channel.output[info.nextIdx];
-            transform.scale = Vector3::Lerp(previous, next, info.t);
+            const glm::vec3& previous = channel.output[info.previousIdx];
+            const glm::vec3& next = channel.output[info.nextIdx];
+            transform.scale = glm::mix(previous, next, info.t);
         }
     }
 
@@ -88,7 +86,7 @@ namespace bdr
     {
         for (size_t entity = 0; entity < registry.numEntities; entity++) {
             const uint32_t cmpMask = registry.cmpMasks[entity];
-            Matrix& local = registry.localMatrices[entity];
+            glm::mat4& local = registry.localMatrices[entity];
             if (cmpMask & CmpMasks::TRANSFORM) {
                 const Transform& transform = registry.transforms[entity];
                 local = getMatrixFromTransform(transform);
@@ -110,11 +108,11 @@ namespace bdr
         for (size_t entity = 0; entity < registry.numEntities; entity++) {
             const uint32_t cmpMask = registry.cmpMasks[entity];
             if (cmpMask & CmpMasks::MESH) {
-                registry.drawConstants[entity].model = registry.globalMatrices[entity].Transpose();
-                registry.drawConstants[entity].invModel = registry.globalMatrices[entity].Invert();
-                registry.drawConstants[entity].invModel._14 = 0;
-                registry.drawConstants[entity].invModel._24 = 0;
-                registry.drawConstants[entity].invModel._34 = 0;
+                registry.drawConstants[entity].model = registry.globalMatrices[entity];
+                registry.drawConstants[entity].invModel = registry.globalMatrices[entity];
+                registry.drawConstants[entity].invModel[0][3] = 0;
+                registry.drawConstants[entity].invModel[1][3] = 0;
+                registry.drawConstants[entity].invModel[2][3] = 0;
             }
         }
     }

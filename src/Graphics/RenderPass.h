@@ -3,6 +3,7 @@
 
 #include "DXHelpers.h"
 #include "Game/View.h"
+#include <functional>
 
 
 namespace bdr

@@ -1,12 +1,10 @@
-#include "pch.h"
-
 #include "entry.h"
+#include "Core/bdrMath.h"
 #include "Graphics/Mesh.h"
 #include "Game/AnimationSystem.h"
 
 using namespace bdr;
 using namespace DirectX;
-using namespace DirectX::SimpleMath;
 
 constexpr float cubePositions[] = {
     -0.5f,  0.5f, -0.5f, // +Y (top face)
@@ -100,7 +98,8 @@ class BasicExample : public bdr::BaseGame
         // We want to be able to rotate the cube every tick
         Transform& transform = scene.registry.transforms[entity];
         // Will need to figure this out
-        transform.rotation = Quaternion::CreateFromYawPitchRoll(sinf(totalTime), 0.0f, 0.0f);
+
+        //transform.rotation = Quaternion::CreateFromYawPitchRoll(sinf(totalTime), 0.0f, 0.0f);
         cameraController.update(keyboard->GetState(), mouse->GetState(), frameTime);
         updateMatrices(scene.registry);
         copyDrawData(scene.registry);

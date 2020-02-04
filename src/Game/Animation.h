@@ -35,9 +35,9 @@ namespace bdr
 
         float startTime = 0.0f;
         State playingState = State::Off;
-        typedef Channel<DirectX::SimpleMath::Vector3> TranslationChannel;
-        typedef Channel<DirectX::SimpleMath::Vector4> RotationChannel;
-        typedef Channel<DirectX::SimpleMath::Vector3> ScaleChannel;
+        typedef Channel<glm::vec3> TranslationChannel;
+        typedef Channel<glm::quat> RotationChannel;
+        typedef Channel<glm::vec3> ScaleChannel;
 
         std::vector<TranslationChannel> translationChannels;
         std::vector<RotationChannel> rotationChannels;
@@ -62,6 +62,6 @@ namespace bdr
     struct Skin
     {
         std::vector<uint32_t> jointEntities;
-        std::vector<DirectX::SimpleMath::Matrix> inverseBindMatrices;
+        std::vector<glm::mat4> inverseBindMatrices;
     };
 }

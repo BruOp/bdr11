@@ -41,7 +41,12 @@
 #include <dxgi1_5.h>
 #endif
 
-#include <DirectXMath.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
+#include <glm/gtc/matrix_inverse.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/matrix_access.hpp>
+#include <glm/ext/scalar_constants.hpp>
 #include <DirectXColors.h>
 
 #include "CommonStates.h"
@@ -49,11 +54,9 @@
 #include "Effects.h"
 #include "Keyboard.h"
 #include "Mouse.h"
-#include "SimpleMath.h"
 #include "WICTextureLoader.h"
 
 #include <algorithm>
-#include <exception>
 #include <memory>
 #include <stdexcept>
 

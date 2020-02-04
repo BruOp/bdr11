@@ -16,10 +16,10 @@ namespace bdr
 
     struct ViewConstants
     {
-        DirectX::SimpleMath::Matrix viewTransform;
-        DirectX::SimpleMath::Matrix perspectiveTransform;
-        DirectX::SimpleMath::Matrix VP;
-        DirectX::SimpleMath::Vector3 cameraPos;
+        glm::mat4 viewTransform;
+        glm::mat4 perspectiveTransform;
+        glm::mat4 VP;
+        glm::vec3 cameraPos;
         float padding = 1.0f;
     };
 

@@ -4,8 +4,6 @@
 #include "Core/bdrMemory.h"
 
 
-using namespace DirectX::SimpleMath;
-
 namespace bdr
 {
     void initializeFreeList(ECSRegistry& registry)
