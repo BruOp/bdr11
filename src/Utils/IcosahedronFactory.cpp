@@ -1,10 +1,13 @@
 #include "pch.h"
+
+#include "Core/bdrMath.h"
 #include "IcosahedronFactory.h"
 
 namespace bdr
 {
     float t = (1.0f + glm::sqrt(5.0f)) / 2.0f;
 
+    bool normalized;
     std::vector<glm::vec3> basicIcosahedronPositions = {
         {-1.0f,  t,  0.0f},
         { 1.0,  t,  0.0f},
@@ -26,7 +29,7 @@ namespace bdr
     //The number of points vertically
     constexpr float h = 3.0f;
 
-    std::vector<uint16_t> basicIcosahedronIndices = {
+    const std::vector<uint16_t> basicIcosahedronIndices = {
         0, 11, 5,
         0, 5, 1,
         0, 1, 7,
@@ -51,21 +54,18 @@ namespace bdr
 
     IcosahedronFactory::IcosahedronFactory(uint8_t detail)
         : detail{ detail },
-        vertices{ basicIcosahedronPositions },
+        vertices{},
         indices{ basicIcosahedronIndices },
-        normals(basicIcosahedronPositions.size()),
-        uvs(basicIcosahedronPositions.size())
+        normals{},
+        uvs{}
     {
-        const size_t N = basicIcosahedronPositions.size();
-        for (size_t i = 0; i < N; ++i) {
-            glm::vec3& v = vertices[i];
-            v = glm::normalize(v);
-            normals[i] = v;
-            uvs[i] = glm::vec2{
-                atan2f(v.y, v.x),
-                atan2f(sqrtf(pow(v.x, 2.0f) + pow(v.y, 2.0f)), v.z)
-            };
+        if (!normalized) {
+            for (auto& v : basicIcosahedronPositions) {
+                v = glm::normalize(v);
+            }
+            normalized = true;
         }
+        vertices = basicIcosahedronPositions;
 
         for (uint8_t subdivisionLevel = 0; subdivisionLevel < detail; ++subdivisionLevel) {
             size_t numIndices = indices.size();
@@ -88,6 +88,20 @@ namespace bdr
                     });
             }
             indices = std::move(newIndices);
+        }
+
+        const size_t N = vertices.size();
+        normals.reserve(N);
+        uvs.reserve(N);
+        for (size_t i = 0; i < N; ++i) {
+            glm::vec3& v = vertices[i];
+            v = glm::normalize(v);
+            normals.push_back(v);
+            uvs.emplace_back(
+                0.5f + atan2f(v.z, v.x) / math::TWO_PI,
+                0.5f + asinf(v.y) / math::PI
+            );
+
         }
     }
 
@@ -121,13 +135,10 @@ namespace bdr
         glm::vec3 firstPos = vertices[first];
         glm::vec3 secondPos = vertices[second];
 
-        glm::vec3 midPoint{ glm::normalize(glm::vec3{ 0.5f * (secondPos + firstPos) }) };
-        glm::vec2 uvMidPoint{ glm::normalize(glm::vec2{ 0.5f * (uvs[first] + uvs[second]) }) };
+        glm::vec3 midPoint{ normalize(glm::vec3{ 0.5f * (secondPos + firstPos) }) };
         uint16_t newIndex = uint16_t(vertices.size());
 
         vertices.push_back(midPoint);
-        uvs.push_back(uvMidPoint);
-        normals.push_back(midPoint);
 
         newVertices[key] = newIndex;
         return newIndex;

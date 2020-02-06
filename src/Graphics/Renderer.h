@@ -101,6 +101,7 @@ namespace bdr
     uint32_t createMesh(Renderer& renderer, const MeshCreationInfo& meshCreationInfo);
     uint32_t getOrCreateBasicMaterial(Renderer& renderer);
 
+    // Returns an **unmanaged** material. The client is responsible for cleanup.
     uint32_t createCustomMaterial(Renderer& renderer, const std::string& shaderPath, uint8_t attrRequirements);
 }
 

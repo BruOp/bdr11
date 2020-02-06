@@ -22,7 +22,7 @@ class NormalMappingExample : public bdr::BaseGame
 
         assignTransform(scene, entity, transform);
 
-        auto icosahedronFactory = IcosahedronFactory(1u);
+        auto icosahedronFactory = IcosahedronFactory(4u);
 
         MeshCreationInfo meshCreationInfo;
         meshCreationInfo.numVertices = icosahedronFactory.vertices.size();
