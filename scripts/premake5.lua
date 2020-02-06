@@ -108,5 +108,6 @@ project("bdr_lib")
 
 group "examples"
 exampleProject(
-    "01-basic"
+    "01-basic",
+    "02-normal-mapping"
 )

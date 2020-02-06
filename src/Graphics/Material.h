@@ -36,6 +36,10 @@ namespace bdr
                 bdr::reset(material);
             }
         }
+        inline size_t size() const
+        {
+            return materials.size();
+        }
 
         inline Material& operator[](const size_t index)
         {
@@ -62,6 +66,10 @@ namespace bdr
         float padding[53];
     };
     //static_assert(sizeof(PBRConstants) == sizeof(GenericMaterialData), "PBR Constants must be the same size as GenericMaterialData");
+
+    // TODO: Move to a sensible place
+    std::string readFile(const char* filePath);
+    void compileShader(const char* code, const D3D_SHADER_MACRO* macros, ID3DBlob** vsBlob, ID3DBlob** psBlob);
 
     // Get or create new PBR material based on permutation flags
     uint32_t getOrCreatePBRMaterial(MaterialManager& materialManager, const uint16_t textureFlags);

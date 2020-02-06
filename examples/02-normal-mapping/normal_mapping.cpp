@@ -2,48 +2,12 @@
 #include "Core/bdrMath.h"
 #include "Graphics/Mesh.h"
 #include "Game/AnimationSystem.h"
+#include "Utils/IcosahedronFactory.h"
 
 using namespace bdr;
 using namespace DirectX;
 
-constexpr float cubePositions[] = {
-    -0.5f,  0.5f, -0.5f, // +Y (top face)
-     0.5f,  0.5f, -0.5f,
-     0.5f,  0.5f,  0.5f,
-    -0.5f,  0.5f,  0.5f,
-    -0.5f, -0.5f,  0.5f,  // -Y (bottom face)
-     0.5f, -0.5f,  0.5f,
-     0.5f, -0.5f, -0.5f,
-    -0.5f, -0.5f, -0.5f,
-};
-
-constexpr uint32_t cubeColors[] = {
-        0xff00ff00, // +Y (top face)
-        0xff00ffff,
-        0xffffffff,
-        0xffffff00,
-        0xffff0000, // -Y (bottom face)
-        0xffff00ff,
-        0xff0000ff,
-        0xff000000,
-};
-
-constexpr uint16_t cubeIndices[] = {
-    2, 1, 0,
-    3, 2, 0,
-    5, 1, 2,
-    5, 6, 1,
-    4, 3, 0,
-    7, 4, 0,
-    1, 7, 0,
-    6, 7, 1,
-    4, 2, 3,
-    4, 5, 2,
-    7, 5, 4,
-    7, 6, 5
-};
-
-class BasicExample : public bdr::BaseGame
+class NormalMappingExample : public bdr::BaseGame
 {
     virtual void setup() override
     {
@@ -58,20 +22,23 @@ class BasicExample : public bdr::BaseGame
 
         assignTransform(scene, entity, transform);
 
+        auto icosahedronFactory = IcosahedronFactory(1u);
+
         MeshCreationInfo meshCreationInfo;
-        meshCreationInfo.numVertices = _countof(cubePositions) / 3u;
-        meshCreationInfo.numIndices = _countof(cubeIndices);
-        meshCreationInfo.indexData = (uint8_t*)cubeIndices;
+        meshCreationInfo.numVertices = icosahedronFactory.vertices.size();
+        meshCreationInfo.numIndices = icosahedronFactory.indices.size();
+        meshCreationInfo.indexData = (uint8_t*)icosahedronFactory.indices.data();
         meshCreationInfo.indexFormat = BufferFormat::UINT16;
 
         // Attributes can be added in any order
-        addAttribute(meshCreationInfo, cubeColors, BufferFormat::UNORM8_4, MeshAttribute::COLOR);
-        addAttribute(meshCreationInfo, cubePositions, BufferFormat::FLOAT_3, MeshAttribute::POSITION);
+        addAttribute(meshCreationInfo, icosahedronFactory.vertices.data(), BufferFormat::FLOAT_3, MeshAttribute::POSITION);
+        addAttribute(meshCreationInfo, icosahedronFactory.normals.data(), BufferFormat::FLOAT_3, MeshAttribute::NORMAL);
+        addAttribute(meshCreationInfo, icosahedronFactory.uvs.data(), BufferFormat::FLOAT_2, MeshAttribute::TEXCOORD);
 
         BDRid meshHandle = createMesh(renderer, meshCreationInfo);
         assignMesh(scene, entity, meshHandle);
 
-        BDRid materialId = getOrCreateBasicMaterial(renderer);
+        BDRid materialId = createCustomMaterial(renderer, "../examples/02-normal-mapping/normal_mapping.hlsl", MeshAttribute::POSITION | MeshAttribute::NORMAL | MeshAttribute::TEXCOORD);
         assignMaterial(scene, entity, materialId);
 
         float width = float(renderer.width);
@@ -115,4 +82,4 @@ private:
     OrbitCameraController cameraController;
 };
 
-ENTRY_IMPLEMENT_MAIN(BasicExample);
+ENTRY_IMPLEMENT_MAIN(NormalMappingExample);

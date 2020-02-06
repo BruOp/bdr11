@@ -115,7 +115,8 @@ namespace bdr
     {
         INVALID = 0,
         PBR = 1,
-        Basic = 2,
+        BASIC = 2,
+        CUSTOM = UINT8_MAX,
     };
 
     // Attribute requirements indexed by Material Type

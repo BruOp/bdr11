@@ -51,6 +51,61 @@ namespace bdr
         return materials.size() - 1;
     }
 
+    std::string readFile(const char* filePath)
+    {
+        std::ifstream shaderFile{ filePath };
+        std::string code;
+        std::string line;
+        if (shaderFile.is_open()) {
+            while (std::getline(shaderFile, line)) {
+                code += line;
+                code += '\n';
+            }
+        }
+        else {
+            ERROR("Could not open material file");
+        }
+        shaderFile.close();
+        return code;
+    }
+
+    void compileShader(const char* code, const D3D_SHADER_MACRO* macros, ID3DBlob** vsBlob, ID3DBlob** psBlob)
+    {
+        ID3DBlob* error = nullptr;
+        auto result = D3DCompile(
+            code,
+            strlen(code),
+            nullptr,
+            macros,
+            nullptr,
+            "VSMain", "vs_5_0",
+            0, 0,
+            vsBlob,
+            &error
+        );
+
+        if (error) {
+            HALT((char*)error->GetBufferPointer());
+        }
+
+        D3DCompile(
+            code,
+            strlen(code),
+            nullptr,
+            macros,
+            nullptr,
+            "PSMain", "ps_5_0",
+            0, 0,
+            psBlob,
+            &error
+        );
+
+        if (error) {
+            HALT((char*)error->GetBufferPointer());
+        }
+
+    }
+
     uint32_t MaterialManager::getMaterial(const MaterialType type, const uint16_t permutation) const
     {
         size_t N = materials.size();
@@ -71,19 +126,7 @@ namespace bdr
         }
 
         constexpr char shaderFileName[] = "../src/Shaders/pbr_shader.hlsl";
-        std::ifstream shaderFile{ shaderFileName };
-        std::string code;
-        std::string line;
-        if (shaderFile.is_open()) {
-            while (std::getline(shaderFile, line)) {
-                code += line;
-                code += '\n';
-            }
-        }
-        else {
-            ERROR("Could not open material file");
-        }
-        shaderFile.close();
+        std::string code{ readFile(shaderFileName) };
 
         size_t numMacros = 0;
         D3D_SHADER_MACRO macros[16u]{};
@@ -103,38 +146,9 @@ namespace bdr
             macros[numMacros++] = D3D_SHADER_MACRO{ "EMISSIVE_MAP" };
         }
 
-        ID3DBlob* error = nullptr;
         ID3DBlob* vsBlob = nullptr;
-        auto result = D3DCompile(
-            code.c_str(),
-            strlen(code.c_str()),
-            nullptr,
-            macros,
-            nullptr,
-            "VSMain", "vs_5_0",
-            0, 0,
-            &vsBlob,
-            &error
-        );
-
-        if (error) {
-            Utility::Print((char*)error->GetBufferPointer());
-        }
-        DX::ThrowIfFailed(result);
-
         ID3DBlob* psBlob = nullptr;
-        DX::ThrowIfFailed(D3DCompile(
-            code.c_str(),
-            strlen(code.c_str()),
-            nullptr,
-            macros,
-            nullptr,
-            "PSMain", "ps_5_0",
-            0, 0,
-            &psBlob,
-            nullptr
-        ));
-
+        compileShader(code.c_str(), macros, &vsBlob, &psBlob);
         uint32_t idx = materialManager.initMaterial(vsBlob, psBlob);
         Material& material = materialManager[idx];
         material.type = MaterialType::PBR;

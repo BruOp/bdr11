@@ -110,7 +110,7 @@ namespace bdr
                     const Material& material = renderer->materials[registry.materials[entityId]];
                     const Mesh& mesh = renderer->meshes[registry.meshes[entityId]];
 
-                    ID3D11Buffer* vbuffers[2] = { nullptr };
+                    ID3D11Buffer* vbuffers[Mesh::maxAttrCount] = { nullptr };
                     collectBuffers(mesh, material.attributeRequriements, vbuffers);
 
                     // Set IAInputLayout

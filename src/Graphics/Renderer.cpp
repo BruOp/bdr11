@@ -60,63 +60,38 @@ namespace bdr
 
     uint32_t getOrCreateBasicMaterial(Renderer& renderer)
     {
-        uint32_t existingIdx = renderer.materials.getMaterial(MaterialType::Basic, 0);
+        uint32_t existingIdx = renderer.materials.getMaterial(MaterialType::BASIC, 0);
         if (existingIdx != UINT32_MAX) {
             return existingIdx;
         }
 
         constexpr char shaderFileName[] = "../src/Shaders/basic.hlsl";
-        std::ifstream shaderFile{ shaderFileName };
-        std::string code;
-        std::string line;
-        if (shaderFile.is_open()) {
-            while (std::getline(shaderFile, line)) {
-                code += line;
-                code += '\n';
-            }
-        }
-        else {
-            HALT("Could not open material file");
-        }
-        shaderFile.close();
-
-        ID3DBlob* error = nullptr;
+        std::string code{ readFile(shaderFileName) };
         ID3DBlob* vsBlob = nullptr;
-        auto result = D3DCompile(
-            code.c_str(),
-            strlen(code.c_str()),
-            nullptr,
-            nullptr,
-            nullptr,
-            "VSMain", "vs_5_0",
-            0, 0,
-            &vsBlob,
-            &error
-        );
-
-        if (error) {
-            Utility::Print((char*)error->GetBufferPointer());
-        }
-        DX::ThrowIfFailed(result);
-
         ID3DBlob* psBlob = nullptr;
-        DX::ThrowIfFailed(D3DCompile(
-            code.c_str(),
-            strlen(code.c_str()),
-            nullptr,
-            nullptr,
-            nullptr,
-            "PSMain", "ps_5_0",
-            0, 0,
-            &psBlob,
-            nullptr
-        ));
+        compileShader(code.c_str(), nullptr, &vsBlob, &psBlob);
 
         uint32_t idx = renderer.materials.initMaterial(vsBlob, psBlob);
         Material& material = renderer.materials[idx];
-        material.type = MaterialType::Basic;
+        material.type = MaterialType::BASIC;
         material.attributeRequriements = MaterialAttributeRequirements[uint64_t(material.type)];
         material.permutation = 0;
+        return idx;
+    }
+
+    uint32_t createCustomMaterial(Renderer& renderer, const std::string& shaderPath, uint8_t attrRequirements)
+    {
+        ID3D11Device* device = renderer.getDevice();
+        std::string code{ readFile(shaderPath.c_str()) };
+        ID3DBlob* vsBlob = nullptr;
+        ID3DBlob* psBlob = nullptr;
+        compileShader(code.c_str(), nullptr, &vsBlob, &psBlob);
+        uint32_t idx = renderer.materials.initMaterial(vsBlob, psBlob);
+        // TODO: Figure out a better way to track materials. Perhaps a second index?
+        Material& material = renderer.materials[idx];
+        material.type = MaterialType::CUSTOM;
+        material.attributeRequriements = attrRequirements;
+        material.permutation = uint16_t(renderer.materials.size());
         return idx;
     }
 }
