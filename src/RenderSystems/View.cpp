@@ -27,6 +27,7 @@ namespace bdr
             // Since we've transposed the matrices
             viewConstants.VP = viewConstants.perspectiveTransform * viewConstants.viewTransform;
             viewConstants.cameraPos = math::getTranslation(camera->invView);
+            viewConstants.time = renderer->totalTime;
             view.viewCB.copyToGPU(context, viewConstants);
             context->VSSetConstantBuffers(0u, 1u, &view.viewCB.buffer);
             context->PSSetConstantBuffers(0u, 1u, &view.viewCB.buffer);

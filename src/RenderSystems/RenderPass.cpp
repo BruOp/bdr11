@@ -125,6 +125,21 @@ namespace bdr
                     // Set constant buffers
                     vertexCB.copyToGPU(context, drawConstants);
 
+                    // Set textures, if possible
+                    if (cmpMask & CmpMasks::TEXTURED) {
+                        const TextureSet& textureSet = registry.textures[entityId];
+
+                        ID3D11ShaderResourceView* srvs[_countof(textureSet.textures)] = { nullptr };
+                        ID3D11SamplerState* samplers[_countof(textureSet.textures)] = { nullptr };
+                        for (uint16_t i = 0; i < textureSet.numTextures; i++) {
+                            srvs[i] = renderer->textures[textureSet.textures[i]].srv;
+                            samplers[i] = renderer->textures[textureSet.textures[i]].sampler;
+                        }
+
+                        context->PSSetShaderResources(0, textureSet.numTextures, srvs);
+                        context->PSSetSamplers(0, textureSet.numTextures, samplers);
+                    }
+
                     context->VSSetConstantBuffers(1, 1, &vertexCB.buffer);
                     context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
                     context->DrawIndexed(mesh.numIndices, 0, 0);

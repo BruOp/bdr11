@@ -22,7 +22,7 @@ namespace bdr
         glm::mat4 perspectiveTransform;
         glm::mat4 VP;
         glm::vec3 cameraPos;
-        float padding = 1.0f;
+        float time = 0.0f;
     };
 
     class View

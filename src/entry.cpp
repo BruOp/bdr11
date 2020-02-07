@@ -92,17 +92,20 @@ namespace bdr
                 float frameTime = float(timer.GetElapsedSeconds());
                 float totalTime = float(timer.GetTotalSeconds());
                 tick(frameTime, totalTime);
-                render();
+                render(frameTime, totalTime);
             });
     }
 
 #pragma region Frame Render
-    void BaseGame::render()
+    void BaseGame::render(const float frameTime, const float totalTime)
     {
         // Don't try to render anything before the first Update.
         if (timer.GetFrameCount() == 0) {
             return;
         }
+
+        renderer.totalTime = totalTime;
+        renderer.deltaTime = frameTime;
 
         clear();
 

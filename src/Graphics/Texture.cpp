@@ -1,4 +1,5 @@
 #include "pch.h"
+
 #include <DDSTextureLoader.h>
 #include "Texture.h"
 
@@ -60,6 +61,7 @@ namespace bdr
             &texture.texture,
             &texture.srv
         ));
+
         return texture;
     }
 

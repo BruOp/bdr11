@@ -143,6 +143,6 @@ namespace bdr
     void assignMesh(ECSRegistry& registry, const uint32_t entity, const uint32_t meshId);
     void assignMaterial(ECSRegistry& registry, const uint32_t entity, const uint32_t materialId);
     void assignTransform(ECSRegistry& registry, const uint32_t entity, const Transform& transform);
-
+    void assignTextureSet(ECSRegistry& registry, const uint32_t entity, const TextureSet& textureSet);
 }
 

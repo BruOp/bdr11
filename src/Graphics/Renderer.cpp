@@ -94,6 +94,25 @@ namespace bdr
         material.permutation = uint16_t(renderer.materials.size());
         return idx;
     }
+
+    uint32_t createTextureFromFile(Renderer& renderer, const std::string& filePath, const TextureCreationInfo& createInfo)
+    {
+        Texture texture{ createFromFile(renderer.getDevice(), filePath, createInfo) };
+        D3D11_SAMPLER_DESC samplerDesc{};
+        samplerDesc.Filter = D3D11_FILTER_ANISOTROPIC;
+        samplerDesc.MaxAnisotropy = D3D11_DEFAULT_MAX_ANISOTROPY;
+        samplerDesc.MipLODBias = D3D11_DEFAULT_MIP_LOD_BIAS;
+        samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
+        samplerDesc.MinLOD = 0.0f;
+        samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+        samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+        samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+        DX::ThrowIfFailed(renderer.getDevice()->CreateSamplerState(&samplerDesc, &texture.sampler));
+
+        uint32_t idx = renderer.textures.size();
+        renderer.textures.add(texture);
+        return idx;
+    }
 }
 
 void onWindowResize(bdr::Renderer& renderer, int width, int height)

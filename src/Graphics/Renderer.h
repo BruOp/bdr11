@@ -85,6 +85,8 @@ namespace bdr
         // Device resources.
         uint32_t width = 0;
         uint32_t height = 0;
+        float totalTime = 0;
+        float deltaTime = 0;
         std::unique_ptr<DX::DeviceResources> deviceResources;
         Microsoft::WRL::ComPtr<ID3D11ComputeShader> computeShader = nullptr;
 
@@ -103,6 +105,8 @@ namespace bdr
 
     // Returns an **unmanaged** material. The client is responsible for cleanup.
     uint32_t createCustomMaterial(Renderer& renderer, const std::string& shaderPath, uint8_t attrRequirements);
+
+    uint32_t createTextureFromFile(Renderer& renderer, const std::string& filePath, const TextureCreationInfo& createInfo);
 }
 
 // Callbacks for window resize:

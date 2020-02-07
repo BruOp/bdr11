@@ -184,10 +184,6 @@ float4 PSMain(in PSInput input) : SV_Target0
 {
     float3 viewDir = normalize(cameraPos - input.PositionWS);
 
-	//float3 normal = perturb_normal(input.NormalWS, viewDir, input.vUV);
-	//float4 baseColor = albedo.Sample(albedoSampler, input.vUV);
-	//float2 roughnessMetal = metallicRoughness.Sample(pbrSampler, input.vUV).yz;
-	
 #ifdef NORMAL_MAPPING
 		float3 normal = perturb_normal(input.NormalWS, viewDir, input.vUV);
 #else

@@ -7,6 +7,102 @@
 using namespace bdr;
 using namespace DirectX;
 
+constexpr float cubePositions[] = {
+     0.5f,  0.5f,  0.5f, // +Y (Top face)
+    -0.5f,  0.5f,  0.5f,
+    -0.5f,  0.5f, -0.5f,
+     0.5f,  0.5f, -0.5f,
+     0.5f,  0.5f,  0.5f, // +X (Right face)
+     0.5f,  0.5f, -0.5f,
+     0.5f, -0.5f, -0.5f,
+     0.5f, -0.5f,  0.5f,
+    -0.5f,  0.5f, -0.5f, // -X (Left face)
+    -0.5f,  0.5f,  0.5f,
+    -0.5f, -0.5f,  0.5f,
+    -0.5f, -0.5f, -0.5f,
+     0.5f,  0.5f, -0.5f, // -Z (Back face)
+    -0.5f,  0.5f, -0.5f,
+    -0.5f, -0.5f, -0.5f,
+     0.5f, -0.5f, -0.5f,
+    -0.5f,  0.5f,  0.5f, // +Z (Front face)
+     0.5f,  0.5f,  0.5f,
+     0.5f, -0.5f,  0.5f,
+    -0.5f, -0.5f,  0.5f,
+    -0.5f, -0.5f,  0.5f, // -Y (Bottom face)
+     0.5f, -0.5f,  0.5f,
+     0.5f, -0.5f, -0.5f,
+    -0.5f, -0.5f, -0.5f,
+};
+
+constexpr float cubeNormals[] = {
+     0.0f,  1.0f,  0.0f, // +Y (Top face)
+     0.0f,  1.0f,  0.0f,
+     0.0f,  1.0f,  0.0f,
+     0.0f,  1.0f,  0.0f,
+     1.0f,  0.0f,  0.0f, // +X (Right face)
+     1.0f,  0.0f,  0.0f,
+     1.0f,  0.0f,  0.0f,
+     1.0f,  0.0f,  0.0f,
+    -1.0f,  0.0f,  0.0f, // -X (Left face)
+    -1.0f,  0.0f,  0.0f,
+    -1.0f,  0.0f,  0.0f,
+    -1.0f,  0.0f,  0.0f,
+     0.0f,  0.0f, -1.0f, // -Z (Back face)
+     0.0f,  0.0f, -1.0f,
+     0.0f,  0.0f, -1.0f,
+     0.0f,  0.0f, -1.0f,
+     0.0f,  0.0f,  1.0f, // +Z (Front face)
+     0.0f,  0.0f,  1.0f,
+     0.0f,  0.0f,  1.0f,
+     0.0f,  0.0f,  1.0f,
+     0.0f, -1.0f,  0.0f, // -Y (Bottom face)
+     0.0f, -1.0f,  0.0f,
+     0.0f, -1.0f,  0.0f,
+     0.0f, -1.0f,  0.0f,
+};
+
+constexpr float cubeUVs[] = {
+    0.0f, 0.0f, // +Y (Top face)
+    1.0f, 0.0f,
+    1.0f, 1.0f,
+    0.0f, 1.0f,
+    0.0f, 0.0f, // +X (Right face)
+    1.0f, 0.0f,
+    1.0f, 1.0f,
+    0.0f, 1.0f,
+    0.0f, 0.0f, // -Y (Left face)
+    1.0f, 0.0f,
+    1.0f, 1.0f,
+    0.0f, 1.0f,
+    0.0f, 0.0f, // -Z (Back face)
+    1.0f, 0.0f,
+    1.0f, 1.0f,
+    0.0f, 1.0f,
+    0.0f, 0.0f, // +Z (Front face)
+    1.0f, 0.0f,
+    1.0f, 1.0f,
+    0.0f, 1.0f,
+    0.0f, 0.0f, // -Y (Bottom face)
+    1.0f, 0.0f,
+    1.0f, 1.0f,
+    0.0f, 1.0f,
+};
+
+constexpr uint16_t cubeIndices[] = {
+     0,  2,  1, // Top
+     3,  2,  0,
+     4,  6,  5, // Right
+     7,  6,  4,
+     8, 10,  9, // Left
+    11, 10,  8,
+    12, 14, 13, // Back
+    15, 14, 12,
+    16, 18, 17, // Front
+    19, 18, 16,
+    20, 22, 21, // Bottom
+    23, 22, 20,
+};
+
 class NormalMappingExample : public bdr::BaseGame
 {
     virtual void setup() override
@@ -22,24 +118,36 @@ class NormalMappingExample : public bdr::BaseGame
 
         assignTransform(scene, entity, transform);
 
-        auto icosahedronFactory = IcosahedronFactory(4u);
-
         MeshCreationInfo meshCreationInfo;
-        meshCreationInfo.numVertices = icosahedronFactory.vertices.size();
-        meshCreationInfo.numIndices = icosahedronFactory.indices.size();
-        meshCreationInfo.indexData = (uint8_t*)icosahedronFactory.indices.data();
+        meshCreationInfo.numVertices = _countof(cubePositions) / 3u;
+        meshCreationInfo.numIndices = _countof(cubeIndices);
+        meshCreationInfo.indexData = (uint8_t*)cubeIndices;
         meshCreationInfo.indexFormat = BufferFormat::UINT16;
 
         // Attributes can be added in any order
-        addAttribute(meshCreationInfo, icosahedronFactory.vertices.data(), BufferFormat::FLOAT_3, MeshAttribute::POSITION);
-        addAttribute(meshCreationInfo, icosahedronFactory.normals.data(), BufferFormat::FLOAT_3, MeshAttribute::NORMAL);
-        addAttribute(meshCreationInfo, icosahedronFactory.uvs.data(), BufferFormat::FLOAT_2, MeshAttribute::TEXCOORD);
+        addAttribute(meshCreationInfo, cubePositions, BufferFormat::FLOAT_3, MeshAttribute::POSITION);
+        addAttribute(meshCreationInfo, cubeNormals, BufferFormat::FLOAT_3, MeshAttribute::NORMAL);
+        addAttribute(meshCreationInfo, cubeUVs, BufferFormat::FLOAT_2, MeshAttribute::TEXCOORD);
+
 
         BDRid meshHandle = createMesh(renderer, meshCreationInfo);
         assignMesh(scene, entity, meshHandle);
 
         BDRid materialId = createCustomMaterial(renderer, "../examples/02-normal-mapping/normal_mapping.hlsl", MeshAttribute::POSITION | MeshAttribute::NORMAL | MeshAttribute::TEXCOORD);
         assignMaterial(scene, entity, materialId);
+
+        TextureCreationInfo texInfo{};
+        texInfo.usage = BufferUsage::SHADER_READABLE;
+
+        BDRid albedoTexture = createTextureFromFile(renderer, "Textures/stone01.DDS", texInfo);
+        BDRid normalTexture = createTextureFromFile(renderer, "Textures/bump01.DDS", texInfo);
+
+        TextureSet textureSet{};
+        textureSet.textures[0] = albedoTexture;
+        textureSet.textures[1] = normalTexture;
+        textureSet.numTextures = 2;
+        textureSet.textureFlags = TextureFlags::ALBEDO | TextureFlags::NORMAL_MAP;
+        assignTextureSet(scene, entity, textureSet);
 
         float width = float(renderer.width);
         float height = float(renderer.height);

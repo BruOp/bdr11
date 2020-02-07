@@ -90,7 +90,13 @@ namespace bdr
     void assignTransform(ECSRegistry& registry, const uint32_t entity, const Transform& transform)
     {
         registry.transforms[entity] = transform;
-        registry.cmpMasks[entity] = CmpMasks::TRANSFORM;
+        registry.cmpMasks[entity] |= CmpMasks::TRANSFORM;
+    }
+
+    void assignTextureSet(ECSRegistry& registry, const uint32_t entity, const TextureSet& textureSet)
+    {
+        registry.textures[entity] = textureSet;
+        registry.cmpMasks[entity] |= CmpMasks::TEXTURED;
     }
 
     void ECSRegistry::clearComponentData()

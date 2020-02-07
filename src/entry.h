@@ -34,7 +34,7 @@ namespace bdr
         // Basic game loop
         virtual void update();
         virtual void tick(const float frameTime, const float totalTime) = 0;
-        virtual void render();
+        virtual void render(const float frameTime, const float totalTime);
         virtual void clear();
 
         // IDeviceNotify
