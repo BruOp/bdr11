@@ -23,6 +23,9 @@ namespace bdr
         }
     }
 
+    // The generated key is laid out as follows:
+    // bits 0 - 7  : the attribute mask
+    // bits 8 - 63 : the format of each attribute, in 8 bit chunks.
     uint64_t InputLayoutManager::getKey(const MeshCreationInfo& meshCreationInfo)
     {
         uint64_t attrMask = 0;
@@ -32,7 +35,10 @@ namespace bdr
             if (meshCreationInfo.bufferUsages[i] == BufferUsage::UNUSED) {
                 continue;
             }
+            ASSERT(bufferNumber < 7);
+            // We use this instead of meshCreationInfo since some buffers can be flagged as UNUSED in that structure
             attrMask |= meshCreationInfo.attributes[i];
+            // We shift by 8 * bufferNumber to ensure that we do not overwrite the formats we set previously
             formats |= uint64_t(meshCreationInfo.bufferFormats[i]) << (8u * bufferNumber++);
         }
         return attrMask | (formats << 8);

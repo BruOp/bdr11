@@ -147,10 +147,7 @@ namespace bdr
             }
         };
         pass.tearDown = [](Renderer* renderer) {
-            ID3D11Buffer* nullVB[Mesh::maxAttrCount] = { nullptr };
-            uint32_t nullStrides[Mesh::maxAttrCount]{ 0 };
-            uint32_t nullOffsets[Mesh::maxAttrCount]{ 0 };
-            renderer->getContext()->IASetVertexBuffers(0, 5, nullVB, nullStrides, nullOffsets);
+            renderer->getContext()->ClearState();
         };
         pass.destroy = [&]() {
             vertexCB.reset();
@@ -219,10 +216,7 @@ namespace bdr
             }
         };
         pass.tearDown = [](Renderer* renderer) {
-            ID3D11Buffer* nullVB[Mesh::maxAttrCount] = { nullptr };
-            uint32_t nullStrides[Mesh::maxAttrCount]{ 0 };
-            uint32_t nullOffsets[Mesh::maxAttrCount]{ 0 };
-            renderer->getContext()->IASetVertexBuffers(0, 5, nullVB, nullStrides, nullOffsets);
+            renderer->getContext()->ClearState();
         };
     }
 

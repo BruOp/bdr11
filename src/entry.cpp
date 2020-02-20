@@ -31,7 +31,11 @@ namespace bdr
     }
 
     void BaseGame::shutdown()
-    { }
+    {
+        // TODO: Remove this stuff from base game and make it part of the pipeline
+        rasterState.Reset();
+        depthState->Release();
+    }
 
     void BaseGame::initialize(AppConfig& appConfig)
     {
