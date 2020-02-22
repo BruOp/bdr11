@@ -247,7 +247,7 @@ namespace bdr
             }
         }
 
-        void processMeshCreationInfo(SceneData& sceneData, Mesh& mesh, MeshCreationInfo& meshData, const uint8_t usage, const bool isPreskin = false)
+        void processMeshCreationInfo(SceneData& sceneData, Mesh& mesh, MeshDesc& meshData, const uint8_t usage, const bool isPreskin = false)
         {
             uint8_t numPresentAttr = 0;
             for (size_t i = 0; i < _countof(ATTR_INFO); ++i) {
@@ -284,7 +284,7 @@ namespace bdr
         uint32_t processPrimitive(SceneData& sceneData, const tinygltf::Primitive& inputPrimitive)
         {
             const tinygltf::Model& inputModel = *sceneData.inputModel;
-            MeshCreationInfo meshData;
+            MeshDesc meshData;
 
             // Index buffer
             const tinygltf::Accessor& indexAccessor = inputModel.accessors[inputPrimitive.indices];

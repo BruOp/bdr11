@@ -21,7 +21,7 @@ namespace bdr
         return createBuffer(device, nullptr, createInfo);
     }
 
-    uint32_t createMesh(Renderer& renderer, const MeshCreationInfo& meshCreateInfo)
+    uint32_t createMesh(Renderer& renderer, const MeshDesc& meshCreateInfo)
     {
         uint32_t meshId = static_cast<uint32_t>(renderer.meshes.create());
         Mesh& mesh = renderer.meshes[meshId];

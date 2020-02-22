@@ -118,7 +118,7 @@ class NormalMappingExample : public bdr::BaseGame
 
         assignTransform(scene, entity, transform);
 
-        MeshCreationInfo meshCreationInfo;
+        MeshDesc meshCreationInfo;
         meshCreationInfo.numVertices = _countof(cubePositions) / 3u;
         meshCreationInfo.numIndices = _countof(cubeIndices);
         meshCreationInfo.indexData = (uint8_t*)cubeIndices;

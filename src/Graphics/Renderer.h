@@ -100,7 +100,7 @@ namespace bdr
 
     GPUBuffer createStructuredBuffer(ID3D11Device* device, const uint32_t elementSize, const uint32_t numElements);
 
-    uint32_t createMesh(Renderer& renderer, const MeshCreationInfo& meshCreationInfo);
+    uint32_t createMesh(Renderer& renderer, const MeshDesc& meshCreationInfo);
     uint32_t getOrCreateBasicMaterial(Renderer& renderer);
 
     // Returns an **unmanaged** material. The client is responsible for cleanup.

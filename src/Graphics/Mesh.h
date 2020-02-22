@@ -11,5 +11,5 @@ namespace bdr
     void collectViews(const Mesh& mesh, const uint8_t attrsToSelect, ID3D11ShaderResourceView* outputSRVs[]);
     void collectViews(const Mesh& mesh, const uint8_t attrsToSelect, ID3D11UnorderedAccessView* outputUAVs[]);
 
-    void addAttribute(MeshCreationInfo& meshCreationInfo, const void* data, const BufferFormat format, const MeshAttribute attrFlag);
+    void addAttribute(MeshDesc& meshCreationInfo, const void* data, const BufferFormat format, const MeshAttribute attrFlag);
 }

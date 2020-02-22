@@ -26,7 +26,7 @@ namespace bdr
     // The generated key is laid out as follows:
     // bits 0 - 7  : the attribute mask
     // bits 8 - 63 : the format of each attribute, in 8 bit chunks.
-    uint64_t InputLayoutManager::getKey(const MeshCreationInfo& meshCreationInfo)
+    uint64_t InputLayoutManager::getKey(const MeshDesc& meshCreationInfo)
     {
         uint64_t attrMask = 0;
         uint64_t formats = 0;
@@ -44,7 +44,7 @@ namespace bdr
         return attrMask | (formats << 8);
     }
 
-    ID3D11InputLayout* InputLayoutManager::createInputLayout(const MeshCreationInfo& meshCreationInfo)
+    ID3D11InputLayout* InputLayoutManager::createInputLayout(const MeshDesc& meshCreationInfo)
     {
         // Create a matching shader for the vertex signature, taken from
         // https://www.gamedev.net/forums/topic/688029-how-to-cleanly-create-input-layouts/

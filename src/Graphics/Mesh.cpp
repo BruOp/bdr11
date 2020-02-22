@@ -84,7 +84,7 @@ namespace bdr
         memcpy(outArray + sliceStartIdx + 1, inArray + sliceStartIdx, sizeof(T) * sliceEndIdx);
     }
 
-    void addAttribute(MeshCreationInfo& meshCreationInfo, const void* data, const BufferFormat format, const MeshAttribute attrFlag)
+    void addAttribute(MeshDesc& meshCreationInfo, const void* data, const BufferFormat format, const MeshAttribute attrFlag)
     {
         ASSERT(attrFlag != MeshAttribute::INVALID, "Cannot add an invalid mesh attribute");
         ASSERT(format != BufferFormat::INVALID, "Cannot add an invalid mesh attribute");
@@ -92,7 +92,7 @@ namespace bdr
         size_t attrIdx = meshCreationInfo.numAttributes;
         if (attrIdx > minPosition) {
             ASSERT(meshCreationInfo.numAttributes < Mesh::maxAttrCount);
-            MeshCreationInfo newMeshCreationInfo = meshCreationInfo;
+            MeshDesc newMeshCreationInfo = meshCreationInfo;
             size_t sliceStartIdx = minPosition;
             size_t sliceEndIdx = meshCreationInfo.numAttributes;
             shiftSlice(meshCreationInfo.data, newMeshCreationInfo.data, sliceStartIdx, sliceEndIdx);

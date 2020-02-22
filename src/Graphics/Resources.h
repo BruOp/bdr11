@@ -96,7 +96,7 @@ namespace bdr
         uint8_t numPresentAttr = 0;
     };
 
-    struct MeshCreationInfo
+    struct MeshDesc
     {
         uint8_t const* indexData = nullptr;
         BufferFormat indexFormat = BufferFormat::INVALID;

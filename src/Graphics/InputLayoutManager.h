@@ -36,7 +36,7 @@ namespace bdr
             inputLayouts.clear();
         };
 
-        ID3D11InputLayout* getOrCreateInputLayout(const MeshCreationInfo& meshCreationInfo)
+        ID3D11InputLayout* getOrCreateInputLayout(const MeshDesc& meshCreationInfo)
         {
             uint64_t key = getKey(meshCreationInfo);
             if (inputLayouts.count(key) == 0) {
@@ -51,7 +51,7 @@ namespace bdr
         ID3D11Device* pDevice = nullptr;
         std::unordered_map<uint64_t, ID3D11InputLayout*> inputLayouts;
 
-        uint64_t getKey(const MeshCreationInfo& meshCreationInfo);
-        ID3D11InputLayout* createInputLayout(const MeshCreationInfo& meshCreationInfo);
+        uint64_t getKey(const MeshDesc& meshCreationInfo);
+        ID3D11InputLayout* createInputLayout(const MeshDesc& meshCreationInfo);
     };
 }
