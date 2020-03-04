@@ -3,6 +3,7 @@
 #include <fstream>
 #include "d3dcompiler.h"
 
+#include "Renderer.h"
 #include "Material.h"
 
 namespace bdr
@@ -154,6 +155,29 @@ namespace bdr
         material.type = MaterialType::PBR;
         material.attributeRequriements = MaterialAttributeRequirements[uint64_t(material.type)];
         material.permutation = textureFlags;
+        return idx;
+    }
+
+    void reset(Shader& shader)
+    {
+        if (shader.vertexShader) {
+            shader.vertexShader->Release();
+            shader.vertexShader = nullptr;
+        }
+        if (shader.pixelShader) {
+            shader.pixelShader->Release();
+            shader.pixelShader = nullptr;
+        }
+        if (shader.computeShader) {
+            shader.computeShader->Release();
+            shader.computeShader = nullptr;
+        }
+    }
+
+    uint32_t createShader(Renderer& renderer, const ShaderDesc& shaderDesc)
+    {
+        // TODO;
+        auto idx = renderer.shaders.create();
         return idx;
     }
 }

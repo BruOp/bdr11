@@ -113,42 +113,6 @@ class NormalMappingExample : public bdr::BaseGame
         };
         initialize(appConfig);
 
-        entity = createEntity(scene);
-        Transform transform{};
-
-        assignTransform(scene, entity, transform);
-
-        MeshDesc meshCreationInfo;
-        meshCreationInfo.numVertices = _countof(cubePositions) / 3u;
-        meshCreationInfo.numIndices = _countof(cubeIndices);
-        meshCreationInfo.indexData = (uint8_t*)cubeIndices;
-        meshCreationInfo.indexFormat = BufferFormat::UINT16;
-
-        // Attributes can be added in any order
-        addAttribute(meshCreationInfo, cubePositions, BufferFormat::FLOAT_3, MeshAttribute::POSITION);
-        addAttribute(meshCreationInfo, cubeNormals, BufferFormat::FLOAT_3, MeshAttribute::NORMAL);
-        addAttribute(meshCreationInfo, cubeUVs, BufferFormat::FLOAT_2, MeshAttribute::TEXCOORD);
-
-
-        BDRid meshHandle = createMesh(renderer, meshCreationInfo);
-        assignMesh(scene, entity, meshHandle);
-
-        BDRid materialId = createCustomMaterial(renderer, "../examples/02-normal-mapping/normal_mapping.hlsl", MeshAttribute::POSITION | MeshAttribute::NORMAL | MeshAttribute::TEXCOORD);
-        assignMaterial(scene, entity, materialId);
-
-        TextureCreationInfo texInfo{};
-        texInfo.usage = BufferUsage::SHADER_READABLE;
-
-        BDRid albedoTexture = createTextureFromFile(renderer, "Textures/stone01.DDS", texInfo);
-        BDRid normalTexture = createTextureFromFile(renderer, "Textures/bump01.DDS", texInfo);
-
-        TextureSet textureSet{};
-        textureSet.textures[0] = albedoTexture;
-        textureSet.textures[1] = normalTexture;
-        textureSet.numTextures = 2;
-        textureSet.textureFlags = TextureFlags::ALBEDO | TextureFlags::NORMAL_MAP;
-        assignTextureSet(scene, entity, textureSet);
-
         float width = float(renderer.width);
         float height = float(renderer.height);
         BDRid cameraId = createPerspectiveCamera(scene, XM_PI / 4.0f, width, height, 0.1f, 100.0f);
@@ -166,6 +130,67 @@ class NormalMappingExample : public bdr::BaseGame
         // Enable mesh pass
         addBasicPass(renderGraph, &view);
         renderGraph.init(&renderer);
+
+
+        entity = createEntity(scene);
+        Transform transform{};
+
+        assignTransform(scene, entity, transform);
+
+        PipelineStateDesc pipelineDesc{};
+        pipelineDesc.name = "normal_mapped";
+        pipelineDesc.file = "../examples/02-normal-mapping/normal_mapping.hlsl";
+        pipelineDesc.stages = PipelineStage::VERTEX_PIXEL;
+        pipelineDesc.meshAttributes =
+            MeshAttribute::POSITION |
+            MeshAttribute::NORMAL |
+            MeshAttribute::TEXCOORD;
+        pipelineDesc.requiredResources = {
+            BindingLayoutUsage::PER_DRAW,
+            {
+                { "view_constants", BoundResourceType::CONSTANT_BUFFER, PipelineStage::VERTEX },
+                { "draw_constants", BoundResourceType::CONSTANT_BUFFER, PipelineStage::VERTEX },
+                { "albedo_map", BoundResourceType::TEXTURE, PipelineStage::PIXEL },
+                { "normal_map", BoundResourceType::TEXTURE, PipelineStage::PIXEL },
+                { "albedo_sampler", BoundResourceType::SAMPLER, PipelineStage::PIXEL },
+                { "normal_sampler", BoundResourceType::SAMPLER, PipelineStage::PIXEL },
+            }
+        };
+        pipelineDesc.optionalResources = {};
+        pipelineDesc.creationFunc = [](const uint32_t uint32_t) {
+            return PipelineState{ };
+        };
+
+        MeshDesc meshDesc;
+        meshDesc.numVertices = _countof(cubePositions) / 3u;
+        meshDesc.numIndices = _countof(cubeIndices);
+        meshDesc.indexData = (uint8_t*)cubeIndices;
+        meshDesc.indexFormat = BufferFormat::UINT16;
+
+        // Attributes can be added in any order
+        addAttribute(meshDesc, cubePositions, BufferFormat::FLOAT_3, MeshAttribute::POSITION);
+        addAttribute(meshDesc, cubeNormals, BufferFormat::FLOAT_3, MeshAttribute::NORMAL);
+        addAttribute(meshDesc, cubeUVs, BufferFormat::FLOAT_2, MeshAttribute::TEXCOORD);
+
+        BDRid meshHandle = createMesh(renderer, meshDesc);
+        assignMesh(scene, entity, meshHandle);
+
+        MaterialDesc materialDesc{
+            { "mesh_pass", "normal_mapped", 0 },
+        };
+        uint32_t materialId = createMaterial(renderer, renderGraph, materialDesc);
+        assignMaterial(scene, entity, materialId);
+        MaterialInstance materialInstance = scene.registry.materials[entity];
+
+        TextureCreationInfo texInfo{};
+        texInfo.usage = BufferUsage::SHADER_READABLE;
+
+        BDRid albedoTexture = createTextureFromFile(renderer, "Textures/stone01.DDS", texInfo);
+        BDRid normalTexture = createTextureFromFile(renderer, "Textures/bump01.DDS", texInfo);
+
+        assignTexture(renderer, "normal", normalTexture);
+        assignTexture(renderer, materialId, "albedo", normalTexture);
+
     }
 
     virtual void tick(const float frameTime, const float totalTime) override

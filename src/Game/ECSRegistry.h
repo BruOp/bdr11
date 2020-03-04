@@ -66,11 +66,10 @@ namespace bdr
         }
     };
 
-    struct TextureSet
+    struct MaterialInstance
     {
-        uint32_t textures[4] = { UINT32_MAX, UINT32_MAX, UINT32_MAX, UINT32_MAX };
-        uint16_t numTextures = 0;
-        uint16_t textureFlags = 0;
+        uint32_t materialId;
+        uint32_t rboId;
     };
 
     // Used to retrieve the next "free" entity, one that has been allocated by unused.
@@ -108,10 +107,9 @@ namespace bdr
         ComponentArray<glm::mat4> localMatrices;
         ComponentArray<glm::mat4> globalMatrices;
         ComponentArray<FreeEntityNode> freeEntitiesNodes;
-        ComponentArray<uint32_t> materials;
+        ComponentArray<MaterialInstance> materials;
         ComponentArray<GenericMaterialData> materialData;
         ComponentArray<DrawConstants> drawConstants;
-        ComponentArray<TextureSet> textures;
 
         // This is used to calculate the number of components and store them.
         // DO NOT MOVE -- it's position in the layout of this class is crucial to it's functionality
@@ -143,6 +141,5 @@ namespace bdr
     void assignMesh(ECSRegistry& registry, const uint32_t entity, const uint32_t meshId);
     void assignMaterial(ECSRegistry& registry, const uint32_t entity, const uint32_t materialId);
     void assignTransform(ECSRegistry& registry, const uint32_t entity, const Transform& transform);
-    void assignTextureSet(ECSRegistry& registry, const uint32_t entity, const TextureSet& textureSet);
 }
 

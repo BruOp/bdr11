@@ -1,7 +1,10 @@
 #pragma once
 #include "pch.h"
-#include "DXHelpers.h"
+#include <functional>
+#include <unordered_map>
 
+#include "DXHelpers.h"
+#include "RenderStates.h"
 
 namespace bdr
 {
@@ -111,31 +114,6 @@ namespace bdr
         uint8_t presentAttributesMask = 0;
     };
 
-    enum class MaterialType : uint8_t
-    {
-        INVALID = 0,
-        PBR = 1,
-        BASIC = 2,
-        CUSTOM = UINT8_MAX,
-    };
-
-    // Attribute requirements indexed by Material Type
-    constexpr uint8_t MaterialAttributeRequirements[] = {
-        MeshAttribute::INVALID,
-        MeshAttribute::POSITION | MeshAttribute::NORMAL | MeshAttribute::TEXCOORD,
-        MeshAttribute::POSITION | MeshAttribute::COLOR,
-    };
-
-    struct Material
-    {
-        MaterialType type = MaterialType::INVALID;
-        uint16_t permutation = 0;
-        uint8_t attributeRequriements = 0;
-        ID3D11VertexShader* vertexShader;
-        ID3D11PixelShader* pixelShader;
-    };
-
-
     struct TextureCreationInfo
     {
         uint32_t dims[2] = { 0, 0 };
@@ -166,5 +144,108 @@ namespace bdr
         EMISSIVE = (1 << 4),
         DISABLED = (1 << 15),
         PBR_COMPATIBLE = ALBEDO | NORMAL_MAP | METALLIC_ROUGHNESS
+    };
+
+    enum PipelineStage : uint8_t
+    {
+        VERTEX = 1 << 0,
+        PIXEL = 1 << 1,
+        VERTEX_PIXEL = PIXEL | VERTEX,
+        COMPUTE = 1 << 2,
+    };
+
+    enum struct BoundResourceType : uint8_t
+    {
+        INVALID = 0,
+        CONSTANT_BUFFER,
+        WRITABLE_BUFFER,
+        READABLE_BUFFER,
+        SAMPLER,
+    };
+
+    struct BoundResourceDesc
+    {
+        std::string name;
+        BoundResourceType type = BoundResourceType::INVALID;
+        PipelineStage stages;
+        uint8_t slot = UINT8_MAX;
+    };
+
+    enum struct BindingLayoutUsage : uint8_t
+    {
+        PER_FRAME = 0,
+        PER_VIEW,
+        PER_DRAW,
+    };
+
+    struct ResourceBindingLayoutDesc
+    {
+        constexpr static uint32_t maxResources = 16;
+        BindingLayoutUsage usage = BindingLayoutUsage::PER_DRAW;
+        BoundResourceDesc resourceDescs[maxResources] = {};
+    };
+
+    struct PipelineState
+    {
+        ID3D11VertexShader* vertexShader = nullptr;
+        ID3D11PixelShader* pixelShader = nullptr;
+        ID3D11ComputeShader* computeShader = nullptr;
+        ID3D11InputLayout* inputLayout;
+        ID3D11DepthStencilState* depthStencilState;
+        ID3D11RasterizerState* rasterizerState;
+        ID3D11BlendState* blendState;
+        ResourceBindingLayout resourceBindingLayout;
+    };
+
+    struct PipelineStateDesc
+    {
+        std::string name;
+        std::string file;
+        PipelineStage stages;
+        uint8_t meshAttributes;
+        ResourceBindingLayoutDesc requiredResources;
+        ResourceBindingLayoutDesc optionalResources;
+        // TODO : Render targets/Outputs
+        std::function<PipelineState(uint32_t)> creationFunc;
+    };
+
+    struct ResourceBindingObject
+    {
+        static constexpr size_t maxCountPerType = 16;
+
+        uint32_t layoutId;
+        ID3D11UnorderedAccessView* uavs[maxCountPerType]; // Should these be API specific or not?
+        ID3D11ShaderResourceView* srvs[maxCountPerType];
+        ID3D11SamplerState* samplers[maxCountPerType];
+        ID3D11Buffer* CBHandles[maxCountPerType];
+    };
+
+    struct ResourceBindingHeap
+    {
+        ID3D11ShaderResourceView** srvs;
+        ID3D11UnorderedAccessView** uavs;
+        ID3D11Buffer** cbs;
+    };
+
+    struct ResourceBinder
+    {
+        uint16_t heapId;
+        uint8_t count;
+        PipelineStage stage;
+        uint32_t offset;
+    };
+
+    struct ResourceView
+    {
+        uint16_t heapId;
+        BoundResourceType resourceType;
+        uint32_t offset;
+    };
+
+    struct ResourceBindingLayout
+    {
+        std::unordered_map<std::string, ResourceView> resourcesMap;
+        // Key is HeapID, value is count required in that heap for binding;
+        std::unordered_map<uint16_t, uint32_t> countsByHeap;
     };
 }

@@ -4,9 +4,9 @@
 #include "DeviceResources.h"
 #include "Resources.h"
 #include "InputLayoutManager.h"
-#include "Material.h"
 #include "Texture.h"
 #include "ResourceManager.h"
+#include "PipelineStateObject.h"
 
 namespace bdr
 {
@@ -29,7 +29,6 @@ namespace bdr
         void reset()
         {
             inputLayoutManager.reset();
-            materials.reset();
         }
 
         inline void setWindow(HWND window, int newWidth, int newHeight)
@@ -95,16 +94,15 @@ namespace bdr
         ResourceManager<GPUBuffer> jointBuffers;
         ResourceManager<Texture> textures;
         ResourceManager<GPUBuffer> constantBuffers;
-        MaterialManager materials;
+        ResourceManager<PipelineState> pipelines;
     };
 
     GPUBuffer createStructuredBuffer(ID3D11Device* device, const uint32_t elementSize, const uint32_t numElements);
 
     uint32_t createMesh(Renderer& renderer, const MeshDesc& meshCreationInfo);
-    uint32_t getOrCreateBasicMaterial(Renderer& renderer);
+    //uint32_t getOrCreateBasicMaterial(Renderer& renderer);
 
-    // Returns an **unmanaged** material. The client is responsible for cleanup.
-    uint32_t createCustomMaterial(Renderer& renderer, const std::string& shaderPath, uint8_t attrRequirements);
+    //uint32_t createCustomMaterial(Renderer& renderer, const std::string& shaderPath, uint8_t attrRequirements);
 
     uint32_t createTextureFromFile(Renderer& renderer, const std::string& filePath, const TextureCreationInfo& createInfo);
 }

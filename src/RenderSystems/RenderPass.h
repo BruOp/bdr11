@@ -2,9 +2,9 @@
 #include "pch.h"
 
 #include <functional>
-
+#include "Graphics/Resources.h"
 #include "View.h"
-
+#include "../RenderSystems/Material.h"
 
 namespace bdr
 {
@@ -25,7 +25,9 @@ namespace bdr
         std::function<void()> destroy;
         std::wstring name = L"";
         std::vector<View*> views;
-
+        std::unordered_map<std::string, Material> materials;
+        ResourceBindingLayout perViewLayout;
+        ResourceBindingHeap resourceBindingHeap;
     };
 
     // Note: not a real frame/render graph just yet
@@ -58,9 +60,11 @@ namespace bdr
     private:
         std::vector<View> views;
         std::vector<RenderPass> renderPasses;
+        ResourceBindingLayout perFrameLayout;
+        MaterialManager materialManager;
     };
 
-    void addSkinningPass(RenderSystem& renderGraph, View* view);
-    void addBasicPass(RenderSystem& renderGraph, View* view);
+    /*void addSkinningPass(RenderSystem& renderGraph, View* view);
+    void addBasicPass(RenderSystem& renderGraph, View* view);*/
 }
 

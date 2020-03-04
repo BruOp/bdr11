@@ -51,6 +51,13 @@ namespace bdr
         ANTIALIASED_LINES = 1 << 3,
     };
 
+    enum struct BlendMode : uint8_t
+    {
+        OPAQUE,
+        MASKED,
+        BLENDED
+    };
+
     enum struct Blend : uint8_t
     {
         ZERO,
@@ -118,7 +125,7 @@ namespace bdr
 
     struct RenderTargetBlendDesc
     {
-        bool blendEnable = false;
+        BlendMode blendMode = BlendMode::OPAQUE;
         // RGB value from pixel shader output
         Blend    srcBlend = Blend::ONE;
         // RGB Value stored in render target
