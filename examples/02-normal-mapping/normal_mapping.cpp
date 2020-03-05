@@ -103,6 +103,68 @@ constexpr uint16_t cubeIndices[] = {
     23, 22, 20,
 };
 
+uint32_t createLayout(Renderer& renderer, const ResourceBindingLayoutDesc& layoutDesc)
+{
+    ResourceBindingLayout layout{};
+    layout.usage = layoutDesc.usage;
+
+    for (const auto& resourceDesc : layoutDesc.resourceDescs) {
+        if (resourceDesc.type == BoundResourceType::CONSTANT_BUFFER) {
+            // TODO
+            HALT("This resource type is not supported!");
+        }
+        else if (resourceDesc.type == BoundResourceType::READABLE_BUFFER) {
+            layout.resourceMap[resourceDesc.name] = { resourceDesc.type, layout.readableBufferCount++ };
+        }
+        else if (resourceDesc.type == BoundResourceType::WRITABLE_BUFFER) {
+            layout.resourceMap[resourceDesc.name] = { resourceDesc.type, layout.writableBufferCount++ };
+        }
+        else if (resourceDesc.type == BoundResourceType::SAMPLER) {
+            layout.resourceMap[resourceDesc.name] = { resourceDesc.type, layout.samplerCount++ };
+        }
+        else if (resourceDesc.type == BoundResourceType::INVALID) {
+            break;
+        }
+    }
+    const auto layoutId = renderer.layouts.size();
+    renderer.layouts.push_back(layout);
+    return layoutId;
+};
+
+void bindTexture(
+    Renderer& renderer,
+    const MaterialInstance materialInstance,
+    const std::string& name,
+    const uint32_t textureHandle)
+{
+    ResourceBinder binder = renderer.binders[materialInstance.resourceBinderId];
+    ResourceBindingHeap& heap = renderer.bindingHeap;
+    const ResourceBindingLayout& layout = renderer.layouts[binder.layoutId];
+    const Texture& texture = renderer.textures[textureHandle];
+    auto srvOffset = binder.readableBufferOffset + layout.resourceMap.at(name + "_map").offset;
+    auto samplerOffset = binder.samplerOffset + layout.resourceMap.at(name + "_sampler").offset;
+    heap.srvs[srvOffset] = texture.srv;
+    heap.samplers[samplerOffset] = texture.sampler;
+}
+
+uint32_t allocateResourceBinder(Renderer& renderer, const uint32_t& layoutId)
+{
+    const ResourceBindingLayout& layout = renderer.layouts[layoutId];
+    ResourceBindingHeap& heap = renderer.bindingHeap;
+    ResourceBinder binder{ uint16_t(layoutId) };
+    binder.readableBufferOffset = heap.srvs.size();
+    heap.srvs.resize(binder.readableBufferOffset + layout.readableBufferCount);
+
+    binder.writableBufferOffset = heap.uavs.size();
+    heap.uavs.resize(binder.writableBufferOffset + layout.writableBufferCount);
+
+    binder.samplerOffset = heap.samplers.size();
+    heap.samplers.resize(binder.samplerOffset + layout.samplerCount);
+    auto id = renderer.binders.size();
+    renderer.binders.push_back(binder);
+    return id;
+}
+
 class NormalMappingExample : public bdr::BaseGame
 {
     virtual void setup() override
@@ -112,6 +174,23 @@ class NormalMappingExample : public bdr::BaseGame
             1024,
         };
         initialize(appConfig);
+
+        ResourceBindingLayoutDesc layoutDesc{
+            BindingLayoutUsage::PER_DRAW,
+            {
+                { "albedo_map", BoundResourceType::READABLE_BUFFER, PipelineStage::PIXEL_STAGE },
+                { "normal_map", BoundResourceType::READABLE_BUFFER, PipelineStage::PIXEL_STAGE },
+                { "normal_sampler", BoundResourceType::SAMPLER, PipelineStage::PIXEL_STAGE },
+                { "albedo_sampler", BoundResourceType::SAMPLER, PipelineStage::PIXEL_STAGE },
+
+            },
+        };
+
+        uint32_t layoutId = createLayout(renderer, layoutDesc);
+
+        uint32_t resourceBinderId = allocateResourceBinder(renderer, layoutId);
+        MaterialInstance materialInstance{};
+        materialInstance.resourceBinderId = resourceBinderId;
 
         entity = createEntity(scene);
         Transform transform{};
@@ -142,12 +221,9 @@ class NormalMappingExample : public bdr::BaseGame
         BDRid albedoTexture = createTextureFromFile(renderer, "Textures/stone01.DDS", texInfo);
         BDRid normalTexture = createTextureFromFile(renderer, "Textures/bump01.DDS", texInfo);
 
-        TextureSet textureSet{};
-        textureSet.textures[0] = albedoTexture;
-        textureSet.textures[1] = normalTexture;
-        textureSet.numTextures = 2;
-        textureSet.textureFlags = TextureFlags::ALBEDO | TextureFlags::NORMAL_MAP;
-        assignTextureSet(scene, entity, textureSet);
+        assignMaterialInstance(scene, entity, materialInstance);
+        bindTexture(renderer, materialInstance, "albedo", albedoTexture);
+        bindTexture(renderer, materialInstance, "normal", normalTexture);
 
         float width = float(renderer.width);
         float height = float(renderer.height);

@@ -1,7 +1,10 @@
 #pragma once
 #include "pch.h"
-#include "DXHelpers.h"
 
+#include <unordered_map>
+#include <string>
+
+#include "DXHelpers.h"
 
 namespace bdr
 {
@@ -166,5 +169,76 @@ namespace bdr
         EMISSIVE = (1 << 4),
         DISABLED = (1 << 15),
         PBR_COMPATIBLE = ALBEDO | NORMAL_MAP | METALLIC_ROUGHNESS
+    };
+
+
+    enum PipelineStage : uint8_t
+    {
+        VERTEX_STAGE = 1 << 0,
+        PIXEL_STAGE = 1 << 1,
+        VERTEX_PIXEL_STAGES = VERTEX_STAGE | PIXEL_STAGE,
+        COMPUTE_STAGE = 1 << 2,
+    };
+
+    enum struct BoundResourceType : uint8_t
+    {
+        INVALID = 0,
+        CONSTANT_BUFFER,
+        WRITABLE_BUFFER,
+        READABLE_BUFFER,
+        SAMPLER,
+    };
+
+    struct BoundResourceDesc
+    {
+        std::string name;
+        BoundResourceType type = BoundResourceType::INVALID;
+        PipelineStage stages;
+    };
+
+    enum struct BindingLayoutUsage : uint8_t
+    {
+        PER_FRAME = 0,
+        PER_VIEW,
+        PER_DRAW,
+    };
+
+    struct ResourceBindingLayoutDesc
+    {
+        constexpr static size_t maxResources = 24;
+        BindingLayoutUsage usage = BindingLayoutUsage::PER_DRAW;
+        BoundResourceDesc resourceDescs[maxResources] = {};
+    };
+
+    struct ResourceView
+    {
+        BoundResourceType resourceType;
+        uint32_t offset;
+    };
+
+    struct ResourceBindingLayout
+    {
+        BindingLayoutUsage usage = BindingLayoutUsage::PER_DRAW;
+        uint8_t readableBufferCount = 0;
+        uint8_t writableBufferCount = 0;
+        uint8_t samplerCount = 0;
+
+        std::unordered_map<std::string, ResourceView> resourceMap;
+    };
+
+    struct ResourceBindingHeap
+    {
+        std::vector<ID3D11ShaderResourceView*> srvs;
+        std::vector<ID3D11UnorderedAccessView*> uavs;
+        std::vector<ID3D11SamplerState*> samplers;
+    };
+
+    struct ResourceBinder
+    {
+        uint16_t layoutId;
+        PipelineStage stage;
+        uint32_t readableBufferOffset;
+        uint32_t writableBufferOffset;
+        uint32_t samplerOffset;
     };
 }

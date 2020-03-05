@@ -4,6 +4,7 @@
 #include "Core/bdrMath.h"
 #include "Animation.h"
 
+
 namespace bdr
 {
     enum CmpMasks : uint32_t
@@ -66,11 +67,9 @@ namespace bdr
         }
     };
 
-    struct TextureSet
+    struct MaterialInstance
     {
-        uint32_t textures[4] = { UINT32_MAX, UINT32_MAX, UINT32_MAX, UINT32_MAX };
-        uint16_t numTextures = 0;
-        uint16_t textureFlags = 0;
+        uint32_t resourceBinderId;
     };
 
     // Used to retrieve the next "free" entity, one that has been allocated by unused.
@@ -111,7 +110,7 @@ namespace bdr
         ComponentArray<uint32_t> materials;
         ComponentArray<GenericMaterialData> materialData;
         ComponentArray<DrawConstants> drawConstants;
-        ComponentArray<TextureSet> textures;
+        ComponentArray<MaterialInstance> materialInstances;
 
         // This is used to calculate the number of components and store them.
         // DO NOT MOVE -- it's position in the layout of this class is crucial to it's functionality
@@ -143,6 +142,6 @@ namespace bdr
     void assignMesh(ECSRegistry& registry, const uint32_t entity, const uint32_t meshId);
     void assignMaterial(ECSRegistry& registry, const uint32_t entity, const uint32_t materialId);
     void assignTransform(ECSRegistry& registry, const uint32_t entity, const Transform& transform);
-    void assignTextureSet(ECSRegistry& registry, const uint32_t entity, const TextureSet& textureSet);
+    void assignMaterialInstance(ECSRegistry& registry, const uint32_t entity, const MaterialInstance& materialInstance);
 }
 

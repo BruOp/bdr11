@@ -93,9 +93,9 @@ namespace bdr
         registry.cmpMasks[entity] |= CmpMasks::TRANSFORM;
     }
 
-    void assignTextureSet(ECSRegistry& registry, const uint32_t entity, const TextureSet& textureSet)
+    void assignMaterialInstance(ECSRegistry& registry, const uint32_t entity, const MaterialInstance& materialInstance)
     {
-        registry.textures[entity] = textureSet;
+        registry.materialInstances[entity] = materialInstance;
         registry.cmpMasks[entity] |= CmpMasks::TEXTURED;
     }
 

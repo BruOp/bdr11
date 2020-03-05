@@ -613,96 +613,96 @@ namespace bdr
                     registry.cmpMasks[entity] |= PARENT;
                 }
 
-                if (node.meshId != -1) {
-                    registry.meshes[entity] = sceneData.meshMap[getMeshMapKey(node.meshId, node.primitiveId)];
-                    registry.cmpMasks[entity] |= MESH;
+                //if (node.meshId != -1) {
+                //    registry.meshes[entity] = sceneData.meshMap[getMeshMapKey(node.meshId, node.primitiveId)];
+                //    registry.cmpMasks[entity] |= MESH;
 
-                    TextureSet& textureSet = registry.textures[entity];
-                    const tinygltf::Mesh& mesh = gltfModel.meshes[node.meshId];
-                    const tinygltf::Primitive& primitive = mesh.primitives[node.primitiveId];
-                    const tinygltf::Material& material = gltfModel.materials[primitive.material];
+                //    TextureSet& textureSet = registry.textures[entity];
+                //    const tinygltf::Mesh& mesh = gltfModel.meshes[node.meshId];
+                //    const tinygltf::Primitive& primitive = mesh.primitives[node.primitiveId];
+                //    const tinygltf::Material& material = gltfModel.materials[primitive.material];
 
-                    auto valuesEnd = material.values.end();
-                    auto additionalValuesEnd = material.additionalValues.end();
+                //    auto valuesEnd = material.values.end();
+                //    auto additionalValuesEnd = material.additionalValues.end();
 
-                    auto p_gltfTexture = material.values.find("baseColorTexture");
-                    if (p_gltfTexture != valuesEnd) {
-                        size_t textureIdx = p_gltfTexture->second.TextureIndex();
-                        size_t imgIdx = gltfModel.textures[textureIdx].source;
-                        textureSet.textures[textureSet.numTextures++] = sceneData.textureMap[imgIdx];
-                        textureSet.textureFlags |= TextureFlags::ALBEDO;
-                    }
+                //    auto p_gltfTexture = material.values.find("baseColorTexture");
+                //    if (p_gltfTexture != valuesEnd) {
+                //        size_t textureIdx = p_gltfTexture->second.TextureIndex();
+                //        size_t imgIdx = gltfModel.textures[textureIdx].source;
+                //        textureSet.textures[textureSet.numTextures++] = sceneData.textureMap[imgIdx];
+                //        textureSet.textureFlags |= TextureFlags::ALBEDO;
+                //    }
 
-                    p_gltfTexture = material.values.find("metallicRoughnessTexture");
-                    if (p_gltfTexture != valuesEnd) {
-                        size_t textureIdx = p_gltfTexture->second.TextureIndex();
-                        size_t imgIdx = gltfModel.textures[textureIdx].source;
-                        textureSet.textures[textureSet.numTextures++] = sceneData.textureMap[imgIdx];
-                        textureSet.textureFlags |= TextureFlags::METALLIC_ROUGHNESS;
+                //    p_gltfTexture = material.values.find("metallicRoughnessTexture");
+                //    if (p_gltfTexture != valuesEnd) {
+                //        size_t textureIdx = p_gltfTexture->second.TextureIndex();
+                //        size_t imgIdx = gltfModel.textures[textureIdx].source;
+                //        textureSet.textures[textureSet.numTextures++] = sceneData.textureMap[imgIdx];
+                //        textureSet.textureFlags |= TextureFlags::METALLIC_ROUGHNESS;
 
-                        // We only allow occlusion maps to be the R channel of the metallicRoughness map
-                        p_gltfTexture = material.additionalValues.find("occlusionTexture");
-                        if (p_gltfTexture != additionalValuesEnd) {
-                            textureIdx = p_gltfTexture->second.TextureIndex();
-                            size_t occlusionImgIdx = gltfModel.textures[textureIdx].source;
-                            if (imgIdx == occlusionImgIdx) {
-                                textureSet.textureFlags |= TextureFlags::OCCLUSION;
-                            }
-                            else {
-                                Utility::Printf(L"Occlusion texutre at index %d is not using the same source as the metallic roughness texture", textureIdx);
-                            }
-                        }
-                    }
+                //        // We only allow occlusion maps to be the R channel of the metallicRoughness map
+                //        p_gltfTexture = material.additionalValues.find("occlusionTexture");
+                //        if (p_gltfTexture != additionalValuesEnd) {
+                //            textureIdx = p_gltfTexture->second.TextureIndex();
+                //            size_t occlusionImgIdx = gltfModel.textures[textureIdx].source;
+                //            if (imgIdx == occlusionImgIdx) {
+                //                textureSet.textureFlags |= TextureFlags::OCCLUSION;
+                //            }
+                //            else {
+                //                Utility::Printf(L"Occlusion texutre at index %d is not using the same source as the metallic roughness texture", textureIdx);
+                //            }
+                //        }
+                //    }
 
-                    p_gltfTexture = material.additionalValues.find("normalTexture");
-                    if (p_gltfTexture != additionalValuesEnd) {
-                        size_t textureIdx = p_gltfTexture->second.TextureIndex();
-                        size_t imgIdx = gltfModel.textures[textureIdx].source;
-                        textureSet.textures[textureSet.numTextures++] = sceneData.textureMap[imgIdx];
-                        textureSet.textureFlags |= TextureFlags::NORMAL_MAP;
-                    }
+                //    p_gltfTexture = material.additionalValues.find("normalTexture");
+                //    if (p_gltfTexture != additionalValuesEnd) {
+                //        size_t textureIdx = p_gltfTexture->second.TextureIndex();
+                //        size_t imgIdx = gltfModel.textures[textureIdx].source;
+                //        textureSet.textures[textureSet.numTextures++] = sceneData.textureMap[imgIdx];
+                //        textureSet.textureFlags |= TextureFlags::NORMAL_MAP;
+                //    }
 
-                    p_gltfTexture = material.additionalValues.find("emissiveTexture");
-                    if (p_gltfTexture != additionalValuesEnd) {
-                        size_t textureIdx = p_gltfTexture->second.TextureIndex();
-                        size_t imgIdx = gltfModel.textures[textureIdx].source;
-                        textureSet.textures[textureSet.numTextures++] = sceneData.textureMap[imgIdx];
-                        textureSet.textureFlags |= TextureFlags::EMISSIVE;
-                    }
+                //    p_gltfTexture = material.additionalValues.find("emissiveTexture");
+                //    if (p_gltfTexture != additionalValuesEnd) {
+                //        size_t textureIdx = p_gltfTexture->second.TextureIndex();
+                //        size_t imgIdx = gltfModel.textures[textureIdx].source;
+                //        textureSet.textures[textureSet.numTextures++] = sceneData.textureMap[imgIdx];
+                //        textureSet.textureFlags |= TextureFlags::EMISSIVE;
+                //    }
 
-                    PBRConstants factors{};
-                    if (material.values.count("baseColorFactor")) {
-                        auto data = material.values.at("baseColorFactor").ColorFactor();
-                        for (size_t i = 0; i < 4u; i++) {
-                            factors.baseColorFactor[i] = float(data[i]);
-                        }
-                    }
+                //    PBRConstants factors{};
+                //    if (material.values.count("baseColorFactor")) {
+                //        auto data = material.values.at("baseColorFactor").ColorFactor();
+                //        for (size_t i = 0; i < 4u; i++) {
+                //            factors.baseColorFactor[i] = float(data[i]);
+                //        }
+                //    }
 
-                    if (material.values.count("metallicFactor")) {
-                        factors.metallicFactor = float(material.values.at("metallicFactor").Factor());
-                    }
+                //    if (material.values.count("metallicFactor")) {
+                //        factors.metallicFactor = float(material.values.at("metallicFactor").Factor());
+                //    }
 
-                    if (material.values.count("roughnessFactor")) {
-                        factors.roughnessFactor = float(material.values.at("roughnessFactor").Factor());
-                    }
+                //    if (material.values.count("roughnessFactor")) {
+                //        factors.roughnessFactor = float(material.values.at("roughnessFactor").Factor());
+                //    }
 
-                    if (material.additionalValues.count("emissiveFactor")) {
-                        auto data = material.additionalValues.at("emissiveFactor").ColorFactor();
-                        for (size_t i = 0; i < 3u; i++) { // Emissive values cannot have alpha
-                            factors.emissiveFactor[i] = float(data[i]);
-                        }
-                    }
-                    // Copy our material data
-                    memcpy(&registry.materialData[entity], &factors, sizeof(factors));
+                //    if (material.additionalValues.count("emissiveFactor")) {
+                //        auto data = material.additionalValues.at("emissiveFactor").ColorFactor();
+                //        for (size_t i = 0; i < 3u; i++) { // Emissive values cannot have alpha
+                //            factors.emissiveFactor[i] = float(data[i]);
+                //        }
+                //    }
+                //    // Copy our material data
+                //    memcpy(&registry.materialData[entity], &factors, sizeof(factors));
 
-                    registry.materials[entity] = getOrCreatePBRMaterial(sceneData.pRenderer->materials, textureSet.textureFlags);
-                    registry.cmpMasks[entity] |= MATERIAL;
+                //    registry.materials[entity] = getOrCreatePBRMaterial(sceneData.pRenderer->materials, textureSet.textureFlags);
+                //    registry.cmpMasks[entity] |= MATERIAL;
 
-                    if (node.skinId != -1) {
-                        registry.skinIds[entity] = node.skinId;
-                        registry.cmpMasks[entity] |= SKIN;
-                    }
-                }
+                //    if (node.skinId != -1) {
+                //        registry.skinIds[entity] = node.skinId;
+                //        registry.cmpMasks[entity] |= SKIN;
+                //    }
+                //}
 
                 registry.transforms[entity] = processTransform(sceneData.inputModel->nodes[node.index]);
                 registry.localMatrices[entity] = getMatrixFromTransform(registry.transforms[entity]);

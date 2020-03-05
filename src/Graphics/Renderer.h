@@ -96,6 +96,9 @@ namespace bdr
         ResourceManager<Texture> textures;
         ResourceManager<GPUBuffer> constantBuffers;
         MaterialManager materials;
+        ResourceBindingHeap bindingHeap;
+        std::vector<ResourceBindingLayout> layouts;
+        std::vector<ResourceBinder> binders;
     };
 
     GPUBuffer createStructuredBuffer(ID3D11Device* device, const uint32_t elementSize, const uint32_t numElements);
