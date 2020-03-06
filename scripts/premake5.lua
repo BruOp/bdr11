@@ -1,4 +1,5 @@
 BDR_DIR = (path.getabsolute("..") .. "/")
+TESTS_DIR = (path.getabsolute("..") .. "/tests/")
 RUNTIME_DIR = (path.getabsolute("..") .. "/runtime/")
 EXAMPLES_DIR = (BDR_DIR .. "examples/")
 
@@ -62,6 +63,21 @@ workspace "bdr11"
 
 BDR_SRC_DIR = path.join(BDR_DIR, "src")
 
+
+project("murmur_hash")
+  uuid(os.uuid("murmur_hash"))
+  kind "StaticLib"
+
+  files {
+    path.join(BDR_DIR, "external/src/MurmurHash3.cpp"),
+  }
+
+  includedirs {
+    EXTERNAL_DIR
+  }
+
+  configuration {}
+
 project("bdr_lib")
   uuid(os.uuid("bdr_lib"))
   kind "StaticLib"
@@ -101,10 +117,33 @@ project("bdr_lib")
     "odbc32",
     "odbccp32",
     "runtimeobject",
-    "D3DCompiler"
+    "D3DCompiler",
+    "murmur_hash",
   }
 
   configuration {}
+
+
+  -- project("tests")
+  -- uuid(os.uuid("tests"))
+  -- kind "StaticLib"
+
+  -- files {
+  --   path.join(TESTS_DIR, "**.cpp"),
+  -- }
+
+  -- includedirs {
+  --   BDR_SRC_DIR,
+  --   EXTERNAL_DIR,
+  -- }
+
+  -- links {
+  --   "bdr_lib",
+  -- }
+
+  -- configuration {}
+
+
 
 group "examples"
 exampleProject(

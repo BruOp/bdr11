@@ -1,7 +1,6 @@
 #include "pch.h"
 
 #include "ECSRegistry.h"
-#include "Core/bdrMemory.h"
 
 
 namespace bdr

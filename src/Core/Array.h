@@ -1,0 +1,58 @@
+#pragma once
+#include "pch.h"
+
+namespace bdr
+{
+    template<typename T>
+    struct Array
+    {
+        size_t size = 0;
+        size_t capacity = 0;
+        const size_t elementByteSize = sizeof(T);
+        T* data = nullptr;
+
+        ~Array()
+        {
+            Memory::release(data);
+            size = 0;
+            capacity = 0;
+        }
+
+        UNCOPIABLE(Array);
+        UNMOVABLE(Array);
+
+        T& operator[](size_t idx)
+        {
+            ASSERT(idx < size, "Index out of bounds!");
+            return data[idx];
+        }
+
+        void grow(const size_t additionalSlots = 1024)
+        {
+            reallocate(capacity + additionalSlots);
+        }
+
+        size_t byteSizeOf(Array<T>& arr) const
+        {
+            return capacity * elementByteSize;
+        }
+
+        size_t pushBack(const T& data)
+        {
+            if (size == capacity) {
+                grow();
+            }
+            data[size] = T;
+        }
+
+        void reallocate(const size_t newSize)
+        {
+            if (newSize < capacity) {
+                DEBUGPRINT("Shrinking Array!");
+            }
+            capacity = newSize;
+            data = Memory::reallocate(data, capacity * elementByteSize);
+        }
+    };
+
+}

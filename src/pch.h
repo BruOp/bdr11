@@ -65,6 +65,7 @@
 #include <stdlib.h>
 
 #include "ReadData.h"
+#include "Core/bdrMemory.h"
 
 #ifdef _DEBUG
 #include <dxgidebug.h>

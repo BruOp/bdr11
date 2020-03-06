@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <string>
 
+#include "Core/Map.h"
 #include "DXHelpers.h"
 
 namespace bdr
@@ -212,8 +213,8 @@ namespace bdr
 
     struct ResourceView
     {
-        BoundResourceType resourceType;
-        uint32_t offset;
+        BoundResourceType resourceType = BoundResourceType::INVALID;
+        uint32_t offset = UINT32_MAX;
     };
 
     struct ResourceBindingLayout
@@ -223,7 +224,7 @@ namespace bdr
         uint8_t writableBufferCount = 0;
         uint8_t samplerCount = 0;
 
-        std::unordered_map<std::string, ResourceView> resourceMap;
+        SimpleMap32<ResourceView> resourceMap;
     };
 
     struct ResourceBindingHeap

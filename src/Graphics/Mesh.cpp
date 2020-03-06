@@ -25,6 +25,7 @@ namespace bdr
         }
         else {
             HALT("Invalid Attribute");
+            return UINT64_MAX;
         }
     }
 

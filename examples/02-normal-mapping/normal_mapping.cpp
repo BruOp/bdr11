@@ -105,7 +105,10 @@ constexpr uint16_t cubeIndices[] = {
 
 uint32_t createLayout(Renderer& renderer, const ResourceBindingLayoutDesc& layoutDesc)
 {
-    ResourceBindingLayout layout{};
+    const auto layoutId = renderer.layouts.size();
+    renderer.layouts.emplace_back();
+    ResourceBindingLayout& layout = renderer.layouts[layoutId];
+
     layout.usage = layoutDesc.usage;
 
     for (const auto& resourceDesc : layoutDesc.resourceDescs) {
@@ -114,20 +117,18 @@ uint32_t createLayout(Renderer& renderer, const ResourceBindingLayoutDesc& layou
             HALT("This resource type is not supported!");
         }
         else if (resourceDesc.type == BoundResourceType::READABLE_BUFFER) {
-            layout.resourceMap[resourceDesc.name] = { resourceDesc.type, layout.readableBufferCount++ };
+            layout.resourceMap.insert(resourceDesc.name, { resourceDesc.type, layout.readableBufferCount++ });
         }
         else if (resourceDesc.type == BoundResourceType::WRITABLE_BUFFER) {
-            layout.resourceMap[resourceDesc.name] = { resourceDesc.type, layout.writableBufferCount++ };
+            layout.resourceMap.insert(resourceDesc.name, { resourceDesc.type, layout.writableBufferCount++ });
         }
         else if (resourceDesc.type == BoundResourceType::SAMPLER) {
-            layout.resourceMap[resourceDesc.name] = { resourceDesc.type, layout.samplerCount++ };
+            layout.resourceMap.insert(resourceDesc.name, { resourceDesc.type, layout.samplerCount++ });
         }
         else if (resourceDesc.type == BoundResourceType::INVALID) {
             break;
         }
     }
-    const auto layoutId = renderer.layouts.size();
-    renderer.layouts.push_back(layout);
     return layoutId;
 };
 
@@ -141,8 +142,16 @@ void bindTexture(
     ResourceBindingHeap& heap = renderer.bindingHeap;
     const ResourceBindingLayout& layout = renderer.layouts[binder.layoutId];
     const Texture& texture = renderer.textures[textureHandle];
-    auto srvOffset = binder.readableBufferOffset + layout.resourceMap.at(name + "_map").offset;
-    auto samplerOffset = binder.samplerOffset + layout.resourceMap.at(name + "_sampler").offset;
+
+    ResourceView resourceView;
+    bool resourceFound = layout.resourceMap.get(name + "_map", &resourceView);
+    ASSERT(resourceFound, "Unable to find associated map");
+    auto srvOffset = binder.readableBufferOffset + resourceView.offset;
+
+
+    resourceFound = layout.resourceMap.get(name + "_sampler", &resourceView);
+    ASSERT(resourceFound, "Unable to find associated map");
+    auto samplerOffset = binder.samplerOffset + resourceView.offset;
     heap.srvs[srvOffset] = texture.srv;
     heap.samplers[samplerOffset] = texture.sampler;
 }
