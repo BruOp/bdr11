@@ -28,22 +28,7 @@ namespace bdr
             capacity = 0;
         }
 
-        SimpleMap32(const SimpleMap32& other)
-        {
-            size = other.size;
-            reallocate(other.capacity);
-            memcpy(keys, other.keys, sizeof(uint32_t) * other.size);
-            memcpy(values, other.values, sizeof(V) * other.size);
-        }
-
-        SimpleMap32& operator=(const SimpleMap32& other)
-        {
-            size = other.size;
-            reallocate(other.capacity);
-            memcpy(keys, other.keys, sizeof(uint32_t) * other.size);
-            memcpy(values, other.values, sizeof(V) * other.size);
-            return *this;
-        }
+        UNCOPIABLE(SimpleMap32);
 
         SimpleMap32(SimpleMap32&& other)
         {

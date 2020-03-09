@@ -1,5 +1,6 @@
 #include "entry.h"
 #include "Core/bdrMath.h"
+#include "Core/Array.h"
 #include "Graphics/Mesh.h"
 #include "Game/AnimationSystem.h"
 #include "Utils/IcosahedronFactory.h"
@@ -184,22 +185,26 @@ class NormalMappingExample : public bdr::BaseGame
         };
         initialize(appConfig);
 
-        ResourceBindingLayoutDesc layoutDesc{
-            BindingLayoutUsage::PER_DRAW,
+        std::string pipelineName = "normal_mapped";
+        PipelineStateDefinition pipelineDefinition{
+            pipelineName,
+            "../examples/02-normal-mapping/normal_mapping.hlsl",
+            PipelineStage(PipelineStage::VERTEX_STAGE | PipelineStage::PIXEL_STAGE),
+            MeshAttribute(MeshAttribute::POSITION | MeshAttribute::NORMAL | MeshAttribute::TEXCOORD),
+            { },
+            { },
             {
                 { "albedo_map", BoundResourceType::READABLE_BUFFER, PipelineStage::PIXEL_STAGE },
                 { "normal_map", BoundResourceType::READABLE_BUFFER, PipelineStage::PIXEL_STAGE },
                 { "normal_sampler", BoundResourceType::SAMPLER, PipelineStage::PIXEL_STAGE },
                 { "albedo_sampler", BoundResourceType::SAMPLER, PipelineStage::PIXEL_STAGE },
-
             },
         };
+        registerPipelineStateDefinition(renderer, std::move(pipelineDefinition));
 
-        uint32_t layoutId = createLayout(renderer, layoutDesc);
-
-        uint32_t resourceBinderId = allocateResourceBinder(renderer, layoutId);
-        MaterialInstance materialInstance{};
-        materialInstance.resourceBinderId = resourceBinderId;
+        Array<ShaderMacro> shaderMacros{};
+        uint32_t pipelineStateId = createPipelineState(renderer, pipelineName, shaderMacros);
+        MaterialInstance materialInstance = createMaterialInstance(renderer, pipelineStateId);
 
         entity = createEntity(scene);
         Transform transform{};
@@ -217,11 +222,10 @@ class NormalMappingExample : public bdr::BaseGame
         addAttribute(meshCreationInfo, cubeNormals, BufferFormat::FLOAT_3, MeshAttribute::NORMAL);
         addAttribute(meshCreationInfo, cubeUVs, BufferFormat::FLOAT_2, MeshAttribute::TEXCOORD);
 
-
         BDRid meshHandle = createMesh(renderer, meshCreationInfo);
         assignMesh(scene, entity, meshHandle);
 
-        BDRid materialId = createCustomMaterial(renderer, "../examples/02-normal-mapping/normal_mapping.hlsl", MeshAttribute::POSITION | MeshAttribute::NORMAL | MeshAttribute::TEXCOORD);
+        BDRid materialId = createCustomMaterial(renderer, , MeshAttribute::POSITION | MeshAttribute::NORMAL | MeshAttribute::TEXCOORD);
         assignMaterial(scene, entity, materialId);
 
         TextureCreationInfo texInfo{};

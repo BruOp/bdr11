@@ -7,6 +7,8 @@
 #include "Material.h"
 #include "Texture.h"
 #include "ResourceManager.h"
+#include "PipelineState.h"
+
 
 namespace bdr
 {
@@ -95,10 +97,13 @@ namespace bdr
         ResourceManager<GPUBuffer> jointBuffers;
         ResourceManager<Texture> textures;
         ResourceManager<GPUBuffer> constantBuffers;
+        SimpleMap32<PipelineStateDefinition> pipelineDefinitions;
+        ResourceManager<PipelineState> pipelines;
         MaterialManager materials;
         ResourceBindingHeap bindingHeap;
         std::vector<ResourceBindingLayout> layouts;
         std::vector<ResourceBinder> binders;
+
     };
 
     GPUBuffer createStructuredBuffer(ID3D11Device* device, const uint32_t elementSize, const uint32_t numElements);

@@ -110,6 +110,12 @@ namespace bdr
     typedef uint32_t BDRid;
     constexpr BDRid INVALID_HANDLE = UINT32_MAX;
 
+    template<typename D3DPointer>
+    inline void release(D3DPointer* ptr)
+    {
+        if (ptr != nullptr) ptr->Release();
+    }
+
 }
 
 

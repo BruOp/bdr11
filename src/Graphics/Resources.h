@@ -190,13 +190,6 @@ namespace bdr
         SAMPLER,
     };
 
-    struct BoundResourceDesc
-    {
-        std::string name;
-        BoundResourceType type = BoundResourceType::INVALID;
-        PipelineStage stages;
-    };
-
     enum struct BindingLayoutUsage : uint8_t
     {
         PER_FRAME = 0,
@@ -204,10 +197,16 @@ namespace bdr
         PER_DRAW,
     };
 
+    struct BoundResourceDesc
+    {
+        std::string name;
+        BoundResourceType type = BoundResourceType::INVALID;
+        PipelineStage stages;
+    };
+
     struct ResourceBindingLayoutDesc
     {
         constexpr static size_t maxResources = 24;
-        BindingLayoutUsage usage = BindingLayoutUsage::PER_DRAW;
         BoundResourceDesc resourceDescs[maxResources] = {};
     };
 
@@ -241,5 +240,38 @@ namespace bdr
         uint32_t readableBufferOffset;
         uint32_t writableBufferOffset;
         uint32_t samplerOffset;
+    };
+
+    struct ShaderMacro
+    {
+        std::string name = "";
+        std::string associatedResource = "";
+    };
+
+    struct PipelineStateDefinition
+    {
+        std::string name;
+        std::string filePath;
+        PipelineStage stages;
+        MeshAttribute meshAttributes;
+        ResourceBindingLayoutDesc perFrameRequiredResources;
+        ResourceBindingLayoutDesc perViewRequiredResources;
+        ResourceBindingLayoutDesc perDrawRequiredResources;
+        SimpleMap32<BoundResourceDesc> optionalResources;
+        ShaderMacro macros[16] = { };
+        // Don't pass this in
+        std::string shaderCode = "";
+    };
+
+    struct PipelineState
+    {
+        ID3D11VertexShader* vertexShader = nullptr;
+        ID3D11PixelShader* pixelShader = nullptr;
+        ID3D11ComputeShader* computeShader = nullptr;
+        ID3D11InputLayout* inputLayout = nullptr;
+        ID3D11DepthStencilState* depthStencilState = nullptr;
+        ID3D11RasterizerState* rasterizerState = nullptr;
+        ID3D11BlendState* blendState = nullptr;
+        ResourceBindingLayout resourceBindingLayout;
     };
 }

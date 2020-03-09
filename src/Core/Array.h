@@ -19,9 +19,33 @@ namespace bdr
         }
 
         UNCOPIABLE(Array);
-        UNMOVABLE(Array);
+
+        Array(Array&& other)
+        {
+            size = other.size;
+            capcity = other.capacity;
+            data = other.data;
+            other.size = 0;
+            other.capacity = 0;
+            other.data = nullptr;
+        }
+        Array& operator=(Array&& other)
+        {
+            size = other.size;
+            capcity = other.capacity;
+            data = other.data;
+            other.size = 0;
+            other.capacity = 0;
+            other.data = nullptr;
+            return *this;
+        }
 
         T& operator[](size_t idx)
+        {
+            ASSERT(idx < size, "Index out of bounds!");
+            return data[idx];
+        }
+        const T& operator[](size_t idx) const
         {
             ASSERT(idx < size, "Index out of bounds!");
             return data[idx];

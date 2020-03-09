@@ -1,7 +1,6 @@
 #include "pch.h"
 #include <string>
 #include <fstream>
-#include "d3dcompiler.h"
 
 #include "Material.h"
 
@@ -69,42 +68,6 @@ namespace bdr
         return code;
     }
 
-    void compileShader(const char* code, const D3D_SHADER_MACRO* macros, ID3DBlob** vsBlob, ID3DBlob** psBlob)
-    {
-        ID3DBlob* error = nullptr;
-        auto result = D3DCompile(
-            code,
-            strlen(code),
-            nullptr,
-            macros,
-            nullptr,
-            "VSMain", "vs_5_0",
-            0, 0,
-            vsBlob,
-            &error
-        );
-
-        if (error) {
-            HALT((char*)error->GetBufferPointer());
-        }
-
-        D3DCompile(
-            code,
-            strlen(code),
-            nullptr,
-            macros,
-            nullptr,
-            "PSMain", "ps_5_0",
-            0, 0,
-            psBlob,
-            &error
-        );
-
-        if (error) {
-            HALT((char*)error->GetBufferPointer());
-        }
-
-    }
 
     uint32_t MaterialManager::getMaterial(const MaterialType type, const uint16_t permutation) const
     {
