@@ -69,6 +69,7 @@ namespace bdr
 
     struct MaterialInstance
     {
+        uint32_t pipelineId;
         uint32_t resourceBinderId;
     };
 
@@ -107,7 +108,6 @@ namespace bdr
         ComponentArray<glm::mat4> localMatrices;
         ComponentArray<glm::mat4> globalMatrices;
         ComponentArray<FreeEntityNode> freeEntitiesNodes;
-        ComponentArray<uint32_t> materials;
         ComponentArray<GenericMaterialData> materialData;
         ComponentArray<DrawConstants> drawConstants;
         ComponentArray<MaterialInstance> materialInstances;
@@ -144,4 +144,3 @@ namespace bdr
     void assignTransform(ECSRegistry& registry, const uint32_t entity, const Transform& transform);
     void assignMaterialInstance(ECSRegistry& registry, const uint32_t entity, const MaterialInstance& materialInstance);
 }
-

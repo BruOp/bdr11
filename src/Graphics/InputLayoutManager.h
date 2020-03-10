@@ -36,22 +36,14 @@ namespace bdr
             inputLayouts.clear();
         };
 
-        ID3D11InputLayout* getOrCreateInputLayout(const MeshCreationInfo& meshCreationInfo)
-        {
-            uint64_t key = getKey(meshCreationInfo);
-            if (inputLayouts.count(key) == 0) {
-                inputLayouts[key] = createInputLayout(meshCreationInfo);
-            }
-
-            return inputLayouts[key];
-        }
-
+        ID3D11InputLayout* getOrCreateInputLayout(const MeshCreationInfo& meshCreationInfo);
+        ID3D11InputLayout* getOrCreateInputLayout(const InputLayoutDesc& inputLayoutDesc);
 
     private:
         ID3D11Device* pDevice = nullptr;
         std::unordered_map<uint64_t, ID3D11InputLayout*> inputLayouts;
 
-        uint64_t getKey(const MeshCreationInfo& meshCreationInfo);
-        ID3D11InputLayout* createInputLayout(const MeshCreationInfo& meshCreationInfo);
+        uint64_t getKey(const InputLayoutDesc& inputLayoutDesc);
+        ID3D11InputLayout* createInputLayout(const InputLayoutDesc& inputLayoutDesc);
     };
 }

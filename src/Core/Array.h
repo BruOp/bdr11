@@ -11,6 +11,12 @@ namespace bdr
         const size_t elementByteSize = sizeof(T);
         T* data = nullptr;
 
+        Array() = default;
+        Array(size_t startingCapacity)
+        {
+            grow(startingCapacity);
+        }
+
         ~Array()
         {
             Memory::release(data);

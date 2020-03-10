@@ -96,6 +96,7 @@ namespace bdr
     {
         registry.materialInstances[entity] = materialInstance;
         registry.cmpMasks[entity] |= CmpMasks::TEXTURED;
+        registry.cmpMasks[entity] |= CmpMasks::MATERIAL;
     }
 
     void ECSRegistry::clearComponentData()

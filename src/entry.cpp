@@ -31,11 +31,7 @@ namespace bdr
     }
 
     void BaseGame::shutdown()
-    {
-        // TODO: Remove this stuff from base game and make it part of the pipeline
-        rasterState.Reset();
-        depthState->Release();
-    }
+    { }
 
     void BaseGame::initialize(AppConfig& appConfig)
     {
@@ -67,13 +63,6 @@ namespace bdr
                 D3D11_DEFAULT_SLOPE_SCALED_DEPTH_BIAS,
                 TRUE, FALSE, TRUE, FALSE,
             };
-            DX::ThrowIfFailed(device->CreateRasterizerState(&rastDesc, rasterState.ReleaseAndGetAddressOf()));
-            states = std::make_unique<CommonStates>(device);
-            CD3D11_DEFAULT def;
-            CD3D11_DEPTH_STENCIL_DESC depthDesc = CD3D11_DEPTH_STENCIL_DESC(def);
-            depthDesc.DepthFunc = D3D11_COMPARISON_GREATER;
-
-            device->CreateDepthStencilState(&depthDesc, &depthState);
 
             renderer.materials.init(renderer.getDevice());
         }
@@ -115,11 +104,6 @@ namespace bdr
 
         renderer.deviceResources->PIXBeginEvent(L"Render");
         auto context = renderer.deviceResources->GetD3DDeviceContext();
-
-        // TODO: Remove this and put it inside the passes.
-        context->OMSetBlendState(states->Opaque(), nullptr, 0xFFFFFFFF);
-        context->OMSetDepthStencilState(depthState, 0);
-        context->RSSetState(rasterState.Get());
 
         renderGraph.run(&renderer);
 

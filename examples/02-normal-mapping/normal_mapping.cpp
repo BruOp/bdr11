@@ -104,35 +104,6 @@ constexpr uint16_t cubeIndices[] = {
     23, 22, 20,
 };
 
-uint32_t createLayout(Renderer& renderer, const ResourceBindingLayoutDesc& layoutDesc)
-{
-    const auto layoutId = renderer.layouts.size();
-    renderer.layouts.emplace_back();
-    ResourceBindingLayout& layout = renderer.layouts[layoutId];
-
-    layout.usage = layoutDesc.usage;
-
-    for (const auto& resourceDesc : layoutDesc.resourceDescs) {
-        if (resourceDesc.type == BoundResourceType::CONSTANT_BUFFER) {
-            // TODO
-            HALT("This resource type is not supported!");
-        }
-        else if (resourceDesc.type == BoundResourceType::READABLE_BUFFER) {
-            layout.resourceMap.insert(resourceDesc.name, { resourceDesc.type, layout.readableBufferCount++ });
-        }
-        else if (resourceDesc.type == BoundResourceType::WRITABLE_BUFFER) {
-            layout.resourceMap.insert(resourceDesc.name, { resourceDesc.type, layout.writableBufferCount++ });
-        }
-        else if (resourceDesc.type == BoundResourceType::SAMPLER) {
-            layout.resourceMap.insert(resourceDesc.name, { resourceDesc.type, layout.samplerCount++ });
-        }
-        else if (resourceDesc.type == BoundResourceType::INVALID) {
-            break;
-        }
-    }
-    return layoutId;
-};
-
 void bindTexture(
     Renderer& renderer,
     const MaterialInstance materialInstance,
@@ -141,7 +112,7 @@ void bindTexture(
 {
     ResourceBinder binder = renderer.binders[materialInstance.resourceBinderId];
     ResourceBindingHeap& heap = renderer.bindingHeap;
-    const ResourceBindingLayout& layout = renderer.layouts[binder.layoutId];
+    const ResourceBindingLayout& layout = renderer.pipelines[binder.pipelineId].resourceBindingLayout;
     const Texture& texture = renderer.textures[textureHandle];
 
     ResourceView resourceView;
@@ -157,11 +128,12 @@ void bindTexture(
     heap.samplers[samplerOffset] = texture.sampler;
 }
 
-uint32_t allocateResourceBinder(Renderer& renderer, const uint32_t& layoutId)
+uint32_t allocateResourceBinder(Renderer& renderer, const uint32_t pipelineId)
 {
-    const ResourceBindingLayout& layout = renderer.layouts[layoutId];
+    PipelineState& pipeline = renderer.pipelines[pipelineId];
+    ResourceBindingLayout& layout = pipeline.resourceBindingLayout;
     ResourceBindingHeap& heap = renderer.bindingHeap;
-    ResourceBinder binder{ uint16_t(layoutId) };
+    ResourceBinder binder{  };
     binder.readableBufferOffset = heap.srvs.size();
     heap.srvs.resize(binder.readableBufferOffset + layout.readableBufferCount);
 
@@ -174,6 +146,14 @@ uint32_t allocateResourceBinder(Renderer& renderer, const uint32_t& layoutId)
     renderer.binders.push_back(binder);
     return id;
 }
+
+MaterialInstance createMaterialInstance(Renderer& renderer, uint32_t pipelineId)
+{
+    MaterialInstance instance{};
+    instance.pipelineId = pipelineId;
+    instance.resourceBinderId = allocateResourceBinder(renderer, pipelineId);
+    return instance;
+};
 
 class NormalMappingExample : public bdr::BaseGame
 {
@@ -190,19 +170,30 @@ class NormalMappingExample : public bdr::BaseGame
             pipelineName,
             "../examples/02-normal-mapping/normal_mapping.hlsl",
             PipelineStage(PipelineStage::VERTEX_STAGE | PipelineStage::PIXEL_STAGE),
-            MeshAttribute(MeshAttribute::POSITION | MeshAttribute::NORMAL | MeshAttribute::TEXCOORD),
+            InputLayoutDesc{
+                3u,
+                { MeshAttribute::POSITION, MeshAttribute::NORMAL, MeshAttribute::TEXCOORD },
+                { BufferFormat::FLOAT_3, BufferFormat::FLOAT_3,  BufferFormat::FLOAT_2 },
+            },
+            DepthStencilDesc{
+                ComparisonFunc::GREATER,
+                true,
+                false
+            },
+            RasterStateDesc{ },
+            BlendStateDesc{ },
             { },
             { },
             {
-                { "albedo_map", BoundResourceType::READABLE_BUFFER, PipelineStage::PIXEL_STAGE },
-                { "normal_map", BoundResourceType::READABLE_BUFFER, PipelineStage::PIXEL_STAGE },
-                { "normal_sampler", BoundResourceType::SAMPLER, PipelineStage::PIXEL_STAGE },
-                { "albedo_sampler", BoundResourceType::SAMPLER, PipelineStage::PIXEL_STAGE },
+                BoundResourceDesc{ "albedo_map", BoundResourceType::READABLE_BUFFER, PipelineStage::PIXEL_STAGE },
+                BoundResourceDesc{ "normal_map", BoundResourceType::READABLE_BUFFER, PipelineStage::PIXEL_STAGE },
+                BoundResourceDesc{ "normal_sampler", BoundResourceType::SAMPLER, PipelineStage::PIXEL_STAGE },
+                BoundResourceDesc{ "albedo_sampler", BoundResourceType::SAMPLER, PipelineStage::PIXEL_STAGE },
             },
         };
         registerPipelineStateDefinition(renderer, std::move(pipelineDefinition));
 
-        Array<ShaderMacro> shaderMacros{};
+        const Array<ShaderMacro> shaderMacros{};
         uint32_t pipelineStateId = createPipelineState(renderer, pipelineName, shaderMacros);
         MaterialInstance materialInstance = createMaterialInstance(renderer, pipelineStateId);
 
@@ -224,9 +215,6 @@ class NormalMappingExample : public bdr::BaseGame
 
         BDRid meshHandle = createMesh(renderer, meshCreationInfo);
         assignMesh(scene, entity, meshHandle);
-
-        BDRid materialId = createCustomMaterial(renderer, , MeshAttribute::POSITION | MeshAttribute::NORMAL | MeshAttribute::TEXCOORD);
-        assignMaterial(scene, entity, materialId);
 
         TextureCreationInfo texInfo{};
         texInfo.usage = BufferUsage::SHADER_READABLE;

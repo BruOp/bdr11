@@ -6,6 +6,7 @@
 
 #include "Core/Map.h"
 #include "DXHelpers.h"
+#include "RenderStates.h"
 
 namespace bdr
 {
@@ -115,6 +116,13 @@ namespace bdr
         uint8_t presentAttributesMask = 0;
     };
 
+    struct InputLayoutDesc
+    {
+        uint8_t numAttributes = 0;
+        MeshAttribute attributes[Mesh::maxAttrCount] = { MeshAttribute::INVALID };
+        BufferFormat bufferFormats[Mesh::maxAttrCount] = { BufferFormat::INVALID };
+    };
+
     enum class MaterialType : uint8_t
     {
         INVALID = 0,
@@ -175,6 +183,7 @@ namespace bdr
 
     enum PipelineStage : uint8_t
     {
+        NONE = 0,
         VERTEX_STAGE = 1 << 0,
         PIXEL_STAGE = 1 << 1,
         VERTEX_PIXEL_STAGES = VERTEX_STAGE | PIXEL_STAGE,
@@ -199,9 +208,9 @@ namespace bdr
 
     struct BoundResourceDesc
     {
-        std::string name;
+        std::string name = "";
         BoundResourceType type = BoundResourceType::INVALID;
-        PipelineStage stages;
+        PipelineStage stages = PipelineStage::NONE;
     };
 
     struct ResourceBindingLayoutDesc
@@ -218,7 +227,6 @@ namespace bdr
 
     struct ResourceBindingLayout
     {
-        BindingLayoutUsage usage = BindingLayoutUsage::PER_DRAW;
         uint8_t readableBufferCount = 0;
         uint8_t writableBufferCount = 0;
         uint8_t samplerCount = 0;
@@ -235,7 +243,7 @@ namespace bdr
 
     struct ResourceBinder
     {
-        uint16_t layoutId;
+        uint16_t pipelineId;
         PipelineStage stage;
         uint32_t readableBufferOffset;
         uint32_t writableBufferOffset;
@@ -253,7 +261,10 @@ namespace bdr
         std::string name;
         std::string filePath;
         PipelineStage stages;
-        MeshAttribute meshAttributes;
+        InputLayoutDesc inputLayoutDesc;
+        DepthStencilDesc depthStencilState;
+        RasterStateDesc rasterStateDesc;
+        BlendStateDesc blendState;
         ResourceBindingLayoutDesc perFrameRequiredResources;
         ResourceBindingLayoutDesc perViewRequiredResources;
         ResourceBindingLayoutDesc perDrawRequiredResources;

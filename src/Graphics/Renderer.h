@@ -101,7 +101,6 @@ namespace bdr
         ResourceManager<PipelineState> pipelines;
         MaterialManager materials;
         ResourceBindingHeap bindingHeap;
-        std::vector<ResourceBindingLayout> layouts;
         std::vector<ResourceBinder> binders;
 
     };

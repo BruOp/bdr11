@@ -26,36 +26,58 @@ namespace bdr
     // The generated key is laid out as follows:
     // bits 0 - 7  : the attribute mask
     // bits 8 - 63 : the format of each attribute, in 8 bit chunks.
-    uint64_t InputLayoutManager::getKey(const MeshCreationInfo& meshCreationInfo)
+    InputLayoutDesc getInputLayoutDesc(const MeshCreationInfo& meshCreationInfo)
     {
-        uint64_t attrMask = 0;
-        uint64_t formats = 0;
+        InputLayoutDesc inputLayoutDesc{};
         uint8_t bufferNumber = 0;
         for (size_t i = 0; i < meshCreationInfo.numAttributes; ++i) {
             if (meshCreationInfo.bufferUsages[i] == BufferUsage::UNUSED) {
                 continue;
             }
-            ASSERT(bufferNumber < 7);
+            inputLayoutDesc.attributes[i] = meshCreationInfo.attributes[i];
+            inputLayoutDesc.bufferFormats[i] = meshCreationInfo.bufferFormats[i];
+        }
+        inputLayoutDesc.numAttributes = bufferNumber;
+        return inputLayoutDesc;
+    }
+
+    ID3D11InputLayout* InputLayoutManager::getOrCreateInputLayout(const MeshCreationInfo& meshCreationInfo)
+    {
+        InputLayoutDesc inputLayout = getInputLayoutDesc(meshCreationInfo);
+    }
+
+    ID3D11InputLayout* InputLayoutManager::getOrCreateInputLayout(const InputLayoutDesc& inputLayoutDesc)
+    {
+        uint64_t key = getKey(inputLayoutDesc);
+        if (inputLayouts.count(key) == 0) {
+            inputLayouts[key] = createInputLayout(inputLayoutDesc);
+        }
+        return inputLayouts[key];
+    }
+
+    uint64_t InputLayoutManager::getKey(const InputLayoutDesc& inputLayoutDesc)
+    {
+        uint64_t attrMask = 0;
+        uint64_t formats = 0;
+        ASSERT(inputLayoutDesc.numAttributes < 7);
+        for (size_t i = 0; i < inputLayoutDesc.numAttributes; ++i) {
             // We use this instead of meshCreationInfo since some buffers can be flagged as UNUSED in that structure
-            attrMask |= meshCreationInfo.attributes[i];
+            attrMask |= inputLayoutDesc.attributes[i];
             // We shift by 8 * bufferNumber to ensure that we do not overwrite the formats we set previously
-            formats |= uint64_t(meshCreationInfo.bufferFormats[i]) << (8u * bufferNumber++);
+            formats |= uint64_t(inputLayoutDesc.bufferFormats[i]) << (8u * i);
         }
         return attrMask | (formats << 8);
     }
 
-    ID3D11InputLayout* InputLayoutManager::createInputLayout(const MeshCreationInfo& meshCreationInfo)
+    ID3D11InputLayout* InputLayoutManager::createInputLayout(const InputLayoutDesc& inputLayoutDesc)
     {
         // Create a matching shader for the vertex signature, taken from
         // https://www.gamedev.net/forums/topic/688029-how-to-cleanly-create-input-layouts/
         uint8_t bufferNumber = 0;
         std::string elementsStr{};
-        for (size_t i = 0; i < meshCreationInfo.numAttributes; ++i) {
-            if (meshCreationInfo.bufferUsages[i] == BufferUsage::UNUSED) {
-                continue;
-            }
+        for (size_t i = 0; i < inputLayoutDesc.numAttributes; ++i) {
             // Noticed that all the floating point formats I allow are powers of two.
-            switch (meshCreationInfo.bufferFormats[i]) {
+            switch (inputLayoutDesc.bufferFormats[i]) {
             case BufferFormat::FLOAT_2:
                 elementsStr += "float2";
                 break;
@@ -89,7 +111,7 @@ namespace bdr
             elementsStr += buf;
 
             elementsStr += " : ";
-            elementsStr += getSemanticName(meshCreationInfo.attributes[i]);
+            elementsStr += getSemanticName(inputLayoutDesc.attributes[i]);
             elementsStr += ";\n";
         }
 
@@ -109,15 +131,12 @@ float4 main(SimpleVertex vi) : SV_Position \n\
         std::string semanticNames[Mesh::maxAttrCount]{};
         bufferNumber = 0;
         D3D11_INPUT_ELEMENT_DESC descs[Mesh::maxAttrCount]{};
-        for (uint32_t i = 0; i < meshCreationInfo.numAttributes; i++) {
-            if (meshCreationInfo.bufferUsages[i] == BufferUsage::UNUSED) {
-                continue;
-            }
-            semanticNames[bufferNumber] = getSemanticName(meshCreationInfo.attributes[i]);
+        for (uint32_t i = 0; i < inputLayoutDesc.numAttributes; i++) {
+            semanticNames[bufferNumber] = getSemanticName(inputLayoutDesc.attributes[i]);
             descs[bufferNumber] = {
                 semanticNames[bufferNumber].c_str(),
                 0,
-                mapFormatToDXGI(meshCreationInfo.bufferFormats[i]),
+                mapFormatToDXGI(inputLayoutDesc.bufferFormats[i]),
                 bufferNumber,
                 D3D11_APPEND_ALIGNED_ELEMENT,
                 D3D11_INPUT_PER_VERTEX_DATA,
@@ -142,7 +161,7 @@ float4 main(SimpleVertex vi) : SV_Position \n\
         }
         DX::ThrowIfFailed(result);
 
-        uint64_t key = getKey(meshCreationInfo);
+        uint64_t key = getKey(inputLayoutDesc);
         DX::ThrowIfFailed(pDevice->CreateInputLayout(
             descs,
             bufferNumber,

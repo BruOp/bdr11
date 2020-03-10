@@ -16,9 +16,9 @@ namespace bdr
         static constexpr uint32_t seed = 1337u;
 
         SimpleMap32() = default;
-        SimpleMap32(const size_t capacity)
+        SimpleMap32(const size_t startingCapacity)
         {
-            grow(capacity);
+            grow(startingCapacity)
         }
         ~SimpleMap32()
         {
