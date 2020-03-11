@@ -95,9 +95,13 @@ namespace bdr
 
     struct StencilFuncDesc
     {
+        // The stencil operation to perform when stencil testing fails.
         StencilOp onStencilFail = StencilOp::KEEP;
+        // The stencil operation to perform when stencil testing passes and depth testing fails.
         StencilOp onStencilPassDepthFail = StencilOp::KEEP;
+        // The stencil operation to perform when stencil testing and depth testing both pass.
         StencilOp onStencilPassDepthPass = StencilOp::KEEP;
+        // How to compare the existing stencil value vs the value output by the func
         ComparisonFunc comparisonFunc = ComparisonFunc::NEVER;
     };
 

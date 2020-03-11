@@ -236,6 +236,8 @@ namespace bdr
 
         // Blend State
         // Resource Binding Layout
+
+
         // How do we handle our different resource binding layout descriptions?
         // Do we compile them all here? Was that the plan?
     }
