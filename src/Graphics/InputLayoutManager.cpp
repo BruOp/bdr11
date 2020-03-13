@@ -20,6 +20,8 @@ namespace bdr
             return "BLENDWEIGHT";
         case MeshAttribute::COLOR:
             return "COLOR";
+        default:
+            HALT("Unsupported mesh attribute type!");
         }
     }
 
@@ -29,21 +31,22 @@ namespace bdr
     InputLayoutDesc getInputLayoutDesc(const MeshCreationInfo& meshCreationInfo)
     {
         InputLayoutDesc inputLayoutDesc{};
-        uint8_t bufferNumber = 0;
-        for (size_t i = 0; i < meshCreationInfo.numAttributes; ++i) {
+        uint8_t i = 0;
+        for (i = 0; i < meshCreationInfo.numAttributes; ++i) {
             if (meshCreationInfo.bufferUsages[i] == BufferUsage::UNUSED) {
                 continue;
             }
             inputLayoutDesc.attributes[i] = meshCreationInfo.attributes[i];
             inputLayoutDesc.bufferFormats[i] = meshCreationInfo.bufferFormats[i];
         }
-        inputLayoutDesc.numAttributes = bufferNumber;
+        inputLayoutDesc.numAttributes = i;
         return inputLayoutDesc;
     }
 
     ID3D11InputLayout* InputLayoutManager::getOrCreateInputLayout(const MeshCreationInfo& meshCreationInfo)
     {
         InputLayoutDesc inputLayout = getInputLayoutDesc(meshCreationInfo);
+        return getOrCreateInputLayout(inputLayout);
     }
 
     ID3D11InputLayout* InputLayoutManager::getOrCreateInputLayout(const InputLayoutDesc& inputLayoutDesc)

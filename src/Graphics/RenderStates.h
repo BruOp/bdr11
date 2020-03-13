@@ -60,37 +60,37 @@ namespace bdr
 
     enum struct Blend : uint8_t
     {
-        ZERO,
-        ONE,
-        SRC_COLOR,
-        INV_SRC_COLOR,
-        SRC_ALPHA,
-        INV_SRC_ALPHA,
-        DEST_ALPHA,
-        INV_DEST_ALPHA,
-        DEST_COLOR,
-        INV_DEST_COLOR,
-        SRC_ALPHA_SAT,
-        BLEND_FACTOR,
-        INV_BLEND_FACTOR,
-        SRC1_COLOR,
-        INV_SRC1_COLOR,
-        SRC1_ALPHA,
-        INV_SRC1_ALPHA
+        ZERO = uint8_t(D3D11_BLEND_ZERO),
+        ONE = uint8_t(D3D11_BLEND_ONE),
+        SRC_COLOR = uint8_t(D3D11_BLEND_SRC_COLOR),
+        INV_SRC_COLOR = uint8_t(D3D11_BLEND_INV_SRC_COLOR),
+        SRC_ALPHA = uint8_t(D3D11_BLEND_SRC_ALPHA),
+        INV_SRC_ALPHA = uint8_t(D3D11_BLEND_INV_SRC_ALPHA),
+        DEST_ALPHA = uint8_t(D3D11_BLEND_DEST_ALPHA),
+        INV_DEST_ALPHA = uint8_t(D3D11_BLEND_INV_DEST_ALPHA),
+        DEST_COLOR = uint8_t(D3D11_BLEND_DEST_COLOR),
+        INV_DEST_COLOR = uint8_t(D3D11_BLEND_INV_DEST_COLOR),
+        SRC_ALPHA_SAT = uint8_t(D3D11_BLEND_SRC_ALPHA_SAT),
+        BLEND_FACTOR = uint8_t(D3D11_BLEND_BLEND_FACTOR),
+        INV_BLEND_FACTOR = uint8_t(D3D11_BLEND_INV_BLEND_FACTOR),
+        SRC1_COLOR = uint8_t(D3D11_BLEND_SRC1_COLOR),
+        INV_SRC1_COLOR = uint8_t(D3D11_BLEND_INV_SRC1_COLOR),
+        SRC1_ALPHA = uint8_t(D3D11_BLEND_SRC1_ALPHA),
+        INV_SRC1_ALPHA = uint8_t(D3D11_BLEND_INV_SRC1_ALPHA)
     };
 
     enum struct BlendOp : uint8_t
     {
         // Add source 1 and source 2.
-        ADD,
+        ADD = D3D11_BLEND_OP_ADD,
         // Subtract source 1 from source 2.
-        SUBTRACT,
+        SUBTRACT = D3D11_BLEND_OP_SUBTRACT,
         // Subtract source 2 from source 1.
-        REV_SUBTRACT,
+        REV_SUBTRACT = D3D11_BLEND_OP_REV_SUBTRACT,
         // Find the minimum of source 1 and source 2.
-        MIN,
+        MIN = D3D11_BLEND_OP_MIN,
         // Find the maximum of source 1 and source 2.
-        MAX
+        MAX = D3D11_BLEND_OP_MAX
     };
 
     struct StencilFuncDesc
@@ -123,7 +123,7 @@ namespace bdr
         int32_t depthBias = 0;
         float depthBiasClamp = 0.0f;
         float slopeScaledDepthBias = 0.0f;
-        RasterizerFlags flags = RasterizerFlags::DEPTH_CLIP_ENABLED;
+        uint8_t flags = RasterizerFlags::DEPTH_CLIP_ENABLED;
     };
 
     struct RenderTargetBlendDesc
@@ -144,13 +144,13 @@ namespace bdr
         // A write mask -- can be used to mask the values after the
         // blending operation before they are stored in the render target
         // NOT IMPLEMENTED
-        uint8_t renderTargetWriteMask = 0xFF;
+        //uint8_t renderTargetWriteMask = 0x0F;
     };
 
     struct BlendStateDesc
     {
-        bool AlphaToCoverageEnable = false;
-        bool IndependentBlendEnable = false;
+        bool alphaToCoverageEnable = false;
+        bool independentBlendEnable = false;
         RenderTargetBlendDesc renderTargetBlendDescs[8] = { };
     };
 }

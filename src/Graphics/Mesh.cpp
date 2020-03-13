@@ -39,6 +39,14 @@ namespace bdr
         mesh.numVertices = 0;
     }
 
+    void collectBuffers(const Mesh& mesh, ID3D11Buffer* outputBuffers[])
+    {
+        size_t counter = 0;
+        for (size_t i = 0; i < mesh.numPresentAttr; i++) {
+            outputBuffers[counter++] = mesh.vertexBuffers[i].buffer;
+        }
+    }
+
     void collectBuffers(const Mesh& mesh, const uint8_t attrsToSelect, ID3D11Buffer* outputBuffers[])
     {
         if ((mesh.presentAttributesMask & attrsToSelect) != attrsToSelect) {

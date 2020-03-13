@@ -112,8 +112,12 @@ VSOutput VSMain(in VSInput input)
 float4 PSMain(in PSInput input) : SV_Target0
 {
     float3 viewDir = cameraPos - input.PositionWS;
-    
-    float3 normal = perturb_normal(input.NormalWS, viewDir, input.vUv);
+
+#ifdef NORMAL_MAPPING
+		float3 normal = perturb_normal(input.NormalWS, viewDir, input.vUv);
+#else
+    float3 normal = input.NormalWS;
+#endif
     float4 baseColor = albedo.Sample(albedoSampler, input.vUv);
 
     const float3 lightPos = float3(5.0 * sin(time), 6.0, 5.0 * cos(time));

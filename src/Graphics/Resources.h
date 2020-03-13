@@ -123,30 +123,29 @@ namespace bdr
         BufferFormat bufferFormats[Mesh::maxAttrCount] = { BufferFormat::INVALID };
     };
 
-    enum class MaterialType : uint8_t
-    {
-        INVALID = 0,
-        PBR = 1,
-        BASIC = 2,
-        CUSTOM = UINT8_MAX,
-    };
+    //enum class MaterialType : uint8_t
+    //{
+    //    INVALID = 0,
+    //    PBR = 1,
+    //    BASIC = 2,
+    //    CUSTOM = UINT8_MAX,
+    //};
 
-    // Attribute requirements indexed by Material Type
-    constexpr uint8_t MaterialAttributeRequirements[] = {
-        MeshAttribute::INVALID,
-        MeshAttribute::POSITION | MeshAttribute::NORMAL | MeshAttribute::TEXCOORD,
-        MeshAttribute::POSITION | MeshAttribute::COLOR,
-    };
+    //// Attribute requirements indexed by Material Type
+    //constexpr uint8_t MaterialAttributeRequirements[] = {
+    //    MeshAttribute::INVALID,
+    //    MeshAttribute::POSITION | MeshAttribute::NORMAL | MeshAttribute::TEXCOORD,
+    //    MeshAttribute::POSITION | MeshAttribute::COLOR,
+    //};
 
-    struct Material
-    {
-        MaterialType type = MaterialType::INVALID;
-        uint16_t permutation = 0;
-        uint8_t attributeRequriements = 0;
-        ID3D11VertexShader* vertexShader;
-        ID3D11PixelShader* pixelShader;
-    };
-
+    //struct Material
+    //{
+    //    MaterialType type = MaterialType::INVALID;
+    //    uint16_t permutation = 0;
+    //    uint8_t attributeRequriements = 0;
+    //    ID3D11VertexShader* vertexShader;
+    //    ID3D11PixelShader* pixelShader;
+    //};
 
     struct TextureCreationInfo
     {
@@ -208,7 +207,7 @@ namespace bdr
 
     struct BoundResourceDesc
     {
-        std::string name = "";
+        char name[64] = "";
         BoundResourceType type = BoundResourceType::INVALID;
         PipelineStage stages = PipelineStage::NONE;
     };
@@ -252,14 +251,17 @@ namespace bdr
 
     struct ShaderMacro
     {
-        std::string name = "";
-        std::string associatedResource = "";
+        char name[64] = "";
     };
 
     struct PipelineStateDefinition
     {
-        std::string name;
-        std::string filePath;
+        struct BindingMapView
+        {
+            uint32_t offset = UINT32_MAX;
+            uint32_t count = 0;
+        };
+
         PipelineStage stages;
         InputLayoutDesc inputLayoutDesc;
         DepthStencilDesc depthStencilState;
@@ -268,10 +270,11 @@ namespace bdr
         ResourceBindingLayoutDesc perFrameRequiredResources;
         ResourceBindingLayoutDesc perViewRequiredResources;
         ResourceBindingLayoutDesc perDrawRequiredResources;
-        SimpleMap32<BoundResourceDesc> optionalResources;
         ShaderMacro macros[16] = { };
+        ResourceBindingLayoutDesc optionalResources;
+        SimpleMap32<BindingMapView> optionalResourceMap;
         // Don't pass this in
-        std::string shaderCode = "";
+        uint32_t shaderCodeId;
     };
 
     struct PipelineState
@@ -283,6 +286,6 @@ namespace bdr
         ID3D11DepthStencilState* depthStencilState = nullptr;
         ID3D11RasterizerState* rasterizerState = nullptr;
         ID3D11BlendState* blendState = nullptr;
-        ResourceBindingLayout resourceBindingLayout;
+        ResourceBindingLayout perDrawBindingLayout;
     };
 }

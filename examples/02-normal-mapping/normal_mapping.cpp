@@ -112,7 +112,7 @@ void bindTexture(
 {
     ResourceBinder binder = renderer.binders[materialInstance.resourceBinderId];
     ResourceBindingHeap& heap = renderer.bindingHeap;
-    const ResourceBindingLayout& layout = renderer.pipelines[binder.pipelineId].resourceBindingLayout;
+    const ResourceBindingLayout& layout = renderer.pipelines[binder.pipelineId].perDrawBindingLayout;
     const Texture& texture = renderer.textures[textureHandle];
 
     ResourceView resourceView;
@@ -131,17 +131,17 @@ void bindTexture(
 uint32_t allocateResourceBinder(Renderer& renderer, const uint32_t pipelineId)
 {
     PipelineState& pipeline = renderer.pipelines[pipelineId];
-    ResourceBindingLayout& layout = pipeline.resourceBindingLayout;
+    ResourceBindingLayout& layout = pipeline.perDrawBindingLayout;
     ResourceBindingHeap& heap = renderer.bindingHeap;
     ResourceBinder binder{  };
     binder.readableBufferOffset = heap.srvs.size();
-    heap.srvs.resize(binder.readableBufferOffset + layout.readableBufferCount);
+    heap.srvs.resize(binder.readableBufferOffset + size_t(layout.readableBufferCount));
 
     binder.writableBufferOffset = heap.uavs.size();
-    heap.uavs.resize(binder.writableBufferOffset + layout.writableBufferCount);
+    heap.uavs.resize(binder.writableBufferOffset + size_t(layout.writableBufferCount));
 
     binder.samplerOffset = heap.samplers.size();
-    heap.samplers.resize(binder.samplerOffset + layout.samplerCount);
+    heap.samplers.resize(binder.samplerOffset + size_t(layout.samplerCount));
     auto id = renderer.binders.size();
     renderer.binders.push_back(binder);
     return id;
@@ -166,9 +166,8 @@ class NormalMappingExample : public bdr::BaseGame
         initialize(appConfig);
 
         std::string pipelineName = "normal_mapped";
+        std::string shaderFilePath = "../examples/02-normal-mapping/normal_mapping.hlsl";
         PipelineStateDefinition pipelineDefinition{
-            pipelineName,
-            "../examples/02-normal-mapping/normal_mapping.hlsl",
             PipelineStage(PipelineStage::VERTEX_STAGE | PipelineStage::PIXEL_STAGE),
             InputLayoutDesc{
                 3u,
@@ -186,15 +185,23 @@ class NormalMappingExample : public bdr::BaseGame
             { },
             {
                 BoundResourceDesc{ "albedo_map", BoundResourceType::READABLE_BUFFER, PipelineStage::PIXEL_STAGE },
-                BoundResourceDesc{ "normal_map", BoundResourceType::READABLE_BUFFER, PipelineStage::PIXEL_STAGE },
-                BoundResourceDesc{ "normal_sampler", BoundResourceType::SAMPLER, PipelineStage::PIXEL_STAGE },
                 BoundResourceDesc{ "albedo_sampler", BoundResourceType::SAMPLER, PipelineStage::PIXEL_STAGE },
             },
+            {
+                { "NORMAL_MAPPING" }
+            },
+            {
+                BoundResourceDesc{ "normal_map", BoundResourceType::READABLE_BUFFER, PipelineStage::PIXEL_STAGE },
+                BoundResourceDesc{ "normal_sampler", BoundResourceType::SAMPLER, PipelineStage::PIXEL_STAGE },
+            },
+            {
+                { "NORMAL_MAPPING", PipelineStateDefinition::BindingMapView{ 0, 2 } }
+            },
         };
-        registerPipelineStateDefinition(renderer, std::move(pipelineDefinition));
+        registerPipelineStateDefinition(renderer, pipelineName, shaderFilePath, std::move(pipelineDefinition));
 
-        const Array<ShaderMacro> shaderMacros{};
-        uint32_t pipelineStateId = createPipelineState(renderer, pipelineName, shaderMacros);
+        const ShaderMacro shaderMacros[] = { {"NORMAL_MAPPING"} };
+        uint32_t pipelineStateId = createPipelineState(renderer, pipelineName, shaderMacros, 1);
         MaterialInstance materialInstance = createMaterialInstance(renderer, pipelineStateId);
 
         entity = createEntity(scene);

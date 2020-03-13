@@ -106,12 +106,19 @@ namespace bdr
             for (size_t entityId = 0; entityId < registry.numEntities; ++entityId) {
                 const uint32_t cmpMask = registry.cmpMasks[entityId];
                 if ((cmpMask & requirements) == requirements) {
+                    const MaterialInstance& mat = registry.materialInstances[entityId];
+
                     const DrawConstants& drawConstants = registry.drawConstants[entityId];
-                    const Material& material = renderer->materials[registry.materials[entityId]];
+                    const PipelineState& pipelineState = renderer->pipelines[mat.pipelineId];
                     const Mesh& mesh = renderer->meshes[registry.meshes[entityId]];
 
+                    ASSERT(mesh.inputLayoutHandle == pipelineState.inputLayout);
                     ID3D11Buffer* vbuffers[Mesh::maxAttrCount] = { nullptr };
-                    collectBuffers(mesh, material.attributeRequriements, vbuffers);
+                    collectBuffers(mesh, vbuffers);
+
+                    context->OMSetDepthStencilState(pipelineState.depthStencilState, 0);
+                    context->OMSetBlendState(pipelineState.blendState, nullptr, 0xFF);
+                    context->RSSetState(pipelineState.rasterizerState);
 
                     // Set IAInputLayout
                     context->IASetVertexBuffers(0, mesh.numPresentAttr, vbuffers, mesh.strides, offsets);
@@ -119,17 +126,16 @@ namespace bdr
                     context->IASetInputLayout(mesh.inputLayoutHandle);
 
                     // Set shaders
-                    context->VSSetShader(material.vertexShader, nullptr, 0);
-                    context->PSSetShader(material.pixelShader, nullptr, 0);
+                    context->VSSetShader(pipelineState.vertexShader, nullptr, 0);
+                    context->PSSetShader(pipelineState.pixelShader, nullptr, 0);
 
                     // Set constant buffers
                     vertexCB.copyToGPU(context, drawConstants);
 
                     // Set textures, if possible
                     if (cmpMask & CmpMasks::TEXTURED) {
-                        const MaterialInstance& matInstance = registry.materialInstances[entityId];
-                        const ResourceBinder& binder = renderer->binders[matInstance.resourceBinderId];
-                        const ResourceBindingLayout& layout = renderer->layouts.at(binder.layoutId);
+                        const ResourceBinder& binder = renderer->binders[mat.resourceBinderId];
+                        const ResourceBindingLayout& layout = pipelineState.perDrawBindingLayout;
                         const ResourceBindingHeap& heap = renderer->bindingHeap;
 
                         ID3D11ShaderResourceView* const* srvs = &heap.srvs[binder.readableBufferOffset];

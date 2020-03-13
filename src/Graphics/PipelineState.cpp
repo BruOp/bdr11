@@ -1,4 +1,8 @@
+
 #include "pch.h"
+
+#include <utility>
+
 #include "PipelineState.h"
 #include "Renderer.h"
 #include "d3dcompiler.h"
@@ -73,7 +77,7 @@ namespace bdr
 
     D3D11_RASTERIZER_DESC toD3D11RasterizerDesc(const RasterStateDesc& rasterDesc)
     {
-        D3D11_RASTERIZER_DESC desc;
+        D3D11_RASTERIZER_DESC desc = CD3D11_RASTERIZER_DESC{};
         desc.FillMode = getD3DFillMode(rasterDesc.fillMode);
 
         switch (rasterDesc.cullMode) {
@@ -120,28 +124,70 @@ namespace bdr
         return desc;
     }
 
-
-    void reset(PipelineState& pipelineState)
+    D3D11_DEPTH_STENCIL_DESC toD3D11DepthStencilDesc(const DepthStencilDesc& depthDesc)
     {
-        release(pipelineState.vertexShader);
-        release(pipelineState.pixelShader);
-        release(pipelineState.computeShader);
-        release(pipelineState.inputLayout);
-        release(pipelineState.depthStencilState);
-        release(pipelineState.rasterizerState);
-        release(pipelineState.blendState);
+        D3D11_DEPTH_STENCIL_DESC desc = CD3D11_DEPTH_STENCIL_DESC{};
+        desc.DepthEnable = depthDesc.depthCullMode != ComparisonFunc::OFF;
+        desc.DepthFunc = getD3DComparisonFunc(depthDesc.depthCullMode);
+
+        desc.DepthWriteMask = depthDesc.depthWrite ? D3D11_DEPTH_WRITE_MASK_ALL : D3D11_DEPTH_WRITE_MASK_ZERO;
+        desc.StencilEnable = depthDesc.stencilEnabled;
+        desc.StencilReadMask = depthDesc.stencilReadMask;
+        desc.StencilWriteMask = depthDesc.stencilWriteMask;
+        desc.FrontFace = getD3DStencilOpDesc(depthDesc.stencilFrontFace);
+        desc.BackFace = getD3DStencilOpDesc(depthDesc.stencilBackFace);
+
+        return desc;
     }
 
-    void compileShader(const char* code, const D3D_SHADER_MACRO* macros, ID3DBlob** blob)
+
+    D3D11_BLEND_DESC toD3D11BlendDesc(const BlendStateDesc& blendDesc)
+    {
+        D3D11_BLEND_DESC desc = CD3D11_BLEND_DESC{};
+        desc.AlphaToCoverageEnable = blendDesc.alphaToCoverageEnable;
+        desc.IndependentBlendEnable = blendDesc.independentBlendEnable;
+
+        for (size_t i = 0; i < _countof(blendDesc.renderTargetBlendDescs); i++) {
+            const auto& rtBlendDesc = blendDesc.renderTargetBlendDescs[i];
+            desc.RenderTarget[i] = D3D11_RENDER_TARGET_BLEND_DESC{
+                rtBlendDesc.blendMode != BlendMode::OPAQUE,
+                D3D11_BLEND(rtBlendDesc.srcBlend),
+                D3D11_BLEND(rtBlendDesc.dstBlend),
+                D3D11_BLEND_OP(rtBlendDesc.blendOp),
+                D3D11_BLEND(rtBlendDesc.srcBlendAlpha),
+                D3D11_BLEND(rtBlendDesc.dstBlendAlpha),
+                D3D11_BLEND_OP(rtBlendDesc.blendOpAlpha),
+                0x0F,
+            };
+        }
+        return desc;
+    }
+
+    void compileShader(const char* code, const D3D_SHADER_MACRO* macros, ID3DBlob** blob, const PipelineStage stage)
     {
         ID3DBlob* error = nullptr;
-        auto result = D3DCompile(
+        std::string entry = "";
+        std::string shaderVersion = "";
+        if (stage == PipelineStage::VERTEX_STAGE) {
+            entry = "VSMain";
+            shaderVersion = "vs_5_0";
+        }
+        else if (stage == PipelineStage::PIXEL_STAGE) {
+            entry = "PSMain";
+            shaderVersion = "ps_5_0";
+        }
+        else if (stage == PipelineStage::COMPUTE_STAGE) {
+            entry = "CSMain";
+            shaderVersion = "cs_5_0";
+        }
+
+        HRESULT result = D3DCompile(
             code,
             strlen(code),
             nullptr,
             macros,
             nullptr,
-            "VSMain", "vs_5_0",
+            entry.c_str(), shaderVersion.c_str(),
             0, 0,
             blob,
             &error
@@ -152,11 +198,36 @@ namespace bdr
         }
     }
 
-    void registerPipelineStateDefinition(Renderer& renderer, PipelineStateDefinition&& pipelineDefinition)
+    std::string readFile(const char* filePath)
     {
-        pipelineDefinition.shaderCode = readFile(pipelineDefinition.filePath.c_str());
+        std::ifstream shaderFile{ filePath };
+        std::string code;
+        std::string line;
+        if (shaderFile.is_open()) {
+            while (std::getline(shaderFile, line)) {
+                code += line;
+                code += '\n';
+            }
+        }
+        else {
+            ERROR("Could not open material file");
+        }
+        shaderFile.close();
+        return code;
+    }
+
+    void registerPipelineStateDefinition(
+        Renderer& renderer,
+        const std::string& name,
+        const std::string& filePath,
+        PipelineStateDefinition&& pipelineDefinition
+    )
+    {
+        pipelineDefinition.shaderCodeId = renderer.shaderCodeRegistry.size();
+        renderer.shaderCodeRegistry.push_back(readFile(filePath.c_str()));
+
         // TODO: This should fail in Release too
-        bool insertionCompleted = renderer.pipelineDefinitions.insert(pipelineDefinition.name, pipelineDefinition);
+        bool insertionCompleted = renderer.pipelineDefinitions.insert(name, pipelineDefinition);
         if (!insertionCompleted) {
             HALT("Insert Failed");
         }
@@ -187,58 +258,98 @@ namespace bdr
         return layout;
     };
 
-    D3D11_DEPTH_STENCIL_DESC toD3D11DepthStencilDesc(const DepthStencilDesc& depthDesc)
-    {
-        D3D11_DEPTH_STENCIL_DESC desc;
-        desc.DepthEnable = depthDesc.depthCullMode != ComparisonFunc::OFF;
-        desc.DepthFunc = getD3DComparisonFunc(depthDesc.depthCullMode);
-
-        desc.DepthWriteMask = depthDesc.depthWrite ? D3D11_DEPTH_WRITE_MASK_ALL : D3D11_DEPTH_WRITE_MASK_ZERO;
-        desc.StencilEnable = depthDesc.stencilEnabled;
-        desc.StencilReadMask = depthDesc.stencilReadMask;
-        desc.StencilWriteMask = depthDesc.stencilWriteMask;
-        desc.FrontFace = getD3DStencilOpDesc(depthDesc.stencilFrontFace);
-        desc.BackFace = getD3DStencilOpDesc(depthDesc.stencilBackFace);
-
-        return desc;
-    }
-
-    uint32_t createPipelineState(Renderer& renderer, const std::string& pipelineName, const Array<ShaderMacro>& shaderMacros)
+    uint32_t createPipelineState(Renderer& renderer, const std::string& pipelineName, const ShaderMacro shaderMacros[], const size_t numMacros)
     {
         ID3D11Device1* device = renderer.getDevice();
 
-        PipelineStateDefinition* pipelineDefinition;
-        renderer.pipelineDefinitions.get(pipelineName, pipelineDefinition);
+        PipelineStateDefinition pipelineDefinition{};
+        renderer.pipelineDefinitions.get(pipelineName, &pipelineDefinition);
 
         uint32_t pipelineId = renderer.pipelines.create();
 
+        // Count the number of per draw required resource
+        ResourceBindingLayoutDesc perDrawLayoutDesc = pipelineDefinition.perDrawRequiredResources;
+        uint32_t numResources = 0;
+        for (; numResources < perDrawLayoutDesc.maxResources; numResources++) {
+            if (perDrawLayoutDesc.resourceDescs[numResources].type == BoundResourceType::INVALID) {
+                break;
+            }
+        }
+
+        // 1. Create list of macros to pass to shader compilation
+        // 2. Append optional resources to resource layout desc based on macros
         PipelineState& pipeline = renderer.pipelines[pipelineId];
         D3D_SHADER_MACRO d3dMacros[16] = { nullptr };
-        for (size_t i = 0; i < shaderMacros.size; i++) {
-            d3dMacros[i] = D3D_SHADER_MACRO{ shaderMacros[i].name.c_str() };
+        for (size_t i = 0; i < numMacros; i++) {
+            d3dMacros[i] = D3D_SHADER_MACRO{ shaderMacros[i].name };
+
+            // Append the optional defintion to our layout;
+            PipelineStateDefinition::BindingMapView view{};
+            const bool retrieved = pipelineDefinition.optionalResourceMap.get(shaderMacros[i].name, &view);
+            if (retrieved) {
+                for (size_t i = 0; i < view.count; i++) {
+                    perDrawLayoutDesc.resourceDescs[numResources++] = pipelineDefinition.optionalResources.resourceDescs[view.offset + i];
+                }
+            }
         }
 
-        if (pipelineDefinition->stages & PipelineStage::VERTEX_STAGE) {
+        const std::string& shaderCode = renderer.shaderCodeRegistry[pipelineDefinition.shaderCodeId];
+
+        if (pipelineDefinition.stages & PipelineStage::VERTEX_STAGE) {
             ID3DBlob* vsBlob;
-            compileShader(pipelineDefinition->shaderCode.c_str(), d3dMacros, &vsBlob);
+            compileShader(shaderCode.c_str(), d3dMacros, &vsBlob, PipelineStage::VERTEX_STAGE);
+
+            DX::ThrowIfFailed(device->CreateVertexShader(
+                vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), nullptr, &pipeline.vertexShader
+            ));
         }
+        if (pipelineDefinition.stages & PipelineStage::PIXEL_STAGE) {
+            ID3DBlob* psBlob;
+            compileShader(shaderCode.c_str(), d3dMacros, &psBlob, PipelineStage::PIXEL_STAGE);
+
+            DX::ThrowIfFailed(device->CreatePixelShader(
+                psBlob->GetBufferPointer(), psBlob->GetBufferSize(), nullptr, &pipeline.pixelShader
+            ));
+        }
+        if (pipelineDefinition.stages & PipelineStage::COMPUTE_STAGE) {
+            ID3DBlob* csBlob;
+            compileShader(shaderCode.c_str(), d3dMacros, &csBlob, PipelineStage::COMPUTE_STAGE);
+
+            DX::ThrowIfFailed(device->CreateComputeShader(
+                csBlob->GetBufferPointer(), csBlob->GetBufferSize(), nullptr, &pipeline.computeShader
+            ));
+        }
+
+        // Resource Binding Layout
+        // TODO: Views and Frames will own their resource binding layouts and resource binding objects,
+        // but we'll use the layout descs defined here to validate that the constants will actually be available
+        pipeline.perDrawBindingLayout = createLayout(renderer, perDrawLayoutDesc);
 
         // Need to get or create Input Layout
-        pipeline.inputLayout = renderer.inputLayoutManager.getOrCreateInputLayout(pipelineDefinition->inputLayoutDesc);
+        pipeline.inputLayout = renderer.inputLayoutManager.getOrCreateInputLayout(pipelineDefinition.inputLayoutDesc);
 
         // Depth Stencil State
-        D3D11_DEPTH_STENCIL_DESC depthDesc = toD3D11DepthStencilDesc(pipelineDefinition->depthStencilState);
+        D3D11_DEPTH_STENCIL_DESC depthDesc = toD3D11DepthStencilDesc(pipelineDefinition.depthStencilState);
         device->CreateDepthStencilState(&depthDesc, &pipeline.depthStencilState);
 
         // Rasterizer State
-        D3D11_RASTERIZER_DESC rasterizerDesc = toD3D11RasterizerDesc(pipelineDefinition->rasterStateDesc);
+        D3D11_RASTERIZER_DESC rasterizerDesc = toD3D11RasterizerDesc(pipelineDefinition.rasterStateDesc);
         device->CreateRasterizerState(&rasterizerDesc, &pipeline.rasterizerState);
 
         // Blend State
-        // Resource Binding Layout
+        D3D11_BLEND_DESC blendDesc = toD3D11BlendDesc(pipelineDefinition.blendState);
+        device->CreateBlendState(&blendDesc, &pipeline.blendState);
 
+        return pipelineId;
+    }
 
-        // How do we handle our different resource binding layout descriptions?
-        // Do we compile them all here? Was that the plan?
+    void reset(PipelineState& pipelineState)
+    {
+        release(pipelineState.vertexShader);
+        release(pipelineState.pixelShader);
+        release(pipelineState.computeShader);
+        release(pipelineState.depthStencilState);
+        release(pipelineState.rasterizerState);
+        release(pipelineState.blendState);
     }
 }

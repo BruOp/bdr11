@@ -1,5 +1,8 @@
 #pragma once
 #include "pch.h"
+
+#include <utility>
+
 #include "murmur/MurmurHash3.h"
 
 
@@ -18,8 +21,18 @@ namespace bdr
         SimpleMap32() = default;
         SimpleMap32(const size_t startingCapacity)
         {
-            grow(startingCapacity)
+            grow(startingCapacity);
         }
+
+        SimpleMap32(const std::initializer_list<std::pair<std::string, V>>& list)
+        {
+            grow(list.size());
+            for (const auto& item : list) {
+                uint32_t key = hashKey(item.first);
+                fast_insert(key, item.second);
+            }
+        }
+
         ~SimpleMap32()
         {
             Memory::release(keys);
@@ -28,21 +41,38 @@ namespace bdr
             capacity = 0;
         }
 
-        UNCOPIABLE(SimpleMap32);
-
-        SimpleMap32(SimpleMap32&& other)
+        SimpleMap32(const SimpleMap32& other)
         {
-            size = other.size;
-            capacity = other.capacity;
-            keys = other.keys;
-            values = other.values;
-            other.size = 0;
-            other.capacity = 0;
-            other.keys = nullptr;
-            other.values = nullptr;
+            _copy(other);
+        }
+        SimpleMap32& operator=(const SimpleMap32& other)
+        {
+            _copy(other);
+            return *this;
         }
 
+        SimpleMap32(SimpleMap32&& other) : SimpleMap32()
+        {
+            _swap(std::forward<SimpleMap32<V>>(other));
+        }
         SimpleMap32& operator=(SimpleMap32&& other)
+        {
+            _swap(std::forward<SimpleMap32<V>>(other));
+            return *this;
+        }
+
+        void _copy(const SimpleMap32& other)
+        {
+            keys = nullptr;
+            values = nullptr;
+            capacity = other.capacity;
+            size = other.size;
+            reallocate(capacity);
+            memcpy(keys, other.keys, sizeof(uint32_t) * size);
+            memcpy(values, other.values, sizeof(V) * size);
+        }
+
+        void _swap(SimpleMap32&& other)
         {
             size = other.size;
             capacity = other.capacity;
@@ -52,7 +82,6 @@ namespace bdr
             other.capacity = 0;
             other.keys = nullptr;
             other.values = nullptr;
-            return *this;
         }
 
         bool get(const std::string& unhashedKey, V* outValue) const
@@ -91,7 +120,7 @@ namespace bdr
         bool fast_insert(uint32_t key, const V& value)
         {
             if (size == capacity) {
-                grow();
+                grow(capacity == 0 ? 2 : capacity * 2);
             }
             keys[size] = key;
             values[size++] = value;
@@ -105,7 +134,7 @@ namespace bdr
             return key;
         }
 
-        void grow(const size_t additionalSlots = 1024)
+        void grow(const size_t additionalSlots)
         {
             reallocate(capacity + additionalSlots);
         }

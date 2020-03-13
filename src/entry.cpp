@@ -53,18 +53,6 @@ namespace bdr
             renderer.setWindow(window, rc.right - rc.left, rc.bottom - rc.top);
             renderer.createDeviceResources();
             renderer.createWindowSizeDependentResources();
-
-            ID3D11Device1* device = renderer.getDevice();
-
-            CD3D11_RASTERIZER_DESC rastDesc{
-                D3D11_FILL_SOLID, D3D11_CULL_BACK, TRUE,
-                D3D11_DEFAULT_DEPTH_BIAS,
-                D3D11_DEFAULT_DEPTH_BIAS_CLAMP,
-                D3D11_DEFAULT_SLOPE_SCALED_DEPTH_BIAS,
-                TRUE, FALSE, TRUE, FALSE,
-            };
-
-            renderer.materials.init(renderer.getDevice());
         }
 
         keyboard = std::make_unique<Keyboard>();

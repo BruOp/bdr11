@@ -467,8 +467,6 @@ void DX::DeviceResources::Reset()
     m_d3dContext.Reset();
     m_d3dAnnotation.Reset();
 
-    //Report();
-
     m_d3dDevice.Reset();
     m_dxgiFactory.Reset();
 }

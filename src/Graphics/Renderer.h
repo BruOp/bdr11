@@ -31,7 +31,6 @@ namespace bdr
         void reset()
         {
             inputLayoutManager.reset();
-            materials.reset();
         }
 
         inline void setWindow(HWND window, int newWidth, int newHeight)
@@ -99,19 +98,15 @@ namespace bdr
         ResourceManager<GPUBuffer> constantBuffers;
         SimpleMap32<PipelineStateDefinition> pipelineDefinitions;
         ResourceManager<PipelineState> pipelines;
-        MaterialManager materials;
         ResourceBindingHeap bindingHeap;
         std::vector<ResourceBinder> binders;
+        std::vector<std::string> shaderCodeRegistry;
 
     };
 
     GPUBuffer createStructuredBuffer(ID3D11Device* device, const uint32_t elementSize, const uint32_t numElements);
 
     uint32_t createMesh(Renderer& renderer, const MeshCreationInfo& meshCreationInfo);
-    uint32_t getOrCreateBasicMaterial(Renderer& renderer);
-
-    // Returns an **unmanaged** material. The client is responsible for cleanup.
-    uint32_t createCustomMaterial(Renderer& renderer, const std::string& shaderPath, uint8_t attrRequirements);
 
     uint32_t createTextureFromFile(Renderer& renderer, const std::string& filePath, const TextureCreationInfo& createInfo);
 }

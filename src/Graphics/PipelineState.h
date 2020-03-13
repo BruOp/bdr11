@@ -10,8 +10,12 @@ namespace bdr
 
     void reset(PipelineState& pipelineState);
 
-    void registerPipelineStateDefinition(Renderer& renderer, PipelineStateDefinition&& pipelineDefinition);
+    void registerPipelineStateDefinition(
+        Renderer& renderer,
+        const std::string& name,
+        const std::string& filePath,
+        PipelineStateDefinition&& pipelineDefinition
+    );
 
-    //uint32_t createPipelineStateBuilder(Renderer& renderer, const PipelineStateBuilderDesc& desc);
-
+    uint32_t createPipelineState(Renderer& renderer, const std::string& pipelineName, const ShaderMacro shaderMacros[], const size_t numMacros);
 }
