@@ -51,8 +51,8 @@ namespace bdr
             std::vector<SceneNode> nodes;
             std::vector<SceneNode> traversedNodes;
             std::vector<uint32_t> nodeToEntityMap;
-            std::unordered_map<uint64_t, uint32_t> meshMap;
-            std::vector<uint32_t> textureMap;
+            std::unordered_map<uint64_t, MeshHandle> meshMap;
+            std::vector<TextureHandle> textureMap;
             tinygltf::Model* inputModel;
 
             SceneData(

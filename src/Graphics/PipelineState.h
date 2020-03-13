@@ -17,13 +17,13 @@ namespace bdr
         PipelineStateDefinition&& pipelineDefinition
     );
 
-    uint32_t createPipelineState(
+    PipelineHandle createPipelineState(
         Renderer& renderer,
         const std::string& pipelineName,
         const ShaderMacro shaderMacros[],
         const size_t numMacros
     );
 
-    uint32_t allocateResourceBinder(Renderer& renderer, const uint32_t pipelineId);
+    ResourceBinderHandle allocateResourceBinder(Renderer& renderer, const PipelineHandle pipelineId);
 
 }

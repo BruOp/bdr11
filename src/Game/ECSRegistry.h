@@ -3,7 +3,7 @@
 
 #include "Core/bdrMath.h"
 #include "Animation.h"
-
+#include "Graphics/Resources.h"
 
 namespace bdr
 {
@@ -67,12 +67,6 @@ namespace bdr
         }
     };
 
-    struct MaterialInstance
-    {
-        uint32_t pipelineId;
-        uint32_t resourceBinderId;
-    };
-
     // Used to retrieve the next "free" entity, one that has been allocated by unused.
     struct FreeEntityNode
     {
@@ -101,7 +95,7 @@ namespace bdr
         ComponentArray<uint32_t> cmpMasks;
         ComponentArray<uint32_t> parents;
         ComponentArray<uint32_t> skinIds;
-        ComponentArray<uint32_t> meshes;
+        ComponentArray<MeshHandle> meshes;
         ComponentArray<uint32_t> preskinMeshes;
         ComponentArray<uint32_t> jointBuffer;
         ComponentArray<Transform> transforms;
@@ -139,8 +133,7 @@ namespace bdr
 
     uint32_t createEntity(ECSRegistry& registry);
 
-    void assignMesh(ECSRegistry& registry, const uint32_t entity, const uint32_t meshId);
-    void assignMaterial(ECSRegistry& registry, const uint32_t entity, const uint32_t materialId);
+    void assignMesh(ECSRegistry& registry, const uint32_t entity, const MeshHandle meshHandle);
     void assignTransform(ECSRegistry& registry, const uint32_t entity, const Transform& transform);
     void assignMaterialInstance(ECSRegistry& registry, const uint32_t entity, const MaterialInstance& materialInstance);
 }

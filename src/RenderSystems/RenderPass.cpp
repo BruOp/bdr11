@@ -31,9 +31,9 @@ namespace bdr
                 if (cmpMask & CmpMasks::SKIN) {
                     // Compute joint matrices
                     const Skin& skin = scene.skins[registry.skinIds[entityId]];
-                    Mesh& mesh = renderer->meshes[registry.meshes[entityId]];
-                    ASSERT(mesh.preskinMeshIdx != UINT32_MAX, "Skinned meshes must have preskinned mesh");
-                    Mesh& preskin = renderer->meshes[mesh.preskinMeshIdx];
+                    Mesh& mesh = renderer->meshes[registry.meshes[entityId].idx];
+                    ASSERT(isValid(mesh.preskinMeshId), "Skinned meshes must have preskinned mesh");
+                    Mesh& preskin = renderer->meshes[mesh.preskinMeshId];
                     GPUBuffer& jointBuffer = renderer->jointBuffers[registry.jointBuffer[entityId]];
                     std::vector<glm::mat4> jointMatrices(skin.inverseBindMatrices.size());
                     const glm::mat4 invModel{ glm::inverse(registry.globalMatrices[entityId]) };
@@ -110,7 +110,7 @@ namespace bdr
 
                     const DrawConstants& drawConstants = registry.drawConstants[entityId];
                     const PipelineState& pipelineState = renderer->pipelines[mat.pipelineId];
-                    const Mesh& mesh = renderer->meshes[registry.meshes[entityId]];
+                    const Mesh& mesh = renderer->meshes[registry.meshes[entityId].idx];
 
                     ASSERT(mesh.inputLayoutHandle == pipelineState.inputLayout);
                     ID3D11Buffer* vbuffers[Mesh::maxAttrCount] = { nullptr };
@@ -134,7 +134,7 @@ namespace bdr
 
                     // Set textures, if possible
                     if (cmpMask & CmpMasks::TEXTURED) {
-                        const ResourceBinder& binder = renderer->binders[mat.resourceBinderId];
+                        const ResourceBinder& binder = renderer->binders[mat.resourceBinderId.idx];
                         const ResourceBindingLayout& layout = pipelineState.perDrawBindingLayout;
                         const ResourceBindingHeap& heap = renderer->bindingHeap;
 

@@ -10,6 +10,16 @@
 
 namespace bdr
 {
+    constexpr uint32_t kInvalidHandle = UINT32_MAX;
+
+    // Copied from BGFX and others
+#define RESOURCE_HANDLE(_name)      \
+	struct _name { uint32_t idx; }; \
+    inline bool isValid(_name _handle) { return _handle.idx != bdr::kInvalidHandle; };
+
+#define INVALID_HANDLE \
+    { bdr::kInvalidHandle }
+
     enum class BufferFormat : uint8_t
     {
         INVALID = 0,
@@ -48,33 +58,6 @@ namespace bdr
         Structured,
     };
 
-
-    struct GPUBuffer
-    {
-        uint32_t numElements = 0;
-        uint8_t usage = 0;
-        BufferType srvType = BufferType::Default;
-        BufferType uavType = BufferType::Default;
-        BufferFormat format = BufferFormat::INVALID;
-        ID3D11Buffer* buffer = nullptr;
-        ID3D11UnorderedAccessView* uav = nullptr;
-        ID3D11ShaderResourceView* srv = nullptr;
-    };
-
-    struct BufferCreationInfo
-    {
-        // The number of elements in the buffer
-        uint32_t numElements = 0;
-        // elementSize is only used for structured buffers where the DXGI format is unknown
-        uint32_t elementSize = 0;
-        // How the buffer is going to be used -- e.g. does the CPU need write access? Check BufferUsage
-        uint8_t usage = BufferUsage::UNUSED;
-        // The layout of each element -- eg Float_3 or UINT16
-        BufferFormat format = BufferFormat::INVALID;
-        // Signals whether the buffer is structured, typed, byteAddress or just default (uses the format)
-        BufferType type = BufferType::Default;
-    };
-
     enum MeshAttribute : uint8_t
     {
         INVALID = 0,
@@ -84,88 +67,6 @@ namespace bdr
         BLENDINDICES = (1 << 3),
         BLENDWEIGHT = (1 << 4),
         COLOR = (1 << 5),
-    };
-
-    struct Mesh
-    {
-        static constexpr size_t maxAttrCount = 6u;
-        GPUBuffer indexBuffer;
-        GPUBuffer vertexBuffers[maxAttrCount];
-        ID3D11InputLayout* inputLayoutHandle = nullptr;
-        uint32_t strides[maxAttrCount] = { 0 };
-        MeshAttribute attributes[Mesh::maxAttrCount] = { MeshAttribute::INVALID };
-        uint32_t numIndices = 0;
-        uint32_t numVertices = 0;
-        uint32_t preskinMeshIdx = UINT32_MAX;
-        uint8_t presentAttributesMask = 0;
-        uint8_t numPresentAttr = 0;
-    };
-
-    struct MeshCreationInfo
-    {
-        uint8_t const* indexData = nullptr;
-        BufferFormat indexFormat = BufferFormat::INVALID;
-        uint8_t* data[Mesh::maxAttrCount] = { nullptr };
-        BufferFormat bufferFormats[Mesh::maxAttrCount] = { BufferFormat::INVALID };
-        MeshAttribute attributes[Mesh::maxAttrCount] = { MeshAttribute::INVALID };
-        uint32_t strides[Mesh::maxAttrCount] = { 0 };
-        uint8_t bufferUsages[Mesh::maxAttrCount] = { BufferUsage::UNUSED };
-        uint32_t numIndices = 0;
-        uint32_t numVertices = 0;
-        uint8_t numAttributes = 0;
-        uint8_t presentAttributesMask = 0;
-    };
-
-    struct InputLayoutDesc
-    {
-        uint8_t numAttributes = 0;
-        MeshAttribute attributes[Mesh::maxAttrCount] = { MeshAttribute::INVALID };
-        BufferFormat bufferFormats[Mesh::maxAttrCount] = { BufferFormat::INVALID };
-    };
-
-    //enum class MaterialType : uint8_t
-    //{
-    //    INVALID = 0,
-    //    PBR = 1,
-    //    BASIC = 2,
-    //    CUSTOM = UINT8_MAX,
-    //};
-
-    //// Attribute requirements indexed by Material Type
-    //constexpr uint8_t MaterialAttributeRequirements[] = {
-    //    MeshAttribute::INVALID,
-    //    MeshAttribute::POSITION | MeshAttribute::NORMAL | MeshAttribute::TEXCOORD,
-    //    MeshAttribute::POSITION | MeshAttribute::COLOR,
-    //};
-
-    //struct Material
-    //{
-    //    MaterialType type = MaterialType::INVALID;
-    //    uint16_t permutation = 0;
-    //    uint8_t attributeRequriements = 0;
-    //    ID3D11VertexShader* vertexShader;
-    //    ID3D11PixelShader* pixelShader;
-    //};
-
-    struct TextureCreationInfo
-    {
-        uint32_t dims[2] = { 0, 0 };
-        uint8_t usage = 0;
-    };
-
-    struct Texture
-    {
-        uint32_t numLayers = 0;
-        uint32_t numMips = 0;
-        uint32_t dims[2] = { 0, 0 };
-        uint8_t usage = 0;
-        BufferType srvType = BufferType::Default;
-        BufferType uavType = BufferType::Default;
-        BufferFormat format = BufferFormat::INVALID;
-        ID3D11Resource* texture = nullptr;
-        ID3D11UnorderedAccessView* uav = nullptr;
-        ID3D11ShaderResourceView* srv = nullptr;
-        ID3D11SamplerState* sampler = nullptr;
     };
 
     enum TextureFlags : uint16_t
@@ -178,7 +79,6 @@ namespace bdr
         DISABLED = (1 << 15),
         PBR_COMPATIBLE = ALBEDO | NORMAL_MAP | METALLIC_ROUGHNESS
     };
-
 
     enum PipelineStage : uint8_t
     {
@@ -205,6 +105,92 @@ namespace bdr
         PER_DRAW,
     };
 
+    struct BufferCreationInfo
+    {
+        // The number of elements in the buffer
+        uint32_t numElements = 0;
+        // elementSize is only used for structured buffers where the DXGI format is unknown
+        uint32_t elementSize = 0;
+        // How the buffer is going to be used -- e.g. does the CPU need write access? Check BufferUsage
+        uint8_t usage = BufferUsage::UNUSED;
+        // The layout of each element -- eg Float_3 or UINT16
+        BufferFormat format = BufferFormat::INVALID;
+        // Signals whether the buffer is structured, typed, byteAddress or just default (uses the format)
+        BufferType type = BufferType::Default;
+    };
+
+    struct GPUBuffer
+    {
+        uint32_t numElements = 0;
+        uint8_t usage = 0;
+        BufferType srvType = BufferType::Default;
+        BufferType uavType = BufferType::Default;
+        BufferFormat format = BufferFormat::INVALID;
+        ID3D11Buffer* buffer = nullptr;
+        ID3D11UnorderedAccessView* uav = nullptr;
+        ID3D11ShaderResourceView* srv = nullptr;
+    };
+
+    RESOURCE_HANDLE(MeshHandle);
+    struct Mesh
+    {
+        static constexpr size_t maxAttrCount = 6u;
+        GPUBuffer indexBuffer;
+        GPUBuffer vertexBuffers[maxAttrCount];
+        ID3D11InputLayout* inputLayoutHandle = nullptr;
+        uint32_t strides[maxAttrCount] = { 0 };
+        MeshAttribute attributes[Mesh::maxAttrCount] = { MeshAttribute::INVALID };
+        uint32_t numIndices = 0;
+        uint32_t numVertices = 0;
+        MeshHandle preskinMeshId = INVALID_HANDLE;
+        uint8_t presentAttributesMask = 0;
+        uint8_t numPresentAttr = 0;
+    };
+
+    struct MeshCreationInfo
+    {
+        uint8_t const* indexData = nullptr;
+        BufferFormat indexFormat = BufferFormat::INVALID;
+        uint8_t* data[Mesh::maxAttrCount] = { nullptr };
+        BufferFormat bufferFormats[Mesh::maxAttrCount] = { BufferFormat::INVALID };
+        MeshAttribute attributes[Mesh::maxAttrCount] = { MeshAttribute::INVALID };
+        uint32_t strides[Mesh::maxAttrCount] = { 0 };
+        uint8_t bufferUsages[Mesh::maxAttrCount] = { BufferUsage::UNUSED };
+        uint32_t numIndices = 0;
+        uint32_t numVertices = 0;
+        uint8_t numAttributes = 0;
+        uint8_t presentAttributesMask = 0;
+    };
+
+    struct InputLayoutDesc
+    {
+        uint8_t numAttributes = 0;
+        MeshAttribute attributes[Mesh::maxAttrCount] = { MeshAttribute::INVALID };
+        BufferFormat bufferFormats[Mesh::maxAttrCount] = { BufferFormat::INVALID };
+    };
+
+    struct TextureCreationInfo
+    {
+        uint32_t dims[2] = { 0, 0 };
+        uint8_t usage = 0;
+    };
+
+    struct Texture
+    {
+        uint32_t numLayers = 0;
+        uint32_t numMips = 0;
+        uint32_t dims[2] = { 0, 0 };
+        uint8_t usage = 0;
+        BufferType srvType = BufferType::Default;
+        BufferType uavType = BufferType::Default;
+        BufferFormat format = BufferFormat::INVALID;
+        ID3D11Resource* texture = nullptr;
+        ID3D11UnorderedAccessView* uav = nullptr;
+        ID3D11ShaderResourceView* srv = nullptr;
+        ID3D11SamplerState* sampler = nullptr;
+    };
+    RESOURCE_HANDLE(TextureHandle);
+
     struct BoundResourceDesc
     {
         char name[64] = "";
@@ -218,21 +204,21 @@ namespace bdr
         BoundResourceDesc resourceDescs[maxResources] = {};
     };
 
-    struct ResourceView
-    {
-        BoundResourceType resourceType = BoundResourceType::INVALID;
-        uint32_t offset = UINT32_MAX;
-    };
-
     struct ResourceBindingLayout
     {
+        struct View
+        {
+            BoundResourceType resourceType = BoundResourceType::INVALID;
+            uint32_t offset = UINT32_MAX;
+        };
+
         uint8_t readableBufferCount = 0;
         uint8_t writableBufferCount = 0;
         uint8_t samplerCount = 0;
         // Maps our resources by names to their local offsets within the ResourceBindingHeap
         // Note that this is used to both allocate slots in our heap (returning a ResourceBinder) 
         // and to set the actual points using an allocated ResourceBinder
-        SimpleMap32<ResourceView> resourceMap;
+        SimpleMap32<View> resourceMap;
     };
 
     struct ResourceBindingHeap
@@ -241,6 +227,7 @@ namespace bdr
         std::vector<ID3D11UnorderedAccessView*> uavs;
         std::vector<ID3D11SamplerState*> samplers;
     };
+    RESOURCE_HANDLE(ResourceBinderHandle);
 
     struct ResourceBinder
     {
@@ -290,4 +277,13 @@ namespace bdr
         ID3D11BlendState* blendState = nullptr;
         ResourceBindingLayout perDrawBindingLayout;
     };
+    RESOURCE_HANDLE(PipelineHandle);
+
+    struct MaterialInstance
+    {
+        PipelineHandle pipelineId;
+        ResourceBinderHandle resourceBinderId;
+    };
+
+    RESOURCE_HANDLE(GPUBufferHandle);
 }

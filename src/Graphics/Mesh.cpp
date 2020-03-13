@@ -122,9 +122,9 @@ namespace bdr
         ++meshCreationInfo.numAttributes;
     }
 
-    uint32_t createMesh(Renderer& renderer, const MeshCreationInfo& meshCreateInfo)
+    MeshHandle createMesh(Renderer& renderer, const MeshCreationInfo& meshCreateInfo)
     {
-        uint32_t meshId = static_cast<uint32_t>(renderer.meshes.create());
+        MeshHandle meshId = renderer.meshes.create();
         Mesh& mesh = renderer.meshes[meshId];
 
         mesh.numIndices = meshCreateInfo.numIndices;

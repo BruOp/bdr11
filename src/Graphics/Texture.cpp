@@ -65,9 +65,12 @@ namespace bdr
         return texture;
     }
 
-    uint32_t createTextureFromFile(Renderer& renderer, const std::string& filePath, const TextureCreationInfo& createInfo)
+    TextureHandle createTextureFromFile(Renderer& renderer, const std::string& filePath, const TextureCreationInfo& createInfo)
     {
-        Texture texture{ createFromFile(renderer.getDevice(), filePath, createInfo) };
+
+        TextureHandle textureId = renderer.textures.create();
+        Texture& texture = renderer.textures[textureId];
+        texture = { createFromFile(renderer.getDevice(), filePath, createInfo) };
         D3D11_SAMPLER_DESC samplerDesc{};
         samplerDesc.Filter = D3D11_FILTER_ANISOTROPIC;
         samplerDesc.MaxAnisotropy = D3D11_DEFAULT_MAX_ANISOTROPY;
@@ -79,9 +82,7 @@ namespace bdr
         samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
         DX::ThrowIfFailed(renderer.getDevice()->CreateSamplerState(&samplerDesc, &texture.sampler));
 
-        uint32_t idx = renderer.textures.size();
-        renderer.textures.add(texture);
-        return idx;
+        return textureId;
     }
 
 }

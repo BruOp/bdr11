@@ -9,7 +9,7 @@ namespace bdr
 
     void reset(Texture& texture);
 
-    uint32_t createTextureFromFile(
+    TextureHandle createTextureFromFile(
         Renderer& renderer,
         const std::string& filePath,
         const TextureCreationInfo& createInfo

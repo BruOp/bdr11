@@ -4,7 +4,7 @@
 
 namespace bdr
 {
-    template <typename T>
+    template <typename T, typename Handle>
     class ResourceManager
     {
     public:
@@ -19,11 +19,11 @@ namespace bdr
         UNMOVABLE(ResourceManager);
         UNCOPIABLE(ResourceManager);
 
-        inline size_t create()
+        inline Handle create()
         {
             const size_t idx = resources.size();
             resources.emplace_back();
-            return idx;
+            return { uint32_t(idx) };
         }
 
         inline void add(T& resource)
@@ -44,6 +44,16 @@ namespace bdr
         const T& operator[](const size_t idx) const
         {
             return resources[idx];
+        };
+
+        T& operator[](const Handle handle)
+        {
+            return resources[handle.idx];
+        };
+
+        const T& operator[](const Handle handle) const
+        {
+            return resources[handle.idx];
         };
 
     private:

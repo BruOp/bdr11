@@ -16,5 +16,5 @@ namespace bdr
 
     void addAttribute(MeshCreationInfo& meshCreationInfo, const void* data, const BufferFormat format, const MeshAttribute attrFlag);
 
-    uint32_t createMesh(Renderer& renderer, const MeshCreationInfo& meshCreateInfo);
+    MeshHandle createMesh(Renderer& renderer, const MeshCreationInfo& meshCreateInfo);
 }

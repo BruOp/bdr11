@@ -85,12 +85,12 @@ namespace bdr
         Microsoft::WRL::ComPtr<ID3D11ComputeShader> computeShader = nullptr;
 
         InputLayoutManager inputLayoutManager;
-        ResourceManager<Mesh> meshes;
-        ResourceManager<GPUBuffer> jointBuffers;
-        ResourceManager<Texture> textures;
-        ResourceManager<GPUBuffer> constantBuffers;
+        ResourceManager<Mesh, MeshHandle> meshes;
+        ResourceManager<GPUBuffer, GPUBufferHandle> jointBuffers;
+        ResourceManager<Texture, TextureHandle> textures;
+        ResourceManager<GPUBuffer, GPUBufferHandle> constantBuffers;
+        ResourceManager<PipelineState, PipelineHandle> pipelines;
         SimpleMap32<PipelineStateDefinition> pipelineDefinitions;
-        ResourceManager<PipelineState> pipelines;
         ResourceBindingHeap bindingHeap;
         std::vector<ResourceBinder> binders;
         std::vector<std::string> shaderCodeRegistry;

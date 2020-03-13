@@ -108,15 +108,15 @@ void bindTexture(
     Renderer& renderer,
     const MaterialInstance materialInstance,
     const std::string& name,
-    const uint32_t textureHandle
+    const TextureHandle textureHandle
 )
 {
-    ResourceBinder binder = renderer.binders[materialInstance.resourceBinderId];
+    ResourceBinder binder = renderer.binders[materialInstance.resourceBinderId.idx];
     ResourceBindingHeap& heap = renderer.bindingHeap;
     const ResourceBindingLayout& layout = renderer.pipelines[binder.pipelineId].perDrawBindingLayout;
     const Texture& texture = renderer.textures[textureHandle];
 
-    ResourceView resourceView;
+    ResourceBindingLayout::View resourceView;
     bool resourceFound = layout.resourceMap.get(name + "_map", &resourceView);
     ASSERT(resourceFound, "Unable to find associated map");
     auto srvOffset = binder.readableBufferOffset + resourceView.offset;
@@ -129,7 +129,7 @@ void bindTexture(
     heap.samplers[samplerOffset] = texture.sampler;
 }
 
-MaterialInstance createMaterialInstance(Renderer& renderer, uint32_t pipelineId)
+MaterialInstance createMaterialInstance(Renderer& renderer, PipelineHandle pipelineId)
 {
     MaterialInstance instance{};
     instance.pipelineId = pipelineId;
@@ -183,7 +183,7 @@ class NormalMappingExample : public bdr::BaseGame
         registerPipelineStateDefinition(renderer, pipelineName, shaderFilePath, std::move(pipelineDefinition));
 
         const ShaderMacro shaderMacros[] = { {"NORMAL_MAPPING"} };
-        uint32_t pipelineStateId = createPipelineState(renderer, pipelineName, shaderMacros, 1);
+        PipelineHandle pipelineStateId = createPipelineState(renderer, pipelineName, shaderMacros, 1);
         MaterialInstance materialInstance = createMaterialInstance(renderer, pipelineStateId);
 
         entity = createEntity(scene);
@@ -202,14 +202,14 @@ class NormalMappingExample : public bdr::BaseGame
         addAttribute(meshCreationInfo, cubeNormals, BufferFormat::FLOAT_3, MeshAttribute::NORMAL);
         addAttribute(meshCreationInfo, cubeUVs, BufferFormat::FLOAT_2, MeshAttribute::TEXCOORD);
 
-        BDRid meshHandle = createMesh(renderer, meshCreationInfo);
+        MeshHandle meshHandle = createMesh(renderer, meshCreationInfo);
         assignMesh(scene, entity, meshHandle);
 
         TextureCreationInfo texInfo{};
         texInfo.usage = BufferUsage::SHADER_READABLE;
 
-        BDRid albedoTexture = createTextureFromFile(renderer, "Textures/stone01.DDS", texInfo);
-        BDRid normalTexture = createTextureFromFile(renderer, "Textures/bump01.DDS", texInfo);
+        TextureHandle albedoTexture = createTextureFromFile(renderer, "Textures/stone01.DDS", texInfo);
+        TextureHandle normalTexture = createTextureFromFile(renderer, "Textures/bump01.DDS", texInfo);
 
         assignMaterialInstance(scene, entity, materialInstance);
         bindTexture(renderer, materialInstance, "albedo", albedoTexture);

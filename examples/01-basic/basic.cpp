@@ -68,11 +68,10 @@ class BasicExample : public bdr::BaseGame
         addAttribute(meshCreationInfo, cubeColors, BufferFormat::UNORM8_4, MeshAttribute::COLOR);
         addAttribute(meshCreationInfo, cubePositions, BufferFormat::FLOAT_3, MeshAttribute::POSITION);
 
-        BDRid meshHandle = createMesh(renderer, meshCreationInfo);
+        MeshHandle meshHandle = createMesh(renderer, meshCreationInfo);
         assignMesh(scene, entity, meshHandle);
 
-        BDRid materialId = getOrCreateBasicMaterial(renderer);
-        assignMaterial(scene, entity, materialId);
+
 
         float width = float(renderer.width);
         float height = float(renderer.height);

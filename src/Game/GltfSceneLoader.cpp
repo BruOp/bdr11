@@ -281,7 +281,7 @@ namespace bdr
             mesh.numPresentAttr = numPresentAttr;
         }
 
-        uint32_t processPrimitive(SceneData& sceneData, const tinygltf::Primitive& inputPrimitive)
+        MeshHandle processPrimitive(SceneData& sceneData, const tinygltf::Primitive& inputPrimitive)
         {
             const tinygltf::Model& inputModel = *sceneData.inputModel;
             MeshCreationInfo meshData;
@@ -372,12 +372,12 @@ namespace bdr
                 ++attrIdx;
             }
 
-            const uint32_t meshId = createMesh(*sceneData.pRenderer, meshData);
+            const MeshHandle meshId = createMesh(*sceneData.pRenderer, meshData);
 
             if (isSkinned) {
                 memcpy(meshData.bufferUsages, preskinUsage, sizeof(preskinUsage[0]) * _countof(preskinUsage));
-                const uint32_t preskinIdx = createMesh(*sceneData.pRenderer, meshData);
-                sceneData.pRenderer->meshes[meshId].preskinMeshIdx = preskinIdx;
+                const MeshHandle preskinId = createMesh(*sceneData.pRenderer, meshData);
+                sceneData.pRenderer->meshes[meshId.idx].preskinMeshId = preskinId;
             }
 
             return meshId;
@@ -392,10 +392,10 @@ namespace bdr
 
                 for (uint32_t primitiveIdx = 0; primitiveIdx < inputMesh.primitives.size(); ++primitiveIdx) {
                     const auto& primitive = inputMesh.primitives[primitiveIdx];
-                    uint32_t meshIdx = processPrimitive(sceneData, primitive);
+                    MeshHandle meshId = processPrimitive(sceneData, primitive);
 
                     uint64_t key = getMeshMapKey(inputMeshIdx, primitiveIdx);
-                    sceneData.meshMap[key] = meshIdx;
+                    sceneData.meshMap[key] = meshId;
                 }
             }
         }
@@ -424,8 +424,8 @@ namespace bdr
                 createInfo.dims[1] = image.height;
                 createInfo.usage = BufferUsage::SHADER_READABLE;
 
-                uint32_t textureIdx = createTextureFromFile(*sceneData.pRenderer, sceneData.fileFolder + image.uri, createInfo);
-                Texture& output = sceneData.pRenderer->textures[textureIdx];
+                TextureHandle textureId = createTextureFromFile(*sceneData.pRenderer, sceneData.fileFolder + image.uri, createInfo);
+                Texture& output = sceneData.pRenderer->textures[textureId];
 
                 D3D11_SAMPLER_DESC samplerDesc{};
                 samplerDesc.Filter = D3D11_FILTER_ANISOTROPIC;
@@ -459,7 +459,7 @@ namespace bdr
 
                 DX::ThrowIfFailed(sceneData.pRenderer->getDevice()->CreateSamplerState(&samplerDesc, &output.sampler));
                 creationLog[outputTextureIdx] = true;
-                sceneData.textureMap[outputTextureIdx] = textureIdx;
+                sceneData.textureMap[outputTextureIdx] = textureId;
             }
         }
 

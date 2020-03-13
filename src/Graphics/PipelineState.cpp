@@ -258,14 +258,19 @@ namespace bdr
         return layout;
     };
 
-    uint32_t createPipelineState(Renderer& renderer, const std::string& pipelineName, const ShaderMacro shaderMacros[], const size_t numMacros)
+    PipelineHandle createPipelineState(
+        Renderer& renderer,
+        const std::string& pipelineName,
+        const ShaderMacro shaderMacros[],
+        const size_t numMacros
+    )
     {
         ID3D11Device1* device = renderer.getDevice();
 
         PipelineStateDefinition pipelineDefinition{};
         renderer.pipelineDefinitions.get(pipelineName, &pipelineDefinition);
 
-        uint32_t pipelineId = renderer.pipelines.create();
+        PipelineHandle pipelineId = renderer.pipelines.create();
 
         // Count the number of per draw required resource
         ResourceBindingLayoutDesc perDrawLayoutDesc = pipelineDefinition.perDrawRequiredResources;
@@ -340,12 +345,12 @@ namespace bdr
         D3D11_BLEND_DESC blendDesc = toD3D11BlendDesc(pipelineDefinition.blendState);
         device->CreateBlendState(&blendDesc, &pipeline.blendState);
 
-        return pipelineId;
+        return { pipelineId };
     }
 
-    uint32_t allocateResourceBinder(Renderer& renderer, const uint32_t pipelineId)
+    ResourceBinderHandle allocateResourceBinder(Renderer& renderer, const PipelineHandle pipelineId)
     {
-        PipelineState& pipeline = renderer.pipelines[pipelineId];
+        PipelineState& pipeline = renderer.pipelines[pipelineId.idx];
         ResourceBindingLayout& layout = pipeline.perDrawBindingLayout;
         ResourceBindingHeap& heap = renderer.bindingHeap;
         ResourceBinder binder{  };
@@ -359,7 +364,7 @@ namespace bdr
         heap.samplers.resize(binder.samplerOffset + size_t(layout.samplerCount));
         auto id = renderer.binders.size();
         renderer.binders.push_back(binder);
-        return id;
+        return { uint32_t(id) };
     }
 
     void reset(PipelineState& pipelineState)
