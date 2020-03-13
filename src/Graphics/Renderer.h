@@ -3,8 +3,8 @@
 
 #include "DeviceResources.h"
 #include "Resources.h"
+#include "GPUBuffer.h"
 #include "InputLayoutManager.h"
-#include "Material.h"
 #include "Texture.h"
 #include "ResourceManager.h"
 #include "PipelineState.h"
@@ -66,13 +66,6 @@ namespace bdr
             deviceResources->CreateWindowSizeDependentResources();
         };
 
-        inline uint32_t createTextureFromFile(const std::string& filePath, const TextureCreationInfo& createInfo)
-        {
-            uint32_t idx = static_cast<uint32_t>(textures.create());
-            textures[idx] = createFromFile(deviceResources->GetD3DDevice(), filePath, createInfo);
-            return idx;
-        };
-
         inline ID3D11Device1* getDevice() const
         {
             return deviceResources->GetD3DDevice();
@@ -103,12 +96,6 @@ namespace bdr
         std::vector<std::string> shaderCodeRegistry;
 
     };
-
-    GPUBuffer createStructuredBuffer(ID3D11Device* device, const uint32_t elementSize, const uint32_t numElements);
-
-    uint32_t createMesh(Renderer& renderer, const MeshCreationInfo& meshCreationInfo);
-
-    uint32_t createTextureFromFile(Renderer& renderer, const std::string& filePath, const TextureCreationInfo& createInfo);
 }
 
 // Callbacks for window resize:

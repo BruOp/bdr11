@@ -74,6 +74,7 @@ namespace bdr
                 float totalTime = float(timer.GetTotalSeconds());
                 tick(frameTime, totalTime);
                 render(frameTime, totalTime);
+                mouse->ResetScrollWheelValue();
             });
     }
 

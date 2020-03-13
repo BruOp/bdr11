@@ -424,7 +424,7 @@ namespace bdr
                 createInfo.dims[1] = image.height;
                 createInfo.usage = BufferUsage::SHADER_READABLE;
 
-                uint32_t textureIdx = sceneData.pRenderer->createTextureFromFile(sceneData.fileFolder + image.uri, createInfo);
+                uint32_t textureIdx = createTextureFromFile(*sceneData.pRenderer, sceneData.fileFolder + image.uri, createInfo);
                 Texture& output = sceneData.pRenderer->textures[textureIdx];
 
                 D3D11_SAMPLER_DESC samplerDesc{};

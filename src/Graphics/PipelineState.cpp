@@ -343,6 +343,25 @@ namespace bdr
         return pipelineId;
     }
 
+    uint32_t allocateResourceBinder(Renderer& renderer, const uint32_t pipelineId)
+    {
+        PipelineState& pipeline = renderer.pipelines[pipelineId];
+        ResourceBindingLayout& layout = pipeline.perDrawBindingLayout;
+        ResourceBindingHeap& heap = renderer.bindingHeap;
+        ResourceBinder binder{  };
+        binder.readableBufferOffset = heap.srvs.size();
+        heap.srvs.resize(binder.readableBufferOffset + size_t(layout.readableBufferCount));
+
+        binder.writableBufferOffset = heap.uavs.size();
+        heap.uavs.resize(binder.writableBufferOffset + size_t(layout.writableBufferCount));
+
+        binder.samplerOffset = heap.samplers.size();
+        heap.samplers.resize(binder.samplerOffset + size_t(layout.samplerCount));
+        auto id = renderer.binders.size();
+        renderer.binders.push_back(binder);
+        return id;
+    }
+
     void reset(PipelineState& pipelineState)
     {
         release(pipelineState.vertexShader);

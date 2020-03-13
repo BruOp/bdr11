@@ -5,6 +5,8 @@
 
 namespace bdr
 {
+    class Renderer;
+
     void reset(Mesh& mesh);
 
     void collectBuffers(const Mesh& mesh, ID3D11Buffer* outputBuffers[]);
@@ -13,4 +15,6 @@ namespace bdr
     void collectViews(const Mesh& mesh, const uint8_t attrsToSelect, ID3D11UnorderedAccessView* outputUAVs[]);
 
     void addAttribute(MeshCreationInfo& meshCreationInfo, const void* data, const BufferFormat format, const MeshAttribute attrFlag);
+
+    uint32_t createMesh(Renderer& renderer, const MeshCreationInfo& meshCreateInfo);
 }

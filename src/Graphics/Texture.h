@@ -5,7 +5,13 @@
 
 namespace bdr
 {
+    class Renderer;
+
     void reset(Texture& texture);
 
-    Texture createFromFile(ID3D11Device* pDevice, const std::string& fileName, const TextureCreationInfo& createInfo);
+    uint32_t createTextureFromFile(
+        Renderer& renderer,
+        const std::string& filePath,
+        const TextureCreationInfo& createInfo
+    );
 }

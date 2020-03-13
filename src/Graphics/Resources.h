@@ -229,7 +229,9 @@ namespace bdr
         uint8_t readableBufferCount = 0;
         uint8_t writableBufferCount = 0;
         uint8_t samplerCount = 0;
-
+        // Maps our resources by names to their local offsets within the ResourceBindingHeap
+        // Note that this is used to both allocate slots in our heap (returning a ResourceBinder) 
+        // and to set the actual points using an allocated ResourceBinder
         SimpleMap32<ResourceView> resourceMap;
     };
 

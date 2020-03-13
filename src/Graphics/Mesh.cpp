@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Mesh.h"
+#include "Renderer.h"
 
 namespace bdr
 {
@@ -120,4 +121,43 @@ namespace bdr
         meshCreationInfo.presentAttributesMask |= attrFlag;
         ++meshCreationInfo.numAttributes;
     }
+
+    uint32_t createMesh(Renderer& renderer, const MeshCreationInfo& meshCreateInfo)
+    {
+        uint32_t meshId = static_cast<uint32_t>(renderer.meshes.create());
+        Mesh& mesh = renderer.meshes[meshId];
+
+        mesh.numIndices = meshCreateInfo.numIndices;
+        mesh.numVertices = meshCreateInfo.numVertices;
+
+        BufferCreationInfo indexCreateInfo{};
+        indexCreateInfo.numElements = meshCreateInfo.numIndices;
+        indexCreateInfo.usage = BufferUsage::INDEX;
+        indexCreateInfo.format = meshCreateInfo.indexFormat;
+
+        ID3D11Device* device = renderer.getDevice();
+        mesh.indexBuffer = createBuffer(device, meshCreateInfo.indexData, indexCreateInfo);
+
+        for (size_t i = 0; i < meshCreateInfo.numAttributes; ++i) {
+            BufferCreationInfo createInfo{};
+            createInfo.numElements = meshCreateInfo.numVertices;
+            createInfo.usage = meshCreateInfo.bufferUsages[i];
+            createInfo.format = meshCreateInfo.bufferFormats[i];
+            createInfo.type = BufferType::Default;
+
+            if (createInfo.usage == BufferUsage::UNUSED) {
+                continue;
+            }
+
+            mesh.vertexBuffers[i] = createBuffer(device, meshCreateInfo.data[i], createInfo);
+            mesh.attributes[i] = meshCreateInfo.attributes[i];
+            mesh.presentAttributesMask |= meshCreateInfo.attributes[i];
+            mesh.strides[i] = meshCreateInfo.strides[i];
+        }
+        mesh.numPresentAttr = meshCreateInfo.numAttributes;
+        mesh.inputLayoutHandle = renderer.inputLayoutManager.getOrCreateInputLayout(meshCreateInfo);
+        return meshId;
+    }
+
+
 }

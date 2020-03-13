@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "GPUBuffer.h"
+#include "Renderer.h"
 
 namespace bdr
 {
@@ -203,4 +204,14 @@ namespace bdr
         return buffer;
     }
 
+    GPUBuffer createStructuredBuffer(ID3D11Device* device, const uint32_t elementSize, const uint32_t numElements)
+    {
+        BufferCreationInfo createInfo = {};
+        createInfo.elementSize = elementSize;
+        createInfo.format = BufferFormat::STRUCTURED;
+        createInfo.numElements = numElements;
+        createInfo.type = BufferType::Structured;
+        createInfo.usage = BufferUsage::SHADER_READABLE | BufferUsage::CPU_WRITABLE;
+        return createBuffer(device, nullptr, createInfo);
+    }
 }
