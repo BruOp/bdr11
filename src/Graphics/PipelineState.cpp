@@ -268,7 +268,7 @@ namespace bdr
         ID3D11Device1* device = renderer.getDevice();
 
         PipelineStateDefinition pipelineDefinition{};
-        renderer.pipelineDefinitions.get(pipelineName, &pipelineDefinition);
+        renderer.pipelineDefinitions.get_in(pipelineName, &pipelineDefinition);
 
         PipelineHandle pipelineId = renderer.pipelines.create();
 
@@ -290,7 +290,7 @@ namespace bdr
 
             // Append the optional defintion to our layout;
             PipelineStateDefinition::BindingMapView view{};
-            const bool retrieved = pipelineDefinition.optionalResourceMap.get(shaderMacros[i].name, &view);
+            const bool retrieved = pipelineDefinition.optionalResourceMap.get_in(shaderMacros[i].name, &view);
             if (retrieved) {
                 for (size_t i = 0; i < view.count; i++) {
                     perDrawLayoutDesc.resourceDescs[numResources++] = pipelineDefinition.optionalResources.resourceDescs[view.offset + i];

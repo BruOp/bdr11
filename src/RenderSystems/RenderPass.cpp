@@ -75,7 +75,7 @@ namespace bdr
     }
 
 
-    void addBasicPass(RenderSystem& renderGraph, View* view)
+    void addMeshPass(RenderSystem& renderGraph, View* view)
     {
         RenderPass& pass = renderGraph.createNewPass();
         pass.name = L"Mesh Pass";

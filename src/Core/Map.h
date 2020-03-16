@@ -84,7 +84,20 @@ namespace bdr
             other.values = nullptr;
         }
 
-        bool get(const std::string& unhashedKey, V* outValue) const
+        V& get(const std::string& unhashedKey) const
+        {
+            uint32_t key = hashKey(unhashedKey);
+
+            for (size_t i = 0; i < size; i++) {
+                if (keys[i] == key) {
+                    return values[i];
+                };
+            }
+            DEBUGPRINT("Key not found!");
+            abort();
+        };
+
+        bool get_in(const std::string& unhashedKey, V* outValue) const
         {
             uint32_t key = hashKey(unhashedKey);
 
@@ -141,10 +154,13 @@ namespace bdr
 
         void reallocate(const size_t newSize)
         {
-            ASSERT(newSize < UINT64_MAX, "Cannont allocate such a large map!");
+            if (newSize >= UINT64_MAX) {
+                HALT("Cannot allocate such a large map! You probably entered a loop.");
+            }
             if (newSize < capacity) {
                 DEBUGPRINT("Shrinking Map!");
             }
+
             keys = (uint32_t*)(Memory::reallocate(keys, newSize * sizeof(uint32_t)));
             values = (V*)(Memory::reallocate(values, newSize * sizeof(V)));
             capacity = newSize;

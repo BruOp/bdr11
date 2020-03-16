@@ -61,6 +61,6 @@ namespace bdr
     };
 
     void addSkinningPass(RenderSystem& renderGraph, View* view);
-    void addBasicPass(RenderSystem& renderGraph, View* view);
+    void addMeshPass(RenderSystem& renderGraph, View* view);
 }
 

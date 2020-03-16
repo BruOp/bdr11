@@ -116,16 +116,12 @@ void bindTexture(
     const ResourceBindingLayout& layout = renderer.pipelines[binder.pipelineId].perDrawBindingLayout;
     const Texture& texture = renderer.textures[textureHandle];
 
-    ResourceBindingLayout::View resourceView;
-    bool resourceFound = layout.resourceMap.get(name + "_map", &resourceView);
-    ASSERT(resourceFound, "Unable to find associated map");
+    ResourceBindingLayout::View& resourceView = layout.resourceMap.get(name + "_map");
     auto srvOffset = binder.readableBufferOffset + resourceView.offset;
-
-
-    resourceFound = layout.resourceMap.get(name + "_sampler", &resourceView);
-    ASSERT(resourceFound, "Unable to find associated map");
-    auto samplerOffset = binder.samplerOffset + resourceView.offset;
     heap.srvs[srvOffset] = texture.srv;
+
+    resourceView = layout.resourceMap.get(name + "_sampler");
+    auto samplerOffset = binder.samplerOffset + resourceView.offset;
     heap.samplers[samplerOffset] = texture.sampler;
 }
 
@@ -230,7 +226,7 @@ class NormalMappingExample : public bdr::BaseGame
         view.scene = &scene;
         view.setCamera(&camera);
         // Enable mesh pass
-        addBasicPass(renderGraph, &view);
+        addMeshPass(renderGraph, &view);
         renderGraph.init(&renderer);
     }
 
@@ -240,7 +236,6 @@ class NormalMappingExample : public bdr::BaseGame
         Transform& transform = scene.registry.transforms[entity];
         // Will need to figure this out
 
-        //transform.rotation = Quaternion::CreateFromYawPitchRoll(sinf(totalTime), 0.0f, 0.0f);
         cameraController.update(keyboard->GetState(), mouse->GetState(), frameTime);
         updateMatrices(scene.registry);
         copyDrawData(scene.registry);

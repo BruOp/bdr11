@@ -88,7 +88,7 @@ class BasicExample : public bdr::BaseGame
         view.scene = &scene;
         view.setCamera(&camera);
         // Enable mesh pass
-        addBasicPass(renderGraph, &view);
+        addMeshPass(renderGraph, &view);
         renderGraph.init(&renderer);
     }
 
