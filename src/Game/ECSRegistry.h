@@ -96,7 +96,6 @@ namespace bdr
         ComponentArray<uint32_t> parents;
         ComponentArray<uint32_t> skinIds;
         ComponentArray<MeshHandle> meshes;
-        ComponentArray<uint32_t> preskinMeshes;
         ComponentArray<uint32_t> jointBuffer;
         ComponentArray<Transform> transforms;
         ComponentArray<glm::mat4> localMatrices;
