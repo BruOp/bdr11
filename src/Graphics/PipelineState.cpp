@@ -257,7 +257,8 @@ namespace bdr
 
     ResourceBindingLayoutDesc getPerDrawLayoutDesc(
         const PipelineStateDefinition& pipelineDefinition,
-        const ShaderMacro shaderMacros[]
+        const ShaderMacro shaderMacros[],
+        const size_t numMacros
     )
     {
         // Count the number of per draw required resource
@@ -269,10 +270,7 @@ namespace bdr
             }
         }
 
-        for (size_t i = 0; i < _countof(PipelineStateDefinition::macros); i++) {
-            if (shaderMacros[i].name[0] == '\0') {
-                break;
-            }
+        for (size_t i = 0; i < numMacros; i++) {
             // Append the optional defintion to our layout;
             PipelineStateDefinition::BindingMapView view{};
             const bool retrieved = pipelineDefinition.optionalResourceMap.get_in(shaderMacros[i].name, &view);
@@ -288,7 +286,8 @@ namespace bdr
     PipelineHandle getOrCreatePipelineState(
         Renderer& renderer,
         const PipelineStateDefinitionHandle& pipelineDefinitionHandle,
-        const ShaderMacro shaderMacros[]
+        const ShaderMacro shaderMacros[],
+        const size_t numMacros
     )
     {
         ID3D11Device1* device = renderer.getDevice();
@@ -296,7 +295,7 @@ namespace bdr
         const PipelineStateDefinition& pipelineDefinition = renderer.pipelineDefinitions[pipelineDefinitionHandle.idx];
 
         // Check for whether the pipeline has already been created
-        uint32_t pipelineKey = renderer.pipelines.getHashKey(shaderMacros);
+        uint32_t pipelineKey = renderer.pipelines.getHashKey(shaderMacros, numMacros);
         PipelineHandle pipelineHandle = renderer.pipelines.getHandle(pipelineKey);
         if (isValid(pipelineHandle)) {
             // If present, return the index as a PipelineHandle so it can be used for fast indexing
@@ -307,15 +306,12 @@ namespace bdr
         // Else, create a new pipeline:
         PipelineState pipeline{ };
 
-        ResourceBindingLayoutDesc perDrawLayoutDesc = getPerDrawLayoutDesc(pipelineDefinition, shaderMacros);
+        ResourceBindingLayoutDesc perDrawLayoutDesc = getPerDrawLayoutDesc(pipelineDefinition, shaderMacros, numMacros);
 
         // 1. Create list of macros to pass to shader compilation
         // 2. Append optional resources to resource layout desc based on macros
         D3D_SHADER_MACRO d3dMacros[16] = { nullptr };
-        for (size_t i = 0; i < _countof(PipelineStateDefinition::macros); i++) {
-            if (shaderMacros[i].name[0] == '\0') {
-                break;
-            }
+        for (size_t i = 0; i < numMacros; i++) {
             d3dMacros[i] = D3D_SHADER_MACRO{ shaderMacros[i].name };
         }
 

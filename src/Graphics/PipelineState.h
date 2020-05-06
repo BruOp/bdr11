@@ -12,7 +12,8 @@ namespace bdr
 
     ResourceBindingLayoutDesc getPerDrawLayoutDesc(
         const PipelineStateDefinition& pipelineDefinition,
-        const ShaderMacro shaderMacros[]
+        const ShaderMacro shaderMacros[],
+        const size_t numMacros
     );
 
 
@@ -25,7 +26,8 @@ namespace bdr
     PipelineHandle getOrCreatePipelineState(
         Renderer& renderer,
         const PipelineStateDefinitionHandle& pipelineDefinitionHandle,
-        const ShaderMacro shaderMacros[]
+        const ShaderMacro shaderMacros[],
+        const size_t numMacros
     );
 
     ResourceBinderHandle allocateResourceBinder(Renderer& renderer, const PipelineHandle pipelineId);
@@ -51,10 +53,9 @@ namespace bdr
             return { uint32_t(idx) };
         }
 
-        uint32_t getHashKey(const ShaderMacro shaderMacros[]) const
+        uint32_t getHashKey(const ShaderMacro shaderMacros[], const size_t numMacros) const
         {
-            constexpr size_t numMacros = _countof(PipelineStateDefinition::macros);
-            char macrosCompoundKey[numMacros * _countof(ShaderMacro::name)] = "";
+            char macrosCompoundKey[_countof(PipelineStateDefinition::macros) * _countof(ShaderMacro::name)] = "";
             for (size_t i = 0; i < numMacros; ++i) {
                 if (shaderMacros[i].name[0] == '\0') break;
                 strcat(macrosCompoundKey, shaderMacros[i].name);

@@ -84,12 +84,12 @@ namespace bdr
             other.values = nullptr;
         }
 
-        V& get(const std::string& unhashedKey) const
+        V get(const std::string& unhashedKey) const
         {
-            V* value = nullptr;
-            bool found = get_in(unhashedKey, value);
+            V value{};
+            bool found = get_in(unhashedKey, &value);
             if (found) {
-                return *value;
+                return value;
             }
             else {
                 DEBUGPRINT("Key not found!");

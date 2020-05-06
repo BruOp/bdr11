@@ -178,7 +178,7 @@ class NormalMappingExample : public bdr::BaseGame
         const auto normalMappingPipelineDefId = registerPipelineStateDefinition(renderer, shaderFilePath, std::move(pipelineDefinition));
 
         const ShaderMacro shaderMacros[] = { {"NORMAL_MAPPING"} };
-        PipelineHandle pipelineStateId = getOrCreatePipelineState(renderer, normalMappingPipelineDefId, shaderMacros);
+        PipelineHandle pipelineStateId = getOrCreatePipelineState(renderer, normalMappingPipelineDefId, shaderMacros, 1);
         MaterialInstance materialInstance = createMaterialInstance(renderer, pipelineStateId);
 
         entity = createEntity(scene);

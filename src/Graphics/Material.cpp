@@ -10,16 +10,20 @@ namespace bdr
             const MaterialDesc::MaterialPassDesc& matPassDesc = materialDesc.materialPasses[i];
             material.passMask |= 1 << matPassDesc.passId.idx;
 
+            size_t numMacros = 0;
+            for (; numMacros < _countof(matPassDesc.macros); ++numMacros) {
+                if (matPassDesc.macros[numMacros].name[0] == '\0') break;
+            }
+
             // Use the pipelineDefinitionID instead of the name
-            PipelineHandle& pipelineId = getOrCreatePipelineState(renderer, matPassDesc.pipelineDefinitionId, matPassDesc.macros);
+            PipelineHandle& pipelineId = getOrCreatePipelineState(renderer, matPassDesc.pipelineDefinitionId, matPassDesc.macros, numMacros);
 
             material.pipelineIds[matPassDesc.passId.idx] = pipelineId;
 
             const PipelineState& pipeline = renderer.pipelines[pipelineId];
 
-            // TODO: make both getOrCreatePipelineState and the function below use the same type for the pipeline
             const PipelineStateDefinition& pipelineDefinition = renderer.pipelineDefinitions[matPassDesc.pipelineDefinitionId.idx];
-            ResourceBindingLayoutDesc perDrawLayoutDesc = getPerDrawLayoutDesc(pipelineDefinition, matPassDesc.macros);
+            ResourceBindingLayoutDesc perDrawLayoutDesc = getPerDrawLayoutDesc(pipelineDefinition, matPassDesc.macros, numMacros);
             for (size_t i = 0; i < ResourceBindingLayoutDesc::maxResources; ++i) {
                 const BoundResourceDesc& resourceDesc = perDrawLayoutDesc.resourceDescs[i];
 
