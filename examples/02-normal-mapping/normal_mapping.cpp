@@ -143,7 +143,6 @@ class NormalMappingExample : public bdr::BaseGame
         };
         initialize(appConfig);
 
-        std::string pipelineName = "normal_mapped";
         std::string shaderFilePath = "../examples/02-normal-mapping/normal_mapping.hlsl";
         PipelineStateDefinition pipelineDefinition{
             PipelineStage(PipelineStage::VERTEX_STAGE | PipelineStage::PIXEL_STAGE),
@@ -176,10 +175,10 @@ class NormalMappingExample : public bdr::BaseGame
                 { "NORMAL_MAPPING", PipelineStateDefinition::BindingMapView{ 0, 2 } }
             },
         };
-        registerPipelineStateDefinition(renderer, pipelineName, shaderFilePath, std::move(pipelineDefinition));
+        const auto normalMappingPipelineDefId = registerPipelineStateDefinition(renderer, shaderFilePath, std::move(pipelineDefinition));
 
         const ShaderMacro shaderMacros[] = { {"NORMAL_MAPPING"} };
-        PipelineHandle pipelineStateId = createPipelineState(renderer, pipelineName, shaderMacros, 1);
+        PipelineHandle pipelineStateId = getOrCreatePipelineState(renderer, normalMappingPipelineDefId, shaderMacros);
         MaterialInstance materialInstance = createMaterialInstance(renderer, pipelineStateId);
 
         entity = createEntity(scene);

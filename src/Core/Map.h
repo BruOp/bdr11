@@ -86,58 +86,58 @@ namespace bdr
 
         V& get(const std::string& unhashedKey) const
         {
-            uint32_t key = hashKey(unhashedKey);
-
-            for (size_t i = 0; i < size; i++) {
-                if (keys[i] == key) {
-                    return values[i];
-                };
+            V* value = nullptr;
+            bool found = get_in(unhashedKey, value);
+            if (found) {
+                return *value;
             }
-            DEBUGPRINT("Key not found!");
-            abort();
+            else {
+                DEBUGPRINT("Key not found!");
+                abort();
+            }
         };
 
         bool get_in(const std::string& unhashedKey, V* outValue) const
         {
             uint32_t key = hashKey(unhashedKey);
-
-            for (size_t i = 0; i < size; i++) {
-                if (keys[i] == key) {
-                    *outValue = values[i];
-                    return true;
-                };
-            }
-            return false;
+            return get_in(key, outValue);
         };
 
-        // Also used to update entries
+        bool get_in(const uint32_t key, V* outValue) const
+        {
+            size_t index = get_index(key);
+            bool found = index != UINT64_MAX;
+            if (found) {
+                *outValue = values[index];
+            }
+            return found;
+        };
+
+        // Also updates existing values if present.
+        // Returns true if no matching key was found and a value was inserted
+        // Returns false if a matching key was found, the value was not inserted but updated instead
         bool insert(const std::string& unhashedKey, const V& value)
         {
             uint32_t key = hashKey(unhashedKey);
-            size_t index = UINT64_MAX;
-            for (size_t i = 0; i < size; i++) {
-                if (keys[i] == key) {
-                    index = i;
-                }
-            }
-            if (index == UINT64_MAX) {
-                return fast_insert(key, value);
+            size_t index = get_index(key);
+            bool found = index != UINT64_MAX;
+            if (found) {
+                values[index] = value;
             }
             else {
-                values[index] = value;
-                return true;
+                fast_insert(key, value);
             }
+            return found;
         };
 
         // Inserts without checking for existing entry. Use carefully!
-        bool fast_insert(uint32_t key, const V& value)
+        void fast_insert(uint32_t key, const V& value)
         {
             if (size == capacity) {
                 grow(capacity == 0 ? 2 : capacity * 2);
             }
             keys[size] = key;
             values[size++] = value;
-            return true;
         }
 
         inline static uint32_t hashKey(const std::string& unhashedKey)
@@ -165,5 +165,17 @@ namespace bdr
             values = (V*)(Memory::reallocate(values, newSize * sizeof(V)));
             capacity = newSize;
         }
+
+        // Returns index for matching key.
+        // If no key is found, returns UINT64_MAX
+        size_t get_index(const uint32_t key) const
+        {
+            for (size_t i = 0; i < size; i++) {
+                if (keys[i] == key) {
+                    return i;
+                };
+            }
+            return UINT64_MAX;
+        };
     };
 }

@@ -3,6 +3,7 @@
 
 #include <unordered_map>
 #include <string>
+#include <functional>
 
 #include "Core/Map.h"
 #include "DXHelpers.h"
@@ -204,6 +205,7 @@ namespace bdr
         BoundResourceDesc resourceDescs[maxResources] = {};
     };
 
+    // Warning: Not a POD
     struct ResourceBindingLayout
     {
         struct View
@@ -215,7 +217,7 @@ namespace bdr
         uint8_t readableBufferCount = 0;
         uint8_t writableBufferCount = 0;
         uint8_t samplerCount = 0;
-        // Maps our resources by names to their local offsets within the ResourceBindingHeap
+        // Maps our resources by name to their local offsets within the ResourceBindingHeap
         // Note that this is used to both allocate slots in our heap (returning a ResourceBinder) 
         // and to set the actual points using an allocated ResourceBinder
         SimpleMap32<View> resourceMap;
@@ -227,22 +229,13 @@ namespace bdr
         std::vector<ID3D11UnorderedAccessView*> uavs;
         std::vector<ID3D11SamplerState*> samplers;
     };
-    RESOURCE_HANDLE(ResourceBinderHandle);
-
-    struct ResourceBinder
-    {
-        uint16_t pipelineId;
-        PipelineStage stage;
-        uint32_t readableBufferOffset;
-        uint32_t writableBufferOffset;
-        uint32_t samplerOffset;
-    };
 
     struct ShaderMacro
     {
-        char name[64] = "";
+        char name[32] = "";
     };
 
+    // Warning: not a POD
     struct PipelineStateDefinition
     {
         struct BindingMapView
@@ -265,7 +258,9 @@ namespace bdr
         // Don't pass this in
         uint32_t shaderCodeId;
     };
+    struct PipelineStateDefinitionHandle { uint32_t idx; };
 
+    // Warning: not a POD
     struct PipelineState
     {
         ID3D11VertexShader* vertexShader = nullptr;
@@ -279,11 +274,23 @@ namespace bdr
     };
     RESOURCE_HANDLE(PipelineHandle);
 
+
+    struct ResourceBinder
+    {
+        PipelineHandle pipelineId;
+        uint32_t readableBufferOffset;
+        uint32_t writableBufferOffset;
+        uint32_t samplerOffset;
+        PipelineStage stage;
+    };
+    RESOURCE_HANDLE(ResourceBinderHandle);
+
     struct MaterialInstance
     {
         PipelineHandle pipelineId;
         ResourceBinderHandle resourceBinderId;
     };
+
 
     RESOURCE_HANDLE(GPUBufferHandle);
 }

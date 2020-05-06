@@ -73,14 +73,15 @@ namespace bdr
                 grow();
             }
             data[size] = T;
+            return size++;
         }
 
-        void reallocate(const size_t newSize)
+        void reallocate(const size_t newCapacity)
         {
-            if (newSize < capacity) {
+            if (newCapacity < capacity) {
                 DEBUGPRINT("Shrinking Array!");
             }
-            capacity = newSize;
+            capacity = newCapacity;
             data = Memory::reallocate(data, capacity * elementByteSize);
         }
     };
