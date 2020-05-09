@@ -116,7 +116,7 @@ void bindTexture(
     const ResourceBindingLayout& layout = renderer.pipelines[binder.pipelineId].perDrawBindingLayout;
     const Texture& texture = renderer.textures[textureHandle];
 
-    ResourceBindingLayout::View& resourceView = layout.resourceMap.get(name + "_map");
+    ResourceBindingLayout::Slice& resourceView = layout.resourceMap.get(name + "_map");
     auto srvOffset = binder.readableBufferOffset + resourceView.offset;
     heap.srvs[srvOffset] = texture.srv;
 

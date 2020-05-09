@@ -83,7 +83,7 @@ class BasicExample : public bdr::BaseGame
         cameraController.radius = 3.0f;
         cameraController.setCamera(&camera);
 
-        bdr::View& view = renderGraph.createNewView();
+        bdr::Slice& view = renderGraph.createNewView();
         view.name = "Mesh View";
         view.scene = &scene;
         view.setCamera(&camera);

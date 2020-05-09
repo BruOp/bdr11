@@ -25,6 +25,8 @@ namespace bdr
     struct Material
     {
         uint32_t passMask = 0;
+        // Used to enable updating resources by name using just the material.
+        // Might be unnecessary.
         // Specifically for per draw resource bindings, not view or frame ones.
         // Pass should take care of those automatically.
         SimpleMap32<PipelineHandle> resourcePipelineMap;

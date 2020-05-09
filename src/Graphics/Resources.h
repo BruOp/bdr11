@@ -208,7 +208,7 @@ namespace bdr
     // Warning: Not a POD
     struct ResourceBindingLayout
     {
-        struct View
+        struct Slice
         {
             BoundResourceType resourceType = BoundResourceType::INVALID;
             uint32_t offset = UINT32_MAX;
@@ -219,8 +219,8 @@ namespace bdr
         uint8_t samplerCount = 0;
         // Maps our resources by name to their local offsets within the ResourceBindingHeap
         // Note that this is used to both allocate slots in our heap (returning a ResourceBinder) 
-        // and to set the actual points using an allocated ResourceBinder
-        SimpleMap32<View> resourceMap;
+        // and to set resource pointers using an allocated ResourceBinder
+        SimpleMap32<Slice> resourceMap;
     };
 
     struct ResourceBindingHeap
@@ -254,6 +254,10 @@ namespace bdr
         ResourceBindingLayoutDesc perDrawRequiredResources;
         ShaderMacro macros[16] = { };
         ResourceBindingLayoutDesc optionalResources;
+        // The optionalResourceMap maps our shader macros by name to entries in our optionalResources' array of ResourceBindingDescs
+        // So an entry like { "NORMAL_MAPPING", { 4, 2 } } tells us that if the NORMAL_MAPPING macro is provided, we must include
+        // the optional resources defined from optionalResources[4] to optionalResources[6] in the Pipeline's per draw ResourceBindingLayout.
+        // It's kind of clumsy, I know.
         SimpleMap32<BindingMapView> optionalResourceMap;
         // Don't pass this in
         uint32_t shaderCodeId;
@@ -274,7 +278,7 @@ namespace bdr
     };
     RESOURCE_HANDLE(PipelineHandle);
 
-
+    // Used to track, update and bind the resources for a specific draw call.
     struct ResourceBinder
     {
         PipelineHandle pipelineId;
