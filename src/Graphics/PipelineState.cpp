@@ -210,7 +210,7 @@ namespace bdr
             }
         }
         else {
-            ERROR("Could not open material file");
+            ERROR("Could not open shader file");
         }
         shaderFile.close();
         return code;

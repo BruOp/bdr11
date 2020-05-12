@@ -2,7 +2,6 @@
 #include "Core/bdrMath.h"
 #include "Core/Array.h"
 #include "Graphics/Mesh.h"
-#include "Graphics/Material.h"
 #include "Game/AnimationSystem.h"
 #include "Utils/IcosahedronFactory.h"
 
