@@ -15,7 +15,7 @@ namespace bdr
 
     // Copied from BGFX and others
 #define RESOURCE_HANDLE(_name)      \
-	struct _name { uint32_t idx; }; \
+	struct _name { uint32_t idx = kInvalidHandle; }; \
     inline bool isValid(_name _handle) { return _handle.idx != bdr::kInvalidHandle; };
 
 #define INVALID_HANDLE \
@@ -281,20 +281,12 @@ namespace bdr
     // Used to track, update and bind the resources for a specific draw call.
     struct ResourceBinder
     {
-        PipelineHandle pipelineId;
         uint32_t readableBufferOffset;
         uint32_t writableBufferOffset;
         uint32_t samplerOffset;
         PipelineStage stage;
     };
     RESOURCE_HANDLE(ResourceBinderHandle);
-
-    struct MaterialInstance
-    {
-        PipelineHandle pipelineId;
-        ResourceBinderHandle resourceBinderId;
-    };
-
 
     RESOURCE_HANDLE(GPUBufferHandle);
 }

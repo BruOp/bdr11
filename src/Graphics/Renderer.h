@@ -92,7 +92,6 @@ namespace bdr
         PipelineStateMap pipelines;
         std::vector<PipelineStateDefinition> pipelineDefinitions;
         ResourceBindingHeap bindingHeap;
-        std::vector<ResourceBinder> binders;
         std::vector<std::string> shaderCodeRegistry;
 
     };

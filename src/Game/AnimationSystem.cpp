@@ -107,7 +107,7 @@ namespace bdr
     {
         for (size_t entity = 0; entity < registry.numEntities; entity++) {
             const uint32_t cmpMask = registry.cmpMasks[entity];
-            if (cmpMask & CmpMasks::MESH) {
+            if (cmpMask & CmpMasks::TRANSFORM) {
                 registry.drawConstants[entity].model = registry.globalMatrices[entity];
                 registry.drawConstants[entity].invModel = registry.globalMatrices[entity];
                 registry.drawConstants[entity].invModel[0][3] = 0;

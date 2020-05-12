@@ -365,11 +365,11 @@ namespace bdr
         return renderer.pipelines.insert(pipelineKey, pipeline);
     }
 
-    ResourceBinderHandle allocateResourceBinder(Renderer& renderer, const PipelineHandle pipelineId)
+    ResourceBinder allocateResourceBinder(Renderer& renderer, const PipelineHandle pipelineId)
     {
         PipelineState& pipeline = renderer.pipelines[pipelineId];
-        ResourceBindingLayout& layout = pipeline.perDrawBindingLayout;
         ResourceBindingHeap& heap = renderer.bindingHeap;
+        ResourceBindingLayout& layout = pipeline.perDrawBindingLayout;
         ResourceBinder binder{  };
         binder.readableBufferOffset = heap.srvs.size();
         heap.srvs.resize(binder.readableBufferOffset + size_t(layout.readableBufferCount));
@@ -379,9 +379,7 @@ namespace bdr
 
         binder.samplerOffset = heap.samplers.size();
         heap.samplers.resize(binder.samplerOffset + size_t(layout.samplerCount));
-        auto id = renderer.binders.size();
-        renderer.binders.push_back(binder);
-        return { uint32_t(id) };
+        return binder;
     }
 
     void reset(PipelineState& pipelineState)

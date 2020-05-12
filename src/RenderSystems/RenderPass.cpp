@@ -9,9 +9,34 @@
 
 namespace bdr
 {
-    void addSkinningPass(RenderSystem& renderGraph, View* view)
+
+
+
+    RenderObjectHandle assignRenderObject(RenderSystem& renderSystem, const RenderObjectDesc renderObjectDesc)
     {
-        RenderPass& pass = renderGraph.createNewPass();
+        RenderPass& renderPass = renderSystem.getPass(renderObjectDesc.passId);
+        RenderObject renderObject = {
+            renderObjectDesc.entityId,
+            renderObjectDesc.meshId,
+            renderObjectDesc.pipelineId,
+        };
+        renderObject.resourceBinder = allocateResourceBinder(*renderSystem.renderer, renderObject.pipelineId);
+        return renderPass.renderObjectsManager.addRenderObject(renderObjectDesc.passId, renderObject);
+    }
+
+    RenderObject& getRenderObject(RenderSystem& renderSystem, const RenderObjectHandle renderObjectHandle)
+    {
+        RenderPassHandle passId = { uint8_t(renderObjectHandle.idx) };
+        RenderPass& pass = renderSystem.getPass(passId);
+        return pass.renderObjectsManager.getRenderObject(renderObjectHandle);
+    }
+
+    // TODO Add back skinning pass
+    /*
+    RenderPassHandle addSkinningPass(RenderSystem& renderSystem, View* view)
+    {
+        RenderPassHandle passId = renderSystem.createNewPass();
+        RenderPass& pass = renderSystem.getPass(passId);
         pass.name = L"Skinning Pass";
         pass.views.push_back(view);
 
@@ -31,7 +56,7 @@ namespace bdr
                 if (cmpMask & CmpMasks::SKIN) {
                     // Compute joint matrices
                     const Skin& skin = scene.skins[registry.skinIds[entityId]];
-                    Mesh& mesh = renderer->meshes[registry.meshes[entityId].idx];
+                    Mesh& mesh = renderer->meshes[renderObjects];
                     ASSERT(isValid(mesh.preskinMeshId), "Skinned meshes must have preskinned mesh");
                     Mesh& preskin = renderer->meshes[mesh.preskinMeshId];
                     GPUBuffer& jointBuffer = renderer->jointBuffers[registry.jointBuffer[entityId]];
@@ -72,12 +97,15 @@ namespace bdr
             ID3D11ShaderResourceView* nullSRVs[4u] = { nullptr };
             context->CSSetShaderResources(0u, _countof(nullSRVs), nullSRVs);
         };
+
+        return passId;
     }
+    */
 
-
-    void addMeshPass(RenderSystem& renderGraph, View* view)
+    RenderPassHandle addMeshPass(RenderSystem& renderSystem, View* view)
     {
-        RenderPass& pass = renderGraph.createNewPass();
+        RenderPassHandle passId = renderSystem.createNewPass();
+        RenderPass& pass = renderSystem.getPass(passId);
         pass.name = L"Mesh Pass";
         pass.views.push_back(view);
         //GPUBuffer vertexCB{};
@@ -99,56 +127,51 @@ namespace bdr
             const ECSRegistry& registry = scene.registry;
             ASSERT(view.type == ViewType::Camera);
             ID3D11DeviceContext* context = renderer->getContext();
-            const uint32_t requirements = CmpMasks::MESH | CmpMasks::MATERIAL;
 
             setConstants(renderer, view);
+            const auto& renderObjects = pass.renderObjectsManager.renderObjects;
+            for (size_t i = 0; i < renderObjects.size; ++i) {
+                const RenderObject& renderObject = renderObjects[i];
+                const uint32_t entityId = renderObject.entityId;
 
-            for (size_t entityId = 0; entityId < registry.numEntities; ++entityId) {
-                const uint32_t cmpMask = registry.cmpMasks[entityId];
-                if ((cmpMask & requirements) == requirements) {
-                    const MaterialInstance& mat = registry.materialInstances[entityId];
+                const DrawConstants& drawConstants = registry.drawConstants[entityId];
+                const PipelineState& pipelineState = renderer->pipelines[renderObject.pipelineId];
+                const Mesh& mesh = renderer->meshes[renderObject.meshId];
 
-                    const DrawConstants& drawConstants = registry.drawConstants[entityId];
-                    const PipelineState& pipelineState = renderer->pipelines[mat.pipelineId];
-                    const Mesh& mesh = renderer->meshes[registry.meshes[entityId].idx];
+                ASSERT(mesh.inputLayoutHandle == pipelineState.inputLayout);
+                ID3D11Buffer* vbuffers[Mesh::maxAttrCount] = { nullptr };
+                collectBuffers(mesh, vbuffers);
 
-                    ASSERT(mesh.inputLayoutHandle == pipelineState.inputLayout);
-                    ID3D11Buffer* vbuffers[Mesh::maxAttrCount] = { nullptr };
-                    collectBuffers(mesh, vbuffers);
+                context->OMSetDepthStencilState(pipelineState.depthStencilState, 0);
+                context->OMSetBlendState(pipelineState.blendState, nullptr, 0xFF);
+                context->RSSetState(pipelineState.rasterizerState);
 
-                    context->OMSetDepthStencilState(pipelineState.depthStencilState, 0);
-                    context->OMSetBlendState(pipelineState.blendState, nullptr, 0xFF);
-                    context->RSSetState(pipelineState.rasterizerState);
+                // Set IAInputLayout
+                context->IASetVertexBuffers(0, mesh.numPresentAttr, vbuffers, mesh.strides, offsets);
+                context->IASetIndexBuffer(mesh.indexBuffer.buffer, mapFormatToDXGI(mesh.indexBuffer.format), 0);
+                context->IASetInputLayout(mesh.inputLayoutHandle);
 
-                    // Set IAInputLayout
-                    context->IASetVertexBuffers(0, mesh.numPresentAttr, vbuffers, mesh.strides, offsets);
-                    context->IASetIndexBuffer(mesh.indexBuffer.buffer, mapFormatToDXGI(mesh.indexBuffer.format), 0);
-                    context->IASetInputLayout(mesh.inputLayoutHandle);
+                // Set shaders
+                context->VSSetShader(pipelineState.vertexShader, nullptr, 0);
+                context->PSSetShader(pipelineState.pixelShader, nullptr, 0);
 
-                    // Set shaders
-                    context->VSSetShader(pipelineState.vertexShader, nullptr, 0);
-                    context->PSSetShader(pipelineState.pixelShader, nullptr, 0);
+                // Set constant buffers
+                vertexCB.copyToGPU(context, drawConstants);
 
-                    // Set constant buffers
-                    vertexCB.copyToGPU(context, drawConstants);
+                // Set textures
+                const ResourceBinder& binder = renderObject.resourceBinder;
+                const ResourceBindingLayout& layout = pipelineState.perDrawBindingLayout;
+                const ResourceBindingHeap& heap = renderer->bindingHeap;
 
-                    // Set textures, if possible
-                    if (cmpMask & CmpMasks::TEXTURED) {
-                        const ResourceBinder& binder = renderer->binders[mat.resourceBinderId.idx];
-                        const ResourceBindingLayout& layout = pipelineState.perDrawBindingLayout;
-                        const ResourceBindingHeap& heap = renderer->bindingHeap;
+                ID3D11ShaderResourceView* const* srvs = &heap.srvs[binder.readableBufferOffset];
+                ID3D11SamplerState* const* samplers = &heap.samplers[binder.samplerOffset];
 
-                        ID3D11ShaderResourceView* const* srvs = &heap.srvs[binder.readableBufferOffset];
-                        ID3D11SamplerState* const* samplers = &heap.samplers[binder.samplerOffset];
+                context->PSSetShaderResources(0, layout.readableBufferCount, srvs);
+                context->PSSetSamplers(0, layout.samplerCount, samplers);
 
-                        context->PSSetShaderResources(0, layout.readableBufferCount, srvs);
-                        context->PSSetSamplers(0, layout.samplerCount, samplers);
-                    }
-
-                    context->VSSetConstantBuffers(1, 1, &vertexCB.buffer);
-                    context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-                    context->DrawIndexed(mesh.numIndices, 0, 0);
-                }
+                context->VSSetConstantBuffers(1, 1, &vertexCB.buffer);
+                context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+                context->DrawIndexed(mesh.numIndices, 0, 0);
             }
         };
         pass.tearDown = [](Renderer* renderer) {
@@ -157,6 +180,8 @@ namespace bdr
         pass.destroy = [&]() {
             vertexCB.reset();
         };
+
+        return passId;
     }
 
     RenderSystem::~RenderSystem()
@@ -192,8 +217,9 @@ namespace bdr
         }
     }
 
-    void RenderSystem::init(Renderer* renderer)
+    void RenderSystem::init(Renderer* _renderer)
     {
+        renderer = _renderer;
         ID3D11Device* device = renderer->getDevice();
         for (const RenderPass& renderPass : renderPasses) {
             if (renderPass.setup) {

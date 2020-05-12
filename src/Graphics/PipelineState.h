@@ -30,7 +30,7 @@ namespace bdr
         const size_t numMacros
     );
 
-    ResourceBinderHandle allocateResourceBinder(Renderer& renderer, const PipelineHandle pipelineId);
+    ResourceBinder allocateResourceBinder(Renderer& renderer, const PipelineHandle pipelineId);
 
     class PipelineStateMap
     {

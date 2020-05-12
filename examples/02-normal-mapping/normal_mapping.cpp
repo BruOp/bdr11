@@ -2,6 +2,7 @@
 #include "Core/bdrMath.h"
 #include "Core/Array.h"
 #include "Graphics/Mesh.h"
+#include "Graphics/Material.h"
 #include "Game/AnimationSystem.h"
 #include "Utils/IcosahedronFactory.h"
 
@@ -105,16 +106,18 @@ constexpr uint16_t cubeIndices[] = {
 };
 
 void bindTexture(
-    Renderer& renderer,
-    const MaterialInstance materialInstance,
+    RenderSystem& renderSystem,
+    RenderObjectHandle renderObjectId,
     const std::string& name,
     const TextureHandle textureHandle
 )
 {
-    ResourceBinder binder = renderer.binders[materialInstance.resourceBinderId.idx];
-    ResourceBindingHeap& heap = renderer.bindingHeap;
-    const ResourceBindingLayout& layout = renderer.pipelines[binder.pipelineId].perDrawBindingLayout;
-    const Texture& texture = renderer.textures[textureHandle];
+    RenderObject& renderObject = getRenderObject(renderSystem, renderObjectId);
+    Renderer* renderer = renderSystem.renderer;
+    ResourceBinder& binder = renderObject.resourceBinder;
+    ResourceBindingHeap& heap = renderer->bindingHeap;
+    const ResourceBindingLayout& layout = renderer->pipelines[renderObject.pipelineId].perDrawBindingLayout;
+    const Texture& texture = renderer->textures[textureHandle];
 
     ResourceBindingLayout::Slice& resourceView = layout.resourceMap.get(name + "_map");
     auto srvOffset = binder.readableBufferOffset + resourceView.offset;
@@ -125,14 +128,6 @@ void bindTexture(
     heap.samplers[samplerOffset] = texture.sampler;
 }
 
-MaterialInstance createMaterialInstance(Renderer& renderer, PipelineHandle pipelineId)
-{
-    MaterialInstance instance{};
-    instance.pipelineId = pipelineId;
-    instance.resourceBinderId = allocateResourceBinder(renderer, pipelineId);
-    return instance;
-};
-
 class NormalMappingExample : public bdr::BaseGame
 {
     virtual void setup() override
@@ -142,6 +137,24 @@ class NormalMappingExample : public bdr::BaseGame
             1024,
         };
         initialize(appConfig);
+
+        float width = float(renderer.width);
+        float height = float(renderer.height);
+        BDRid cameraId = createPerspectiveCamera(scene, XM_PI / 4.0f, width, height, 0.1f, 100.0f);
+        Camera& camera = getCamera(scene, cameraId);
+
+        cameraController.pitch = XM_PIDIV4;
+        cameraController.yaw = XM_PIDIV4;
+        cameraController.radius = 3.0f;
+        cameraController.setCamera(&camera);
+
+        bdr::View& view = renderSystem.createNewView();
+        view.name = "Mesh View";
+        view.scene = &scene;
+        view.setCamera(&camera);
+        // Enable mesh pass
+        RenderPassHandle passId = addMeshPass(renderSystem, &view);
+        renderSystem.init(&renderer);
 
         std::string shaderFilePath = "../examples/02-normal-mapping/normal_mapping.hlsl";
         PipelineStateDefinition pipelineDefinition{
@@ -179,7 +192,7 @@ class NormalMappingExample : public bdr::BaseGame
 
         const ShaderMacro shaderMacros[] = { {"NORMAL_MAPPING"} };
         PipelineHandle pipelineStateId = getOrCreatePipelineState(renderer, normalMappingPipelineDefId, shaderMacros, 1);
-        MaterialInstance materialInstance = createMaterialInstance(renderer, pipelineStateId);
+
 
         entity = createEntity(scene);
         Transform transform{};
@@ -198,35 +211,23 @@ class NormalMappingExample : public bdr::BaseGame
         addAttribute(meshCreationInfo, cubeUVs, BufferFormat::FLOAT_2, MeshAttribute::TEXCOORD);
 
         MeshHandle meshHandle = createMesh(renderer, meshCreationInfo);
-        assignMesh(scene, entity, meshHandle);
 
         TextureCreationInfo texInfo{};
         texInfo.usage = BufferUsage::SHADER_READABLE;
 
+        RenderObjectDesc rod = {
+                entity,
+                passId,
+                meshHandle,
+                pipelineStateId
+        };
+        RenderObjectHandle renderObjectId = assignRenderObject(renderSystem, rod);
+
         TextureHandle albedoTexture = createTextureFromFile(renderer, "Textures/stone01.DDS", texInfo);
         TextureHandle normalTexture = createTextureFromFile(renderer, "Textures/bump01.DDS", texInfo);
 
-        assignMaterialInstance(scene, entity, materialInstance);
-        bindTexture(renderer, materialInstance, "albedo", albedoTexture);
-        bindTexture(renderer, materialInstance, "normal", normalTexture);
-
-        float width = float(renderer.width);
-        float height = float(renderer.height);
-        BDRid cameraId = createPerspectiveCamera(scene, XM_PI / 4.0f, width, height, 0.1f, 100.0f);
-        Camera& camera = getCamera(scene, cameraId);
-
-        cameraController.pitch = XM_PIDIV4;
-        cameraController.yaw = XM_PIDIV4;
-        cameraController.radius = 3.0f;
-        cameraController.setCamera(&camera);
-
-        bdr::View& view = renderGraph.createNewView();
-        view.name = "Mesh View";
-        view.scene = &scene;
-        view.setCamera(&camera);
-        // Enable mesh pass
-        addMeshPass(renderGraph, &view);
-        renderGraph.init(&renderer);
+        bindTexture(renderSystem, renderObjectId, "albedo", albedoTexture);
+        bindTexture(renderSystem, renderObjectId, "normal", normalTexture);
     }
 
     virtual void tick(const float frameTime, const float totalTime) override

@@ -29,7 +29,7 @@ namespace bdr
         Array(Array&& other)
         {
             size = other.size;
-            capcity = other.capacity;
+            capacity = other.capacity;
             data = other.data;
             other.size = 0;
             other.capacity = 0;
@@ -67,12 +67,12 @@ namespace bdr
             return capacity * elementByteSize;
         }
 
-        size_t pushBack(const T& data)
+        size_t pushBack(const T newData)
         {
             if (size == capacity) {
                 grow();
             }
-            data[size] = T;
+            data[size] = newData;
             return size++;
         }
 
@@ -82,7 +82,7 @@ namespace bdr
                 DEBUGPRINT("Shrinking Array!");
             }
             capacity = newCapacity;
-            data = Memory::reallocate(data, capacity * elementByteSize);
+            data = (T*)Memory::reallocate(data, capacity * elementByteSize);
         }
     };
 
