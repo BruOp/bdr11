@@ -116,12 +116,12 @@ class NormalMappingExample : public bdr::BaseGame
 
         float width = float(renderer.width);
         float height = float(renderer.height);
-        BDRid cameraId = createPerspectiveCamera(scene, XM_PI / 4.0f, width, height, 0.1f, 100.0f);
+        BDRid cameraId = createPerspectiveCamera(scene, XM_PI / 4.0f, width, height, 1.0f, 1000.0f);
         Camera& camera = getCamera(scene, cameraId);
 
         cameraController.pitch = XM_PIDIV4;
         cameraController.yaw = XM_PIDIV4;
-        cameraController.radius = 3.0f;
+        cameraController.radius = 100.0f;
         cameraController.setCamera(&camera);
 
         bdr::View& view = renderSystem.createNewView();
@@ -132,7 +132,7 @@ class NormalMappingExample : public bdr::BaseGame
         RenderPassHandle passId = addMeshPass(renderSystem, &view);
         renderSystem.init(&renderer);
 
-        std::string shaderFilePath = "../examples/02-normal-mapping/normal_mapping.hlsl";
+        std::string shaderFilePath = "../examples/03-draw-calls/normal_mapping.hlsl";
         PipelineStateDefinition pipelineDefinition{
             PipelineStage(PipelineStage::VERTEX_STAGE | PipelineStage::PIXEL_STAGE),
             InputLayoutDesc{
@@ -167,13 +167,8 @@ class NormalMappingExample : public bdr::BaseGame
         const auto normalMappingPipelineDefId = registerPipelineStateDefinition(renderer, shaderFilePath, std::move(pipelineDefinition));
 
         const ShaderMacro shaderMacros[] = { {"NORMAL_MAPPING"} };
-        PipelineHandle pipelineStateId = getOrCreatePipelineState(renderer, normalMappingPipelineDefId, shaderMacros, 1);
-
-
-        entity = createEntity(scene);
-        Transform transform{};
-
-        assignTransform(scene, entity, transform);
+        PipelineHandle plainPipelineId = getOrCreatePipelineState(renderer, normalMappingPipelineDefId, nullptr, 0);
+        PipelineHandle normalMappedPipelineId = getOrCreatePipelineState(renderer, normalMappingPipelineDefId, shaderMacros, 1);
 
         MeshCreationInfo meshCreationInfo;
         meshCreationInfo.numVertices = _countof(cubePositions) / 3u;
@@ -191,27 +186,43 @@ class NormalMappingExample : public bdr::BaseGame
         TextureCreationInfo texInfo{};
         texInfo.usage = BufferUsage::SHADER_READABLE;
 
-        RenderObjectDesc rod = {
-                entity,
-                passId,
-                meshHandle,
-                pipelineStateId
-        };
-        RenderObjectHandle renderObjectId = assignRenderObject(renderSystem, rod);
-
         TextureHandle albedoTexture = createTextureFromFile(renderer, "Textures/stone01.DDS", texInfo);
         TextureHandle normalTexture = createTextureFromFile(renderer, "Textures/bump01.DDS", texInfo);
 
-        bindTexture(renderSystem, renderObjectId, "albedo", albedoTexture);
-        bindTexture(renderSystem, renderObjectId, "normal", normalTexture);
+        const float padding = 1.5f;
+        size_t numEntities = 100u;
+        for (size_t i = 0; i < numEntities; i++) {
+            for (size_t j = 0; j < numEntities; j++) {
+                const uint32_t entity = createEntity(scene);
+                Transform transform{};
+
+                transform.translation.x = padding * (i - (float(numEntities) / 2.0f));
+                transform.translation.z = padding * (j - (float(numEntities) / 2.0f));
+                transform.mask |= TransformType::Translation;
+                assignTransform(scene, entity, transform);
+
+                RenderObjectDesc rod = {
+                    entity,
+                    passId,
+                    meshHandle,
+                    plainPipelineId
+                };
+
+                if (i * j % 2 == 0) {
+                    rod.pipelineId = normalMappedPipelineId;
+                }
+                RenderObjectHandle renderObjectId = assignRenderObject(renderSystem, rod);
+                bindTexture(renderSystem, renderObjectId, "albedo", albedoTexture);
+                if (i * j % 2 == 0) {
+                    bindTexture(renderSystem, renderObjectId, "normal", normalTexture);
+                }
+            }
+
+        }
     }
 
     virtual void tick(const float frameTime, const float totalTime) override
     {
-        // We want to be able to rotate the cube every tick
-        Transform& transform = scene.registry.transforms[entity];
-        // Will need to figure this out
-
         cameraController.update(keyboard->GetState(), mouse->GetState(), frameTime);
         updateMatrices(scene.registry);
         copyDrawData(scene.registry);
@@ -221,8 +232,6 @@ class NormalMappingExample : public bdr::BaseGame
 private:
     typedef uint32_t Entity;
     typedef uint32_t BDRid;
-
-    Entity entity = UINT32_MAX;
 
     OrbitCameraController cameraController;
 };

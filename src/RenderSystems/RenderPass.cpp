@@ -31,6 +31,30 @@ namespace bdr
         return pass.renderObjectsManager.getRenderObject(renderObjectHandle);
     }
 
+    void bindTexture(
+        RenderSystem& renderSystem,
+        RenderObjectHandle renderObjectId,
+        const std::string& name,
+        const TextureHandle textureHandle
+    )
+    {
+        RenderObject& renderObject = getRenderObject(renderSystem, renderObjectId);
+        Renderer* renderer = renderSystem.renderer;
+        ResourceBinder& binder = renderObject.resourceBinder;
+        ResourceBindingHeap& heap = renderer->bindingHeap;
+        const ResourceBindingLayout& layout = renderer->pipelines[renderObject.pipelineId].perDrawBindingLayout;
+        const Texture& texture = renderer->textures[textureHandle];
+
+        ResourceBindingLayout::Slice& resourceView = layout.resourceMap.get(name + "_map");
+        auto srvOffset = binder.readableBufferOffset + resourceView.offset;
+        heap.srvs[srvOffset] = texture.srv;
+
+        resourceView = layout.resourceMap.get(name + "_sampler");
+        auto samplerOffset = binder.samplerOffset + resourceView.offset;
+        heap.samplers[samplerOffset] = texture.sampler;
+    }
+
+
     // TODO Add back skinning pass
     /*
     RenderPassHandle addSkinningPass(RenderSystem& renderSystem, View* view)

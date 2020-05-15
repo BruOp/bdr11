@@ -6,6 +6,7 @@
 //#include "Core/Map.h"
 #include "Core/Array.h"
 #include "Graphics/Resources.h"
+#include "./Resources.h"
 #include "View.h"
 
 
@@ -15,32 +16,6 @@ namespace bdr
     class Renderer;
     struct Camera;
     class ILight;
-
-    struct RenderPassHandle { uint8_t idx = UINT8_MAX; };
-    struct RenderObjectHandle
-    {
-        // Composite id:
-        //   - first 24 bits are the index into the RenderPass' objects array
-        //   - last 8 bits are the passId
-        uint32_t idx = UINT32_MAX;
-        PipelineHandle pipelineId = INVALID_HANDLE;
-    };
-
-    struct RenderObjectDesc
-    {
-        uint32_t entityId = UINT32_MAX;
-        RenderPassHandle passId = {};
-        MeshHandle meshId = INVALID_HANDLE;
-        PipelineHandle pipelineId = INVALID_HANDLE;
-    };
-
-    struct RenderObject
-    {
-        uint32_t entityId = UINT32_MAX;
-        MeshHandle meshId = INVALID_HANDLE;
-        PipelineHandle pipelineId = INVALID_HANDLE;
-        ResourceBinder resourceBinder = {};
-    };
 
     class RenderObjectManager
     {
@@ -79,10 +54,10 @@ namespace bdr
         RenderPassHandle id = {};
         // TODO Targets/Outputs
         // TODO Transient Inputs
-        std::function<void(Renderer * renderer)> setup;
-        std::function<void(Renderer * renderer)> render;
-        std::function<void(Renderer * renderer, const View & view)> renderView;
-        std::function<void(Renderer * renderer)> tearDown;
+        std::function<void(Renderer* renderer)> setup;
+        std::function<void(Renderer* renderer)> render;
+        std::function<void(Renderer* renderer, const View& view)> renderView;
+        std::function<void(Renderer* renderer)> tearDown;
         std::function<void()> destroy;
         std::wstring name = L"";
         std::vector<View*> views;
@@ -138,6 +113,13 @@ namespace bdr
     RenderObject& getRenderObject(
         RenderSystem& renderSystem,
         const RenderObjectHandle renderObjectHandle
+    );
+
+    void bindTexture(
+        RenderSystem& renderSystem,
+        RenderObjectHandle renderObjectId,
+        const std::string& name,
+        const TextureHandle textureHandle
     );
 
     //RenderPassHandle addSkinningPass(RenderSystem& renderSystem, View* view);
