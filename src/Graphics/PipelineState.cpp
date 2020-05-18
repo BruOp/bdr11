@@ -210,15 +210,14 @@ namespace bdr
             }
         }
         else {
-            ERROR("Could not open material file");
+            ERROR("Could not open shader file");
         }
         shaderFile.close();
         return code;
     }
 
-    void registerPipelineStateDefinition(
+    PipelineStateDefinitionHandle registerPipelineStateDefinition(
         Renderer& renderer,
-        const std::string& name,
         const std::string& filePath,
         PipelineStateDefinition&& pipelineDefinition
     )
@@ -226,11 +225,9 @@ namespace bdr
         pipelineDefinition.shaderCodeId = renderer.shaderCodeRegistry.size();
         renderer.shaderCodeRegistry.push_back(readFile(filePath.c_str()));
 
-        // TODO: This should fail in Release too
-        bool insertionCompleted = renderer.pipelineDefinitions.insert(name, pipelineDefinition);
-        if (!insertionCompleted) {
-            HALT("Insert Failed");
-        }
+        PipelineStateDefinitionHandle handle{ renderer.pipelineDefinitions.size() };
+        renderer.pipelineDefinitions.push_back(pipelineDefinition);
+        return handle;
     }
 
     ResourceBindingLayout createLayout(Renderer& renderer, const ResourceBindingLayoutDesc& layoutDesc)
@@ -258,44 +255,64 @@ namespace bdr
         return layout;
     };
 
-    PipelineHandle createPipelineState(
+    ResourceBindingLayoutDesc getPerDrawLayoutDesc(
+        const PipelineStateDefinition& pipelineDefinition,
+        const ShaderMacro shaderMacros[],
+        const size_t numMacros
+    )
+    {
+        // Count the number of per draw required resource
+        ResourceBindingLayoutDesc layoutDesc = pipelineDefinition.requiredResources;
+        uint32_t numResources = 0;
+        for (; numResources < layoutDesc.maxResources; numResources++) {
+            if (layoutDesc.resourceDescs[numResources].type == BoundResourceType::INVALID) {
+                break;
+            }
+        }
+
+        for (size_t i = 0; i < numMacros; i++) {
+            // Append the optional defintion to our layout;
+            PipelineStateDefinition::BindingMapView view{};
+            const bool retrieved = pipelineDefinition.optionalResourceMap.get_in(shaderMacros[i].name, &view);
+            if (retrieved) {
+                for (size_t i = 0; i < view.count; i++) {
+                    layoutDesc.resourceDescs[numResources++] = pipelineDefinition.optionalResources.resourceDescs[view.offset + i];
+                }
+            }
+        }
+        return  layoutDesc;
+    };
+
+    PipelineHandle getOrCreatePipelineState(
         Renderer& renderer,
-        const std::string& pipelineName,
+        const PipelineStateDefinitionHandle& pipelineDefinitionHandle,
         const ShaderMacro shaderMacros[],
         const size_t numMacros
     )
     {
         ID3D11Device1* device = renderer.getDevice();
 
-        PipelineStateDefinition pipelineDefinition{};
-        renderer.pipelineDefinitions.get_in(pipelineName, &pipelineDefinition);
+        const PipelineStateDefinition& pipelineDefinition = renderer.pipelineDefinitions[pipelineDefinitionHandle.idx];
 
-        PipelineHandle pipelineId = renderer.pipelines.create();
-
-        // Count the number of per draw required resource
-        ResourceBindingLayoutDesc perDrawLayoutDesc = pipelineDefinition.perDrawRequiredResources;
-        uint32_t numResources = 0;
-        for (; numResources < perDrawLayoutDesc.maxResources; numResources++) {
-            if (perDrawLayoutDesc.resourceDescs[numResources].type == BoundResourceType::INVALID) {
-                break;
-            }
+        // Check for whether the pipeline has already been created
+        uint32_t pipelineKey = renderer.pipelines.getHashKey(shaderMacros, numMacros);
+        PipelineHandle pipelineHandle = renderer.pipelines.getHandle(pipelineKey);
+        if (isValid(pipelineHandle)) {
+            // If present, return the index as a PipelineHandle so it can be used for fast indexing
+            // in the future
+            return pipelineHandle;
         }
+
+        // Else, create a new pipeline:
+        PipelineState pipeline{ };
+
+        ResourceBindingLayoutDesc layoutDesc = getPerDrawLayoutDesc(pipelineDefinition, shaderMacros, numMacros);
 
         // 1. Create list of macros to pass to shader compilation
         // 2. Append optional resources to resource layout desc based on macros
-        PipelineState& pipeline = renderer.pipelines[pipelineId];
         D3D_SHADER_MACRO d3dMacros[16] = { nullptr };
         for (size_t i = 0; i < numMacros; i++) {
             d3dMacros[i] = D3D_SHADER_MACRO{ shaderMacros[i].name };
-
-            // Append the optional defintion to our layout;
-            PipelineStateDefinition::BindingMapView view{};
-            const bool retrieved = pipelineDefinition.optionalResourceMap.get_in(shaderMacros[i].name, &view);
-            if (retrieved) {
-                for (size_t i = 0; i < view.count; i++) {
-                    perDrawLayoutDesc.resourceDescs[numResources++] = pipelineDefinition.optionalResources.resourceDescs[view.offset + i];
-                }
-            }
         }
 
         const std::string& shaderCode = renderer.shaderCodeRegistry[pipelineDefinition.shaderCodeId];
@@ -328,7 +345,7 @@ namespace bdr
         // Resource Binding Layout
         // TODO: Views and Frames will own their resource binding layouts and resource binding objects,
         // but we'll use the layout descs defined here to validate that the constants will actually be available
-        pipeline.perDrawBindingLayout = createLayout(renderer, perDrawLayoutDesc);
+        pipeline.resourceLayout = createLayout(renderer, layoutDesc);
 
         // Need to get or create Input Layout
         pipeline.inputLayout = renderer.inputLayoutManager.getOrCreateInputLayout(pipelineDefinition.inputLayoutDesc);
@@ -345,14 +362,14 @@ namespace bdr
         D3D11_BLEND_DESC blendDesc = toD3D11BlendDesc(pipelineDefinition.blendState);
         device->CreateBlendState(&blendDesc, &pipeline.blendState);
 
-        return { pipelineId };
+        return renderer.pipelines.insert(pipelineKey, pipeline);
     }
 
-    ResourceBinderHandle allocateResourceBinder(Renderer& renderer, const PipelineHandle pipelineId)
+    ResourceBinder allocateResourceBinder(Renderer& renderer, const PipelineHandle pipelineId)
     {
-        PipelineState& pipeline = renderer.pipelines[pipelineId.idx];
-        ResourceBindingLayout& layout = pipeline.perDrawBindingLayout;
+        PipelineState& pipeline = renderer.pipelines[pipelineId];
         ResourceBindingHeap& heap = renderer.bindingHeap;
+        ResourceBindingLayout& layout = pipeline.resourceLayout;
         ResourceBinder binder{  };
         binder.readableBufferOffset = heap.srvs.size();
         heap.srvs.resize(binder.readableBufferOffset + size_t(layout.readableBufferCount));
@@ -362,9 +379,7 @@ namespace bdr
 
         binder.samplerOffset = heap.samplers.size();
         heap.samplers.resize(binder.samplerOffset + size_t(layout.samplerCount));
-        auto id = renderer.binders.size();
-        renderer.binders.push_back(binder);
-        return { uint32_t(id) };
+        return binder;
     }
 
     void reset(PipelineState& pipelineState)

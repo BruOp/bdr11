@@ -17,6 +17,14 @@ namespace bdr
             grow(startingCapacity);
         }
 
+        Array(const std::initializer_list<T>& list)
+        {
+            grow(list.size());
+            for (size_t i = 0; i < list.size(); i++) {
+                data[i] = list[i];
+            }
+        }
+
         ~Array()
         {
             Memory::release(data);
@@ -29,7 +37,7 @@ namespace bdr
         Array(Array&& other)
         {
             size = other.size;
-            capcity = other.capacity;
+            capacity = other.capacity;
             data = other.data;
             other.size = 0;
             other.capacity = 0;
@@ -67,22 +75,33 @@ namespace bdr
             return capacity * elementByteSize;
         }
 
-        size_t pushBack(const T& data)
+        size_t pushBack(const T newData)
         {
             if (size == capacity) {
                 grow();
             }
-            data[size] = T;
+            data[size] = newData;
+            return size++;
         }
 
-        void reallocate(const size_t newSize)
+        void reallocate(const size_t newCapacity)
         {
-            if (newSize < capacity) {
+            if (newCapacity < capacity) {
                 DEBUGPRINT("Shrinking Array!");
             }
-            capacity = newSize;
-            data = Memory::reallocate(data, capacity * elementByteSize);
+            capacity = newCapacity;
+            data = (T*)Memory::reallocate(data, capacity * elementByteSize);
         }
     };
 
+    template<typename T>
+    size_t findIndexOf(const Array<T>& array, const T& value)
+    {
+        for (size_t i = 0; i < array.size; i++) {
+            if (array[i] == value) {
+                return i;
+            }
+        }
+        return SIZE_MAX;
+    }
 }

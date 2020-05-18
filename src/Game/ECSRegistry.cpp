@@ -74,24 +74,12 @@ namespace bdr
         return entity;
     }
 
-    void assignMesh(ECSRegistry& registry, const uint32_t entity, const MeshHandle meshHandle)
-    {
-        registry.meshes[entity] = meshHandle;
-        registry.cmpMasks[entity] |= CmpMasks::MESH;
-    }
-
     void assignTransform(ECSRegistry& registry, const uint32_t entity, const Transform& transform)
     {
         registry.transforms[entity] = transform;
         registry.cmpMasks[entity] |= CmpMasks::TRANSFORM;
     }
 
-    void assignMaterialInstance(ECSRegistry& registry, const uint32_t entity, const MaterialInstance& materialInstance)
-    {
-        registry.materialInstances[entity] = materialInstance;
-        registry.cmpMasks[entity] |= CmpMasks::TEXTURED;
-        registry.cmpMasks[entity] |= CmpMasks::MATERIAL;
-    }
 
     void ECSRegistry::clearComponentData()
     {

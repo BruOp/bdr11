@@ -89,10 +89,9 @@ namespace bdr
         ResourceManager<GPUBuffer, GPUBufferHandle> jointBuffers;
         ResourceManager<Texture, TextureHandle> textures;
         ResourceManager<GPUBuffer, GPUBufferHandle> constantBuffers;
-        ResourceManager<PipelineState, PipelineHandle> pipelines;
-        SimpleMap32<PipelineStateDefinition> pipelineDefinitions;
+        PipelineStateMap pipelines;
+        std::vector<PipelineStateDefinition> pipelineDefinitions;
         ResourceBindingHeap bindingHeap;
-        std::vector<ResourceBinder> binders;
         std::vector<std::string> shaderCodeRegistry;
 
     };

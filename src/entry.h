@@ -59,7 +59,7 @@ namespace bdr
 
         Scene scene;
         Renderer renderer;
-        RenderSystem renderGraph;
+        RenderSystem renderSystem;
         Window window = Window{};
     };
 }

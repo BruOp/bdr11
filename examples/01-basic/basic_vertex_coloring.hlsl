@@ -8,7 +8,7 @@ cbuffer VIEW_CONSTANT_BUFFER : register(b0)
     matrix proj;
     matrix VP;
     float3 cameraPos;
-    float padding;
+    float time;
 }
 
 cbuffer DRAW_CONSTANTS_BUFFER : register(b1)

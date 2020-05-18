@@ -22,6 +22,7 @@ namespace bdr
             return "COLOR";
         default:
             HALT("Unsupported mesh attribute type!");
+            abort();
         }
     }
 

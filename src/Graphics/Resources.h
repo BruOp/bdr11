@@ -3,6 +3,7 @@
 
 #include <unordered_map>
 #include <string>
+#include <functional>
 
 #include "Core/Map.h"
 #include "DXHelpers.h"
@@ -14,7 +15,7 @@ namespace bdr
 
     // Copied from BGFX and others
 #define RESOURCE_HANDLE(_name)      \
-	struct _name { uint32_t idx; }; \
+	struct _name { uint32_t idx = kInvalidHandle; }; \
     inline bool isValid(_name _handle) { return _handle.idx != bdr::kInvalidHandle; };
 
 #define INVALID_HANDLE \
@@ -204,9 +205,10 @@ namespace bdr
         BoundResourceDesc resourceDescs[maxResources] = {};
     };
 
+    // Warning: Not a POD
     struct ResourceBindingLayout
     {
-        struct View
+        struct Slice
         {
             BoundResourceType resourceType = BoundResourceType::INVALID;
             uint32_t offset = UINT32_MAX;
@@ -215,10 +217,10 @@ namespace bdr
         uint8_t readableBufferCount = 0;
         uint8_t writableBufferCount = 0;
         uint8_t samplerCount = 0;
-        // Maps our resources by names to their local offsets within the ResourceBindingHeap
+        // Maps our resources by name to their local offsets within the ResourceBindingHeap
         // Note that this is used to both allocate slots in our heap (returning a ResourceBinder) 
-        // and to set the actual points using an allocated ResourceBinder
-        SimpleMap32<View> resourceMap;
+        // and to set resource pointers using an allocated ResourceBinder
+        SimpleMap32<Slice> resourceMap;
     };
 
     struct ResourceBindingHeap
@@ -227,22 +229,13 @@ namespace bdr
         std::vector<ID3D11UnorderedAccessView*> uavs;
         std::vector<ID3D11SamplerState*> samplers;
     };
-    RESOURCE_HANDLE(ResourceBinderHandle);
-
-    struct ResourceBinder
-    {
-        uint16_t pipelineId;
-        PipelineStage stage;
-        uint32_t readableBufferOffset;
-        uint32_t writableBufferOffset;
-        uint32_t samplerOffset;
-    };
 
     struct ShaderMacro
     {
-        char name[64] = "";
+        char name[32] = "";
     };
 
+    // Warning: not a POD
     struct PipelineStateDefinition
     {
         struct BindingMapView
@@ -253,19 +246,23 @@ namespace bdr
 
         PipelineStage stages;
         InputLayoutDesc inputLayoutDesc;
-        DepthStencilDesc depthStencilState;
-        RasterStateDesc rasterStateDesc;
-        BlendStateDesc blendState;
-        ResourceBindingLayoutDesc perFrameRequiredResources;
-        ResourceBindingLayoutDesc perViewRequiredResources;
-        ResourceBindingLayoutDesc perDrawRequiredResources;
+        DepthStencilDesc depthStencilState = {};
+        RasterStateDesc rasterStateDesc = {};
+        BlendStateDesc blendState = {};
+        ResourceBindingLayoutDesc requiredResources = {};
         ShaderMacro macros[16] = { };
-        ResourceBindingLayoutDesc optionalResources;
-        SimpleMap32<BindingMapView> optionalResourceMap;
+        ResourceBindingLayoutDesc optionalResources = {};
+        // The optionalResourceMap maps our shader macros by name to entries in our optionalResources' array of ResourceBindingDescs
+        // So an entry like { "NORMAL_MAPPING", { 4, 2 } } tells us that if the NORMAL_MAPPING macro is provided, we must include
+        // the optional resources defined from optionalResources[4] to optionalResources[6] in the Pipeline's per draw ResourceBindingLayout.
+        // It's kind of clumsy, I know.
+        SimpleMap32<BindingMapView> optionalResourceMap = {};
         // Don't pass this in
-        uint32_t shaderCodeId;
+        uint32_t shaderCodeId = UINT32_MAX;
     };
+    struct PipelineStateDefinitionHandle { uint32_t idx; };
 
+    // Warning: not a POD
     struct PipelineState
     {
         ID3D11VertexShader* vertexShader = nullptr;
@@ -275,15 +272,19 @@ namespace bdr
         ID3D11DepthStencilState* depthStencilState = nullptr;
         ID3D11RasterizerState* rasterizerState = nullptr;
         ID3D11BlendState* blendState = nullptr;
-        ResourceBindingLayout perDrawBindingLayout;
+        ResourceBindingLayout resourceLayout;
     };
     RESOURCE_HANDLE(PipelineHandle);
 
-    struct MaterialInstance
+    // Used to track, update and bind the resources for a specific draw call.
+    struct ResourceBinder
     {
-        PipelineHandle pipelineId;
-        ResourceBinderHandle resourceBinderId;
+        uint32_t readableBufferOffset;
+        uint32_t writableBufferOffset;
+        uint32_t samplerOffset;
+        PipelineStage stage;
     };
+    RESOURCE_HANDLE(ResourceBinderHandle);
 
     RESOURCE_HANDLE(GPUBufferHandle);
 }

@@ -12,10 +12,8 @@ namespace bdr
         ALLOCATED = (1 << 0),
         PARENT = (1 << 1),
         SKIN = (1 << 2),
-        MESH = (1 << 3),
+        RENDER_OBJECT = (1 << 3),
         TRANSFORM = (1 << 4),
-        MATERIAL = (1 << 5),
-        TEXTURED = (1 << 6),
     };
 
     template<typename T>
@@ -75,6 +73,10 @@ namespace bdr
         FreeEntityNode* prev = nullptr;
     };
 
+    /*struct RenderObjectList
+    {
+        RenderObjectHandle renderObjectHandles[16];
+    };*/
 
     class ECSRegistry
     {
@@ -95,8 +97,6 @@ namespace bdr
         ComponentArray<uint32_t> cmpMasks;
         ComponentArray<uint32_t> parents;
         ComponentArray<uint32_t> skinIds;
-        ComponentArray<MeshHandle> meshes;
-        ComponentArray<uint32_t> preskinMeshes;
         ComponentArray<uint32_t> jointBuffer;
         ComponentArray<Transform> transforms;
         ComponentArray<glm::mat4> localMatrices;
@@ -104,7 +104,7 @@ namespace bdr
         ComponentArray<FreeEntityNode> freeEntitiesNodes;
         ComponentArray<GenericMaterialData> materialData;
         ComponentArray<DrawConstants> drawConstants;
-        ComponentArray<MaterialInstance> materialInstances;
+        /*ComponentArray<RenderObjectList> materialInstances;*/
 
         // This is used to calculate the number of components and store them.
         // DO NOT MOVE -- it's position in the layout of this class is crucial to it's functionality
@@ -133,7 +133,5 @@ namespace bdr
 
     uint32_t createEntity(ECSRegistry& registry);
 
-    void assignMesh(ECSRegistry& registry, const uint32_t entity, const MeshHandle meshHandle);
     void assignTransform(ECSRegistry& registry, const uint32_t entity, const Transform& transform);
-    void assignMaterialInstance(ECSRegistry& registry, const uint32_t entity, const MaterialInstance& materialInstance);
 }

@@ -94,7 +94,7 @@ namespace bdr
         renderer.deviceResources->PIXBeginEvent(L"Render");
         auto context = renderer.deviceResources->GetD3DDeviceContext();
 
-        renderGraph.run(&renderer);
+        renderSystem.run(&renderer);
 
         renderer.deviceResources->PIXEndEvent();
 

@@ -9,9 +9,55 @@
 
 namespace bdr
 {
-    void addSkinningPass(RenderSystem& renderGraph, View* view)
+    RenderObjectHandle assignRenderObject(RenderSystem& renderSystem, const RenderObjectDesc renderObjectDesc)
     {
-        RenderPass& pass = renderGraph.createNewPass();
+        RenderPass& renderPass = renderSystem.getPass(renderObjectDesc.passId);
+        RenderObject renderObject = {
+            renderObjectDesc.entityId,
+            renderObjectDesc.meshId,
+            renderObjectDesc.pipelineId,
+        };
+        renderObject.resourceBinder = allocateResourceBinder(*renderSystem.renderer, renderObject.pipelineId);
+        return renderPass.renderObjectsManager.addRenderObject(renderObjectDesc.passId, renderObject);
+    }
+
+    RenderObject& getRenderObject(RenderSystem& renderSystem, const RenderObjectHandle renderObjectId)
+    {
+        RenderPassHandle passId = getRenderPassHandle(renderObjectId);
+        RenderPass& pass = renderSystem.getPass(passId);
+        return pass.renderObjectsManager.getRenderObject(renderObjectId);
+    }
+
+    void bindTexture(
+        RenderSystem& renderSystem,
+        RenderObjectHandle renderObjectId,
+        const std::string& name,
+        const TextureHandle textureHandle
+    )
+    {
+        RenderObject& renderObject = getRenderObject(renderSystem, renderObjectId);
+        Renderer* renderer = renderSystem.renderer;
+        ResourceBinder& binder = renderObject.resourceBinder;
+        ResourceBindingHeap& heap = renderer->bindingHeap;
+        const ResourceBindingLayout& layout = renderer->pipelines[renderObject.pipelineId].resourceLayout;
+        const Texture& texture = renderer->textures[textureHandle];
+
+        ResourceBindingLayout::Slice& resourceView = layout.resourceMap.get(name + "_map");
+        auto srvOffset = binder.readableBufferOffset + resourceView.offset;
+        heap.srvs[srvOffset] = texture.srv;
+
+        resourceView = layout.resourceMap.get(name + "_sampler");
+        auto samplerOffset = binder.samplerOffset + resourceView.offset;
+        heap.samplers[samplerOffset] = texture.sampler;
+    }
+
+
+    // TODO Add back skinning pass
+    /*
+    RenderPassHandle addSkinningPass(RenderSystem& renderSystem, View* view)
+    {
+        RenderPassHandle passId = renderSystem.createNewPass();
+        RenderPass& pass = renderSystem.getPass(passId);
         pass.name = L"Skinning Pass";
         pass.views.push_back(view);
 
@@ -31,7 +77,7 @@ namespace bdr
                 if (cmpMask & CmpMasks::SKIN) {
                     // Compute joint matrices
                     const Skin& skin = scene.skins[registry.skinIds[entityId]];
-                    Mesh& mesh = renderer->meshes[registry.meshes[entityId].idx];
+                    Mesh& mesh = renderer->meshes[renderObjects];
                     ASSERT(isValid(mesh.preskinMeshId), "Skinned meshes must have preskinned mesh");
                     Mesh& preskin = renderer->meshes[mesh.preskinMeshId];
                     GPUBuffer& jointBuffer = renderer->jointBuffers[registry.jointBuffer[entityId]];
@@ -72,12 +118,15 @@ namespace bdr
             ID3D11ShaderResourceView* nullSRVs[4u] = { nullptr };
             context->CSSetShaderResources(0u, _countof(nullSRVs), nullSRVs);
         };
+
+        return passId;
     }
+    */
 
-
-    void addMeshPass(RenderSystem& renderGraph, View* view)
+    RenderPassHandle addMeshPass(RenderSystem& renderSystem, View* view)
     {
-        RenderPass& pass = renderGraph.createNewPass();
+        RenderPassHandle passId = renderSystem.createNewPass();
+        RenderPass& pass = renderSystem.getPass(passId);
         pass.name = L"Mesh Pass";
         pass.views.push_back(view);
         //GPUBuffer vertexCB{};
@@ -99,44 +148,50 @@ namespace bdr
             const ECSRegistry& registry = scene.registry;
             ASSERT(view.type == ViewType::Camera);
             ID3D11DeviceContext* context = renderer->getContext();
-            const uint32_t requirements = CmpMasks::MESH | CmpMasks::MATERIAL;
+
+            context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
             setConstants(renderer, view);
+            const auto& renderObjectsAoA = pass.renderObjectsManager.renderObjectsAoA;
+            for (size_t renderAoAIdx = 0; renderAoAIdx < renderObjectsAoA.size(); renderAoAIdx++) {
+                const PipelineHandle pipelineId = pass.renderObjectsManager.pipelineHandles[renderAoAIdx];
+                const PipelineState& pipelineState = renderer->pipelines[pipelineId];
+                const ResourceBindingLayout& layout = pipelineState.resourceLayout;
+                const ResourceBindingHeap& heap = renderer->bindingHeap;
 
-            for (size_t entityId = 0; entityId < registry.numEntities; ++entityId) {
-                const uint32_t cmpMask = registry.cmpMasks[entityId];
-                if ((cmpMask & requirements) == requirements) {
-                    const MaterialInstance& mat = registry.materialInstances[entityId];
+                const std::vector<RenderObject>& renderObjectList = renderObjectsAoA[renderAoAIdx];
+
+                // Set shaders
+                context->VSSetShader(pipelineState.vertexShader, nullptr, 0);
+                context->PSSetShader(pipelineState.pixelShader, nullptr, 0);
+
+                context->OMSetDepthStencilState(pipelineState.depthStencilState, 0);
+                context->OMSetBlendState(pipelineState.blendState, nullptr, 0xFF);
+                context->RSSetState(pipelineState.rasterizerState);
+
+                context->IASetInputLayout(pipelineState.inputLayout);
+
+                for (size_t i = 0; i < renderObjectList.size(); ++i) {
+
+                    const RenderObject& renderObject = renderObjectList[i];
+                    const uint32_t entityId = renderObject.entityId;
 
                     const DrawConstants& drawConstants = registry.drawConstants[entityId];
-                    const PipelineState& pipelineState = renderer->pipelines[mat.pipelineId];
-                    const Mesh& mesh = renderer->meshes[registry.meshes[entityId].idx];
+                    const Mesh& mesh = renderer->meshes[renderObject.meshId];
 
                     ASSERT(mesh.inputLayoutHandle == pipelineState.inputLayout);
                     ID3D11Buffer* vbuffers[Mesh::maxAttrCount] = { nullptr };
                     collectBuffers(mesh, vbuffers);
 
-                    context->OMSetDepthStencilState(pipelineState.depthStencilState, 0);
-                    context->OMSetBlendState(pipelineState.blendState, nullptr, 0xFF);
-                    context->RSSetState(pipelineState.rasterizerState);
-
-                    // Set IAInputLayout
                     context->IASetVertexBuffers(0, mesh.numPresentAttr, vbuffers, mesh.strides, offsets);
                     context->IASetIndexBuffer(mesh.indexBuffer.buffer, mapFormatToDXGI(mesh.indexBuffer.format), 0);
-                    context->IASetInputLayout(mesh.inputLayoutHandle);
-
-                    // Set shaders
-                    context->VSSetShader(pipelineState.vertexShader, nullptr, 0);
-                    context->PSSetShader(pipelineState.pixelShader, nullptr, 0);
 
                     // Set constant buffers
                     vertexCB.copyToGPU(context, drawConstants);
 
-                    // Set textures, if possible
-                    if (cmpMask & CmpMasks::TEXTURED) {
-                        const ResourceBinder& binder = renderer->binders[mat.resourceBinderId.idx];
-                        const ResourceBindingLayout& layout = pipelineState.perDrawBindingLayout;
-                        const ResourceBindingHeap& heap = renderer->bindingHeap;
+                    // Set resources (textures, samplers)
+                    if (hasResources(pipelineState)) {
+                        const ResourceBinder& binder = renderObject.resourceBinder;
 
                         ID3D11ShaderResourceView* const* srvs = &heap.srvs[binder.readableBufferOffset];
                         ID3D11SamplerState* const* samplers = &heap.samplers[binder.samplerOffset];
@@ -146,7 +201,6 @@ namespace bdr
                     }
 
                     context->VSSetConstantBuffers(1, 1, &vertexCB.buffer);
-                    context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
                     context->DrawIndexed(mesh.numIndices, 0, 0);
                 }
             }
@@ -157,6 +211,8 @@ namespace bdr
         pass.destroy = [&]() {
             vertexCB.reset();
         };
+
+        return passId;
     }
 
     RenderSystem::~RenderSystem()
@@ -192,8 +248,9 @@ namespace bdr
         }
     }
 
-    void RenderSystem::init(Renderer* renderer)
+    void RenderSystem::init(Renderer* _renderer)
     {
+        renderer = _renderer;
         ID3D11Device* device = renderer->getDevice();
         for (const RenderPass& renderPass : renderPasses) {
             if (renderPass.setup) {
