@@ -21,11 +21,11 @@ namespace bdr
         return renderPass.renderObjectsManager.addRenderObject(renderObjectDesc.passId, renderObject);
     }
 
-    RenderObject& getRenderObject(RenderSystem& renderSystem, const RenderObjectHandle renderObjectHandle)
+    RenderObject& getRenderObject(RenderSystem& renderSystem, const RenderObjectHandle renderObjectId)
     {
-        RenderPassHandle passId = { uint8_t(renderObjectHandle.idx) };
+        RenderPassHandle passId = getRenderPassHandle(renderObjectId);
         RenderPass& pass = renderSystem.getPass(passId);
-        return pass.renderObjectsManager.getRenderObject(renderObjectHandle);
+        return pass.renderObjectsManager.getRenderObject(renderObjectId);
     }
 
     void bindTexture(
@@ -149,52 +149,60 @@ namespace bdr
             ASSERT(view.type == ViewType::Camera);
             ID3D11DeviceContext* context = renderer->getContext();
 
+            context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
             setConstants(renderer, view);
-            const auto& renderObjects = pass.renderObjectsManager.renderObjects;
-            for (size_t i = 0; i < renderObjects.size; ++i) {
-                const RenderObject& renderObject = renderObjects[i];
-                const uint32_t entityId = renderObject.entityId;
+            const auto& renderObjectsAoA = pass.renderObjectsManager.renderObjectsAoA;
+            for (size_t renderAoAIdx = 0; renderAoAIdx < renderObjectsAoA.size(); renderAoAIdx++) {
+                const PipelineHandle pipelineId = pass.renderObjectsManager.pipelineHandles[renderAoAIdx];
+                const PipelineState& pipelineState = renderer->pipelines[pipelineId];
+                const ResourceBindingLayout& layout = pipelineState.resourceLayout;
+                const ResourceBindingHeap& heap = renderer->bindingHeap;
 
-                const DrawConstants& drawConstants = registry.drawConstants[entityId];
-                const PipelineState& pipelineState = renderer->pipelines[renderObject.pipelineId];
-                const Mesh& mesh = renderer->meshes[renderObject.meshId];
-
-                ASSERT(mesh.inputLayoutHandle == pipelineState.inputLayout);
-                ID3D11Buffer* vbuffers[Mesh::maxAttrCount] = { nullptr };
-                collectBuffers(mesh, vbuffers);
-
-                context->OMSetDepthStencilState(pipelineState.depthStencilState, 0);
-                context->OMSetBlendState(pipelineState.blendState, nullptr, 0xFF);
-                context->RSSetState(pipelineState.rasterizerState);
-
-                // Set IAInputLayout
-                context->IASetVertexBuffers(0, mesh.numPresentAttr, vbuffers, mesh.strides, offsets);
-                context->IASetIndexBuffer(mesh.indexBuffer.buffer, mapFormatToDXGI(mesh.indexBuffer.format), 0);
-                context->IASetInputLayout(mesh.inputLayoutHandle);
+                const std::vector<RenderObject>& renderObjectList = renderObjectsAoA[renderAoAIdx];
 
                 // Set shaders
                 context->VSSetShader(pipelineState.vertexShader, nullptr, 0);
                 context->PSSetShader(pipelineState.pixelShader, nullptr, 0);
 
-                // Set constant buffers
-                vertexCB.copyToGPU(context, drawConstants);
+                context->OMSetDepthStencilState(pipelineState.depthStencilState, 0);
+                context->OMSetBlendState(pipelineState.blendState, nullptr, 0xFF);
+                context->RSSetState(pipelineState.rasterizerState);
 
-                // Set resources (textures, samplers)
-                if (hasResources(pipelineState)) {
-                    const ResourceBinder& binder = renderObject.resourceBinder;
-                    const ResourceBindingLayout& layout = pipelineState.resourceLayout;
-                    const ResourceBindingHeap& heap = renderer->bindingHeap;
+                context->IASetInputLayout(pipelineState.inputLayout);
 
-                    ID3D11ShaderResourceView* const* srvs = &heap.srvs[binder.readableBufferOffset];
-                    ID3D11SamplerState* const* samplers = &heap.samplers[binder.samplerOffset];
+                for (size_t i = 0; i < renderObjectList.size(); ++i) {
 
-                    context->PSSetShaderResources(0, layout.readableBufferCount, srvs);
-                    context->PSSetSamplers(0, layout.samplerCount, samplers);
+                    const RenderObject& renderObject = renderObjectList[i];
+                    const uint32_t entityId = renderObject.entityId;
 
+                    const DrawConstants& drawConstants = registry.drawConstants[entityId];
+                    const Mesh& mesh = renderer->meshes[renderObject.meshId];
+
+                    ASSERT(mesh.inputLayoutHandle == pipelineState.inputLayout);
+                    ID3D11Buffer* vbuffers[Mesh::maxAttrCount] = { nullptr };
+                    collectBuffers(mesh, vbuffers);
+
+                    context->IASetVertexBuffers(0, mesh.numPresentAttr, vbuffers, mesh.strides, offsets);
+                    context->IASetIndexBuffer(mesh.indexBuffer.buffer, mapFormatToDXGI(mesh.indexBuffer.format), 0);
+
+                    // Set constant buffers
+                    vertexCB.copyToGPU(context, drawConstants);
+
+                    // Set resources (textures, samplers)
+                    if (hasResources(pipelineState)) {
+                        const ResourceBinder& binder = renderObject.resourceBinder;
+
+                        ID3D11ShaderResourceView* const* srvs = &heap.srvs[binder.readableBufferOffset];
+                        ID3D11SamplerState* const* samplers = &heap.samplers[binder.samplerOffset];
+
+                        context->PSSetShaderResources(0, layout.readableBufferCount, srvs);
+                        context->PSSetSamplers(0, layout.samplerCount, samplers);
+                    }
+
+                    context->VSSetConstantBuffers(1, 1, &vertexCB.buffer);
+                    context->DrawIndexed(mesh.numIndices, 0, 0);
                 }
-                context->VSSetConstantBuffers(1, 1, &vertexCB.buffer);
-                context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-                context->DrawIndexed(mesh.numIndices, 0, 0);
             }
         };
         pass.tearDown = [](Renderer* renderer) {

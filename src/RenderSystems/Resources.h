@@ -8,11 +8,26 @@ namespace bdr
     struct RenderObjectHandle
     {
         // Composite id:
-        //   - first 24 bits are the index into the RenderPass' objects array
+        //   - first 24 bits are the index into the RenderPass' RenderObject AoA
         //   - last 8 bits are the passId
+        uint32_t renderAoAIdxPassId = UINT32_MAX;
         uint32_t idx = UINT32_MAX;
-        PipelineHandle pipelineId = INVALID_HANDLE;
     };
+
+    inline RenderPassHandle getRenderPassHandle(const RenderObjectHandle renderObjectId)
+    {
+        return { uint8_t(renderObjectId.renderAoAIdxPassId) };
+    }
+
+    inline uint32_t getRenderAoAIdx(const RenderObjectHandle renderObjectId)
+    {
+        return renderObjectId.renderAoAIdxPassId >> 8;
+    }
+
+    inline uint32_t getRenderListIdx(const RenderObjectHandle renderObjectId)
+    {
+        return renderObjectId.idx;
+    }
 
     struct RenderObjectDesc
     {

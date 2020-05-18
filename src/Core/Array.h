@@ -17,6 +17,14 @@ namespace bdr
             grow(startingCapacity);
         }
 
+        Array(const std::initializer_list<T>& list)
+        {
+            grow(list.size());
+            for (size_t i = 0; i < list.size(); i++) {
+                data[i] = list[i];
+            }
+        }
+
         ~Array()
         {
             Memory::release(data);
@@ -86,4 +94,14 @@ namespace bdr
         }
     };
 
+    template<typename T>
+    size_t findIndexOf(const Array<T>& array, const T& value)
+    {
+        for (size_t i = 0; i < array.size; i++) {
+            if (array[i] == value) {
+                return i;
+            }
+        }
+        return SIZE_MAX;
+    }
 }
