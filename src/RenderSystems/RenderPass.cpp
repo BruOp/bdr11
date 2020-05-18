@@ -9,9 +9,6 @@
 
 namespace bdr
 {
-
-
-
     RenderObjectHandle assignRenderObject(RenderSystem& renderSystem, const RenderObjectDesc renderObjectDesc)
     {
         RenderPass& renderPass = renderSystem.getPass(renderObjectDesc.passId);
@@ -42,7 +39,7 @@ namespace bdr
         Renderer* renderer = renderSystem.renderer;
         ResourceBinder& binder = renderObject.resourceBinder;
         ResourceBindingHeap& heap = renderer->bindingHeap;
-        const ResourceBindingLayout& layout = renderer->pipelines[renderObject.pipelineId].perDrawBindingLayout;
+        const ResourceBindingLayout& layout = renderer->pipelines[renderObject.pipelineId].resourceLayout;
         const Texture& texture = renderer->textures[textureHandle];
 
         ResourceBindingLayout::Slice& resourceView = layout.resourceMap.get(name + "_map");
@@ -182,17 +179,19 @@ namespace bdr
                 // Set constant buffers
                 vertexCB.copyToGPU(context, drawConstants);
 
-                // Set textures
-                const ResourceBinder& binder = renderObject.resourceBinder;
-                const ResourceBindingLayout& layout = pipelineState.perDrawBindingLayout;
-                const ResourceBindingHeap& heap = renderer->bindingHeap;
+                // Set resources (textures, samplers)
+                if (hasResources(pipelineState)) {
+                    const ResourceBinder& binder = renderObject.resourceBinder;
+                    const ResourceBindingLayout& layout = pipelineState.resourceLayout;
+                    const ResourceBindingHeap& heap = renderer->bindingHeap;
 
-                ID3D11ShaderResourceView* const* srvs = &heap.srvs[binder.readableBufferOffset];
-                ID3D11SamplerState* const* samplers = &heap.samplers[binder.samplerOffset];
+                    ID3D11ShaderResourceView* const* srvs = &heap.srvs[binder.readableBufferOffset];
+                    ID3D11SamplerState* const* samplers = &heap.samplers[binder.samplerOffset];
 
-                context->PSSetShaderResources(0, layout.readableBufferCount, srvs);
-                context->PSSetSamplers(0, layout.samplerCount, samplers);
+                    context->PSSetShaderResources(0, layout.readableBufferCount, srvs);
+                    context->PSSetSamplers(0, layout.samplerCount, samplers);
 
+                }
                 context->VSSetConstantBuffers(1, 1, &vertexCB.buffer);
                 context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
                 context->DrawIndexed(mesh.numIndices, 0, 0);

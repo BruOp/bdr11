@@ -262,10 +262,10 @@ namespace bdr
     )
     {
         // Count the number of per draw required resource
-        ResourceBindingLayoutDesc perDrawLayoutDesc = pipelineDefinition.perDrawRequiredResources;
+        ResourceBindingLayoutDesc layoutDesc = pipelineDefinition.requiredResources;
         uint32_t numResources = 0;
-        for (; numResources < perDrawLayoutDesc.maxResources; numResources++) {
-            if (perDrawLayoutDesc.resourceDescs[numResources].type == BoundResourceType::INVALID) {
+        for (; numResources < layoutDesc.maxResources; numResources++) {
+            if (layoutDesc.resourceDescs[numResources].type == BoundResourceType::INVALID) {
                 break;
             }
         }
@@ -276,11 +276,11 @@ namespace bdr
             const bool retrieved = pipelineDefinition.optionalResourceMap.get_in(shaderMacros[i].name, &view);
             if (retrieved) {
                 for (size_t i = 0; i < view.count; i++) {
-                    perDrawLayoutDesc.resourceDescs[numResources++] = pipelineDefinition.optionalResources.resourceDescs[view.offset + i];
+                    layoutDesc.resourceDescs[numResources++] = pipelineDefinition.optionalResources.resourceDescs[view.offset + i];
                 }
             }
         }
-        return  perDrawLayoutDesc;
+        return  layoutDesc;
     };
 
     PipelineHandle getOrCreatePipelineState(
@@ -306,7 +306,7 @@ namespace bdr
         // Else, create a new pipeline:
         PipelineState pipeline{ };
 
-        ResourceBindingLayoutDesc perDrawLayoutDesc = getPerDrawLayoutDesc(pipelineDefinition, shaderMacros, numMacros);
+        ResourceBindingLayoutDesc layoutDesc = getPerDrawLayoutDesc(pipelineDefinition, shaderMacros, numMacros);
 
         // 1. Create list of macros to pass to shader compilation
         // 2. Append optional resources to resource layout desc based on macros
@@ -345,7 +345,7 @@ namespace bdr
         // Resource Binding Layout
         // TODO: Views and Frames will own their resource binding layouts and resource binding objects,
         // but we'll use the layout descs defined here to validate that the constants will actually be available
-        pipeline.perDrawBindingLayout = createLayout(renderer, perDrawLayoutDesc);
+        pipeline.resourceLayout = createLayout(renderer, layoutDesc);
 
         // Need to get or create Input Layout
         pipeline.inputLayout = renderer.inputLayoutManager.getOrCreateInputLayout(pipelineDefinition.inputLayoutDesc);
@@ -369,7 +369,7 @@ namespace bdr
     {
         PipelineState& pipeline = renderer.pipelines[pipelineId];
         ResourceBindingHeap& heap = renderer.bindingHeap;
-        ResourceBindingLayout& layout = pipeline.perDrawBindingLayout;
+        ResourceBindingLayout& layout = pipeline.resourceLayout;
         ResourceBinder binder{  };
         binder.readableBufferOffset = heap.srvs.size();
         heap.srvs.resize(binder.readableBufferOffset + size_t(layout.readableBufferCount));

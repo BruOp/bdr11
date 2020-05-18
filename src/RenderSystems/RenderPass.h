@@ -54,10 +54,10 @@ namespace bdr
         RenderPassHandle id = {};
         // TODO Targets/Outputs
         // TODO Transient Inputs
-        std::function<void(Renderer* renderer)> setup;
-        std::function<void(Renderer* renderer)> render;
-        std::function<void(Renderer* renderer, const View& view)> renderView;
-        std::function<void(Renderer* renderer)> tearDown;
+        std::function<void(Renderer * renderer)> setup;
+        std::function<void(Renderer * renderer)> render;
+        std::function<void(Renderer * renderer, const View & view)> renderView;
+        std::function<void(Renderer * renderer)> tearDown;
         std::function<void()> destroy;
         std::wstring name = L"";
         std::vector<View*> views;
@@ -124,5 +124,11 @@ namespace bdr
 
     //RenderPassHandle addSkinningPass(RenderSystem& renderSystem, View* view);
     RenderPassHandle addMeshPass(RenderSystem& renderSystem, View* view);
+
+    inline bool hasResources(const PipelineState& pipeline)
+    {
+        const ResourceBindingLayout& layout = pipeline.resourceLayout;
+        return layout.readableBufferCount != 0 && layout.writableBufferCount != 0 && layout.samplerCount != 0;
+    };
 }
 

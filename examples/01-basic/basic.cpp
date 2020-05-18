@@ -53,6 +53,42 @@ class BasicExample : public bdr::BaseGame
         };
         initialize(appConfig);
 
+        float width = float(renderer.width);
+        float height = float(renderer.height);
+        BDRid cameraId = createPerspectiveCamera(scene, XM_PI / 4.0f, width, height, 0.1f, 100.0f);
+        Camera& camera = getCamera(scene, cameraId);
+
+        cameraController.pitch = XM_PIDIV4;
+        cameraController.yaw = XM_PIDIV4;
+        cameraController.radius = 3.0f;
+        cameraController.setCamera(&camera);
+
+        bdr::View& view = renderSystem.createNewView();
+        view.name = "Mesh View";
+        view.scene = &scene;
+        view.setCamera(&camera);
+        // Enable mesh pass
+        RenderPassHandle passId = addMeshPass(renderSystem, &view);
+        renderSystem.init(&renderer);
+
+        std::string shaderFilePath = "../examples/01-basic/basic_vertex_coloring.hlsl";
+        PipelineStateDefinition pipelineDefinition{
+            PipelineStage::VERTEX_PIXEL_STAGES,
+            InputLayoutDesc{
+                2u,
+                { MeshAttribute::POSITION, MeshAttribute::COLOR },
+                { BufferFormat::FLOAT_3, BufferFormat::UNORM8_4 },
+             },
+             // Depth, stencil and blend state are default initialized if left out.
+             // We don't have any resources we need to bind, so we omit these as well.
+        };
+        const PipelineStateDefinitionHandle pipelineDefId = registerPipelineStateDefinition(
+            renderer,
+            shaderFilePath,
+            std::move(pipelineDefinition)
+        );
+        PipelineHandle pipelineStateId = getOrCreatePipelineState(renderer, pipelineDefId, nullptr, 0);
+
         entity = createEntity(scene);
         Transform transform{};
 
@@ -69,40 +105,22 @@ class BasicExample : public bdr::BaseGame
         addAttribute(meshCreationInfo, cubePositions, BufferFormat::FLOAT_3, MeshAttribute::POSITION);
 
         MeshHandle meshHandle = createMesh(renderer, meshCreationInfo);
-        assignMesh(scene, entity, meshHandle);
 
+        RenderObjectDesc rod = {
+            entity,
+            passId,
+            meshHandle,
+            pipelineStateId,
+        };
+        RenderObjectHandle renderObjectId = assignRenderObject(renderSystem, rod);
 
-
-        float width = float(renderer.width);
-        float height = float(renderer.height);
-        BDRid cameraId = createPerspectiveCamera(scene, XM_PI / 4.0f, width, height, 0.1f, 100.0f);
-        Camera& camera = getCamera(scene, cameraId);
-
-        cameraController.pitch = XM_PIDIV4;
-        cameraController.yaw = XM_PIDIV4;
-        cameraController.radius = 3.0f;
-        cameraController.setCamera(&camera);
-
-        bdr::Slice& view = renderGraph.createNewView();
-        view.name = "Mesh View";
-        view.scene = &scene;
-        view.setCamera(&camera);
-        // Enable mesh pass
-        addMeshPass(renderGraph, &view);
-        renderGraph.init(&renderer);
     }
 
     virtual void tick(const float frameTime, const float totalTime) override
     {
-        // We want to be able to rotate the cube every tick
-        Transform& transform = scene.registry.transforms[entity];
-        // Will need to figure this out
-
-        //transform.rotation = Quaternion::CreateFromYawPitchRoll(sinf(totalTime), 0.0f, 0.0f);
         cameraController.update(keyboard->GetState(), mouse->GetState(), frameTime);
         updateMatrices(scene.registry);
         copyDrawData(scene.registry);
-        //prepare(scene);
     }
 
 private:

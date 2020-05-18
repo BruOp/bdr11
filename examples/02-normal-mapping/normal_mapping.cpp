@@ -147,8 +147,6 @@ class NormalMappingExample : public bdr::BaseGame
             },
             RasterStateDesc{ },
             BlendStateDesc{ },
-            { },
-            { },
             {
                 BoundResourceDesc{ "albedo_map", BoundResourceType::READABLE_BUFFER, PipelineStage::PIXEL_STAGE },
                 BoundResourceDesc{ "albedo_sampler", BoundResourceType::SAMPLER, PipelineStage::PIXEL_STAGE },
@@ -168,7 +166,6 @@ class NormalMappingExample : public bdr::BaseGame
 
         const ShaderMacro shaderMacros[] = { {"NORMAL_MAPPING"} };
         PipelineHandle pipelineStateId = getOrCreatePipelineState(renderer, normalMappingPipelineDefId, shaderMacros, 1);
-
 
         entity = createEntity(scene);
         Transform transform{};

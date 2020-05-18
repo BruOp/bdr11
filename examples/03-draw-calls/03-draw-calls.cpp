@@ -147,8 +147,6 @@ class NormalMappingExample : public bdr::BaseGame
             },
             RasterStateDesc{ },
             BlendStateDesc{ },
-            { },
-            { },
             {
                 BoundResourceDesc{ "albedo_map", BoundResourceType::READABLE_BUFFER, PipelineStage::PIXEL_STAGE },
                 BoundResourceDesc{ "albedo_sampler", BoundResourceType::SAMPLER, PipelineStage::PIXEL_STAGE },

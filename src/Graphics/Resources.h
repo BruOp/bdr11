@@ -246,21 +246,19 @@ namespace bdr
 
         PipelineStage stages;
         InputLayoutDesc inputLayoutDesc;
-        DepthStencilDesc depthStencilState;
-        RasterStateDesc rasterStateDesc;
-        BlendStateDesc blendState;
-        ResourceBindingLayoutDesc perFrameRequiredResources;
-        ResourceBindingLayoutDesc perViewRequiredResources;
-        ResourceBindingLayoutDesc perDrawRequiredResources;
+        DepthStencilDesc depthStencilState = {};
+        RasterStateDesc rasterStateDesc = {};
+        BlendStateDesc blendState = {};
+        ResourceBindingLayoutDesc requiredResources = {};
         ShaderMacro macros[16] = { };
-        ResourceBindingLayoutDesc optionalResources;
+        ResourceBindingLayoutDesc optionalResources = {};
         // The optionalResourceMap maps our shader macros by name to entries in our optionalResources' array of ResourceBindingDescs
         // So an entry like { "NORMAL_MAPPING", { 4, 2 } } tells us that if the NORMAL_MAPPING macro is provided, we must include
         // the optional resources defined from optionalResources[4] to optionalResources[6] in the Pipeline's per draw ResourceBindingLayout.
         // It's kind of clumsy, I know.
-        SimpleMap32<BindingMapView> optionalResourceMap;
+        SimpleMap32<BindingMapView> optionalResourceMap = {};
         // Don't pass this in
-        uint32_t shaderCodeId;
+        uint32_t shaderCodeId = UINT32_MAX;
     };
     struct PipelineStateDefinitionHandle { uint32_t idx; };
 
@@ -274,7 +272,7 @@ namespace bdr
         ID3D11DepthStencilState* depthStencilState = nullptr;
         ID3D11RasterizerState* rasterizerState = nullptr;
         ID3D11BlendState* blendState = nullptr;
-        ResourceBindingLayout perDrawBindingLayout;
+        ResourceBindingLayout resourceLayout;
     };
     RESOURCE_HANDLE(PipelineHandle);
 
